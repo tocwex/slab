@@ -8,6 +8,8 @@ A tool for launching and maintaining portal digital organizations (PDOs).
 nvm install 22
 nvm use 22
 npm install
+npx prisma db push
+npm run seed
 ```
 
 ## Build/Develop ##
