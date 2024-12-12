@@ -1,5 +1,6 @@
 "use client";
-import { useState, useEffect } from 'react';
+import type { Task } from '@prisma/client';
+import { FormEvent, useState, useEffect } from 'react';
 
 export default function Home() {
   const [tasks, setTasks] = useState([]);
@@ -26,8 +27,16 @@ export default function Home() {
   );
 };
 
-function TaskList({ tasks, onTaskUpdated, onTaskDeleted }) {
-  const handleUpdate = async (task) => {
+function TaskList({
+  tasks,
+  onTaskUpdated,
+  onTaskDeleted,
+}: {
+  tasks: Task[];
+  onTaskUpdated: () => void;
+  onTaskDeleted: () => void;
+}) {
+  const handleUpdate = async (task: Task) => {
     const updatedTitle = prompt('Update task title', task.title);
     if (updatedTitle === null) return;
     try {
@@ -46,7 +55,7 @@ function TaskList({ tasks, onTaskUpdated, onTaskDeleted }) {
       console.error('Error:', error);
     }
   };
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to delete this task?')) return;
     try {
       // const response = await fetch('/api/tasks/delete', {
@@ -81,7 +90,7 @@ function TaskList({ tasks, onTaskUpdated, onTaskDeleted }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-neutral-700">
-                {tasks.map((task) => (
+                {tasks.map((task: Task) => (
                   <tr key={task.id}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">{task.id}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">{task.title}</td>
@@ -113,10 +122,14 @@ function TaskList({ tasks, onTaskUpdated, onTaskDeleted }) {
   );
 }
 
-function AddTaskForm({ onTaskAdded }) {
+function AddTaskForm({
+  onTaskAdded,
+}: {
+  onTaskAdded: () => void;
+}) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const handleSubmit = async (event) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     try {
       const response = await fetch('/api/tasks', {

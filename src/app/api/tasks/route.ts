@@ -2,17 +2,18 @@
 import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(req, res) {
+// NOTE: This is Nextjs v13+ "route handler" syntax
+// https://nextjs.org/docs/app/building-your-application/routing/route-handlers
+
+export async function GET(req: Request): Promise<Response> {
   const tasks = await prisma.task.findMany();
-  // return res.status(200).json(tasks);
   return NextResponse.json(tasks, {status: 200});
 }
 
-export async function POST(req, res) {
+export async function POST(req: Request): Promise<Response> {
   const { title, description } = await req.json();
   const result = await prisma.task.create({
     data: { title, description },
   });
-  // return res.status(201).json({ id: result, title, description });
   return NextResponse.json(result, {status: 201});
 }
