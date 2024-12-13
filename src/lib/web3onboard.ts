@@ -1,3 +1,4 @@
+import type { CommonPositions } from '@web3-onboard/core/dist/types';
 import { init as web3Init } from '@web3-onboard/react';
 import wagmi from '@web3-onboard/wagmi'
 import injectedModule from '@web3-onboard/injected-wallets'
@@ -37,7 +38,7 @@ const web3onboardClientSingleton = () => (web3Init({
   accountCenter: (() => {
     const config = {
       enabled: true,
-      position: 'topRight',
+      position: ('topRight' as CommonPositions),
     };
     return {desktop: config, mobile: config};
   })(),

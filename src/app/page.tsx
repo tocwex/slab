@@ -4,27 +4,27 @@ import { FormEvent, useState, useEffect } from 'react';
 import { useConnectWallet, useWagmiConfig } from '@web3-onboard/react';
 import { signMessage } from '@web3-onboard/wagmi'
 
-export default function Home() {
+export default function Home(): React.ReactNode {
   const [{wallet, connecting}, connect, disconnect] = useConnectWallet();
-  const wagmiConfig = useWagmiConfig();
+  // const wagmiConfig = useWagmiConfig();
 
   return (
-    <div className="fixed top-0 left-0 h-screen w-screen flex">
-      <div className="w-full bg-black text-white flex flex-col items-center justify-center">
-        <div className="flex flex-col justify-center items-center">
-          <div className="font-bold">%slab</div>
-          <div className="font-medium pb-8">
-            Connect a web3 wallet holding an Urbit ID.
-          </div>
-          <button
-            disabled={connecting}
-            onClick={async () => (wallet ? disconnect(wallet) : connect())}
-            className="mb-8 w-[216px] flex items-center justify-center rounded-full border border-primary-color font-bold text-base-color text-[20px] h-[36px] bg-primary-color whitespace-nowrap hover:border-light-gray hover:bg-light-gray"
-          >
-            {connecting ? 'Connecting…' : (wallet ? 'Disconnect Wallet' : 'Connect Wallet')}
-          </button>
-        </div>
+    <div className="h-lvh flex flex-col justify-center items-center">
+      <div className="text-3xl font-bold">
+        %slab
       </div>
+      <div className="font-medium">
+        Your wallet has been connected.
+      </div>
+      <button
+        onClick={async () => (wallet ? disconnect(wallet) : connect())}
+        className={`
+          flex items-center justify-center mt-4 px-4 py-1.5 rounded-full
+          border border-white font-bold text-white whitespace-nowrap
+        `}
+      >
+        Disconnect Wallet
+      </button>
     </div>
   );
 }
