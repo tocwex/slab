@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useConnectWallet, useWagmiConfig } from '@web3-onboard/react';
 import { readContract } from '@web3-onboard/wagmi';
 import * as ob from "urbit-ob";
+import { delay } from '@/lib/util';
 import { CONTRACT } from '@/dat/const';
 
 // TODO: Add type for Urbit ID indicating clan type (i.e. galaxy, star, planet)
@@ -17,16 +18,32 @@ export function useUrbitIDs(): number[] | undefined {
     if (!address || !chainId || !wagmiConfig) {
       setUrbitIDs(undefined);
     } else {
-      readContract(wagmiConfig, {
-        abi: CONTRACT.AZIMUTH.ABI,
-        address: CONTRACT.AZIMUTH.ADDRESS.ETHEREUM,
-        functionName: "getOwnedPoints",
-        args: [address],
-      }).then((points: unknown) => {
-        setUrbitIDs((points as number[]));
-      }).catch((error) => {
-        // FIXME: Add retry capability here
-        setUrbitIDs([]);
+      const getOwnedPoints = async () => {
+        let result: number[] | undefined = undefined;
+        let error: Error | undefined = undefined;
+        let attempt: number = 1;
+        const maxAttempts: number = 3;
+
+        while (attempt++ < maxAttempts) {
+          try {
+            const attemptResult: unknown = await readContract(wagmiConfig, {
+              abi: CONTRACT.AZIMUTH.ABI,
+              address: CONTRACT.AZIMUTH.ADDRESS.ETHEREUM,
+              functionName: "getOwnedPoints",
+              args: [address],
+            });
+            result = (attemptResult as number[]);
+          } catch (attemptError: any) {
+            error = attemptError;
+            await delay(500);
+          }
+        }
+
+        if (!result) { console.log(error); }
+        return result;
+      };
+      getOwnedPoints().then((points: number[] | undefined) => {
+        setUrbitIDs(points);
       });
     }
   }, [wallet?.accounts?.[0]?.address, wallet?.chains?.[0]]);
