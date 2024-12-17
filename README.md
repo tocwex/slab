@@ -1,6 +1,7 @@
 # `%slab` #
 
-A tool for launching and maintaining portal digital organizations (PDOs).
+A tool for forming and managing portal digital organizations (PDOs), including
+multisig transactions and token launches.
 
 ## Install ##
 

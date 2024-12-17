@@ -1,8 +1,12 @@
 "use client";
-import { useCallback } from 'react';
-import { web3onboard } from '@/lib/web3onboard';
+import { useCallback, useMemo } from 'react';
 import { Web3OnboardProvider } from '@web3-onboard/react';
 import { useConnectWallet, useWagmiConfig } from '@web3-onboard/react';
+import { getAccount, readContract } from '@web3-onboard/wagmi';
+import * as ob from "urbit-ob";
+
+import { web3onboard } from '@/lib/web3onboard';
+import { useUrbitIDs } from '@/lib/wallet';
 
 export function UrbitIDProvider({
   children,
@@ -10,21 +14,28 @@ export function UrbitIDProvider({
   children: React.ReactNode;
 }>): React.ReactNode {
   const UrbitIDGate = useCallback(({
-    children
+    children,
   }: Readonly<{
     children: React.ReactNode;
   }>): React.ReactNode => {
     const [{wallet, connecting}, connect, disconnect] = useConnectWallet();
+    const urbitIDs = useUrbitIDs();
+    const isUrbitProvider: boolean = useMemo(() => (
+      !connecting && !!wallet && !!urbitIDs && urbitIDs.length > 0
+    ), [wallet, urbitIDs]);
 
     return (
       <div className="w-full flex flex-col justify-center items-center">
-        {!!wallet ? children : (
-          <div className="h-lvh flex flex-col justify-center items-center">
-            <h1 className="text-3xl font-bold">
+        {isUrbitProvider ? children : (
+          <div className="h-lvh flex flex-col gap-4 justify-center items-center">
+            <h1 className="text-4xl font-bold underline">
               %slab
             </h1>
             <h4 className="font-medium">
-              Connect a Web3 wallet holding an Urbit ID to continue.
+              {!urbitIDs
+                ? "Connect a Web3 wallet holding an Urbit ID to continue."
+                : "Web3 wallet doesn't contain an Urbit ID; please connect another."
+              }
             </h4>
             <button
               disabled={connecting}
@@ -35,10 +46,10 @@ export function UrbitIDProvider({
               `}
             >
               {connecting
-                ? 'Connecting…'
+                ? "Connecting…"
                 : (wallet
-                  ? 'Disconnect Wallet'
-                  : 'Connect Wallet'
+                  ? "Disconnect Wallet"
+                  : "Connect Wallet"
                 )
               }
             </button>

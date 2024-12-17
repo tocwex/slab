@@ -1,21 +1,32 @@
 "use client";
 import type { Task } from '@prisma/client';
-import { FormEvent, useState, useEffect } from 'react';
+import type { Metadata } from "next";
+import { FormEvent, useState, useEffect, useMemo } from 'react';
 import { useConnectWallet, useWagmiConfig } from '@web3-onboard/react';
-import { signMessage } from '@web3-onboard/wagmi'
+import { getAccount, getBalance, readContract, signMessage } from '@web3-onboard/wagmi';
+import { useUrbitIDs } from '@/lib/wallet';
 
 export default function Home(): React.ReactNode {
   const [{wallet, connecting}, connect, disconnect] = useConnectWallet();
   // const wagmiConfig = useWagmiConfig();
+  const urbitIDs = useUrbitIDs();
+  const address = useMemo(() => (wallet?.accounts?.[0]?.address), [wallet]);
 
   return (
-    <div className="h-lvh flex flex-col justify-center items-center">
-      <div className="text-3xl font-bold">
+    <div className="h-lvh flex flex-col gap-4 justify-center items-center">
+      <h1 className="text-4xl font-bold underline">
         %slab
-      </div>
-      <div className="font-medium">
-        Your wallet has been connected.
-      </div>
+      </h1>
+      <ul>
+        <li>
+          <span className="font-bold">Address: </span>
+          <code>{!!address ? address : "loading…"}</code>
+        </li>
+        <li>
+          <span className="font-bold">Urbit IDs: </span>
+          <code>{!!urbitIDs ? urbitIDs : "loading…"}</code>
+        </li>
+      </ul>
       <button
         onClick={async () => (wallet ? disconnect(wallet) : connect())}
         className={`

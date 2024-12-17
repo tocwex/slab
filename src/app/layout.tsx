@@ -2,23 +2,16 @@ import type { Metadata } from "next";
 import { UrbitIDProvider } from '@/cmp/UrbitIDProvider';
 import localFont from "next/font/local";
 import "./globals.css";
+import "./fonts.css";
 
-// TODO: Use "Urbit Sans" (or an approved app font) here
-//
-// const geistSans = localFont({
-//   src: "./fonts/GeistVF.woff",
-//   variable: "--font-geist-sans",
-//   weight: "100 900",
-// });
-// const geistMono = localFont({
-//   src: "./fonts/GeistMonoVF.woff",
-//   variable: "--font-geist-mono",
-//   weight: "100 900",
-// });
-
+// https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadata-fields
 export const metadata: Metadata = {
   title: '%slab',
-  description: 'A tool for launching and maintaining portal digital organizations (PDOs).',
+  // title: {
+  //   default: "%slab",
+  //   template: "%slab - %s"
+  // },
+  description: "A tool for launching and maintaining portal digital organizations (PDOs).",
 };
 
 export default function RootLayout({
@@ -30,7 +23,7 @@ export default function RootLayout({
   // it just be removed?
   return (
     <html lang="en-US">
-      <body className="bg-black text-white antialiased">
+      <body className="bg-black text-white font-sans antialiased">
         <UrbitIDProvider>
           {children}
         </UrbitIDProvider>
