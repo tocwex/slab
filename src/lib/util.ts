@@ -25,6 +25,6 @@ export function rateLimit(maxRequests: number, perSeconds: number): (func: any) 
   };
 }
 
-// export function wrapRetry(maxRetries: number): number {
-//   return 1;
-// }
+export function trimAddress(address: string): string {
+  return `${address.slice(0, 5)}…${address.slice(-4)}`;
+}

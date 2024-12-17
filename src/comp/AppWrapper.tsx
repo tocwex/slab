@@ -6,9 +6,10 @@ import { useConnectWallet, useWagmiConfig } from '@web3-onboard/react';
 import { getAccount, readContract } from '@web3-onboard/wagmi';
 import * as ob from "urbit-ob";
 
+import { useUrbitIDs } from '@/lib/wallet';
+import { trimAddress } from '@/lib/util';
 import { web3onboard } from '@/dat/web3onboard';
 import { react_query } from '@/dat/react-query';
-import { useUrbitIDs } from '@/lib/wallet';
 
 export function AppWrapper({
   children,
@@ -24,7 +25,10 @@ export function AppWrapper({
     const urbitIDs = useUrbitIDs();
     const isUrbitProvider: boolean = useMemo(() => (
       !connecting && !!wallet && !!urbitIDs && urbitIDs.length > 0
-    ), [wallet, urbitIDs]);
+    ), [connecting, wallet, urbitIDs]);
+    const address: string | undefined = useMemo(() => (
+      trimAddress(wallet?.accounts?.[0]?.address ?? "")
+    ), [wallet]);
 
     return (
       <div className="w-full flex flex-col justify-center items-center">
@@ -34,9 +38,13 @@ export function AppWrapper({
               %slab
             </h1>
             <h4 className="font-medium">
-              {!urbitIDs
-                ? "Connect a Web3 wallet holding an Urbit ID to continue."
-                : "Web3 wallet doesn't contain an Urbit ID; please connect another."
+              {(!wallet) ? (
+                "Connect a Web3 wallet holding an Urbit ID to continue."
+              ) : (connecting || urbitIDs === undefined) ? (
+                "…loading…"
+              ) : (urbitIDs === null) ? (
+                `Unable to fetch Web3 wallet details for ${address}; please try again.`
+              ) : `Web3 wallet ${address} doesn't contain an Urbit ID; please connect another.`
               }
             </h4>
             <button

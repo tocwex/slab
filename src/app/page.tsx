@@ -17,20 +17,15 @@ export default function Home(): React.ReactNode {
       <h1 className="text-4xl font-bold underline">
         %slab
       </h1>
-      <ul>
+      <ul className="list-disc">
         <li>
           <span className="font-bold">Address: </span>
-          <code>{!!address ? address : "loading…"}</code>
+          <code>{(address ?? "")}</code>
         </li>
         <li>
           <span className="font-bold">Urbit IDs: </span>
           <code>
-            {(urbitIDs === undefined) ? (
-              "loading…"
-            ) : (urbitIDs === null) ? (
-              "failed to fetch"
-            ) : urbitIDs.map((uid) => uid.patp).join(" ")
-            }
+            {(urbitIDs ?? []).map((uid) => uid.patp).join(" ")}
           </code>
         </li>
       </ul>
