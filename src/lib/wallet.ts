@@ -1,52 +1,48 @@
-import { useState, useEffect } from 'react';
+import type { UrbitID } from '@/type/urbit';
+import type { Config as WagmiConfig } from '@wagmi/core';
+
+import { useMemo } from 'react';
+import { QueryKey, useQuery } from '@tanstack/react-query';
 import { useConnectWallet, useWagmiConfig } from '@web3-onboard/react';
 import { readContract } from '@web3-onboard/wagmi';
 import * as ob from "urbit-ob";
+
 import { delay } from '@/lib/util';
-import { CONTRACT } from '@/dat/const';
+import { APP, CONTRACT } from '@/dat/const';
 
-// TODO: Add type for Urbit ID indicating clan type (i.e. galaxy, star, planet)
-export function useUrbitIDs(): number[] | undefined {
-  const [urbitIDs, setUrbitIDs] = useState<number[] | undefined>(undefined);
-
+export function useUrbitIDs(): UrbitID[] | null | undefined {
   const [{wallet, connecting}, connect, disconnect] = useConnectWallet();
   const wagmiConfig = useWagmiConfig();
+  const queryKey: QueryKey = useMemo(() => [
+    APP.TAG, "urbit-ids", wallet?.chains?.[0]?.id, wallet?.accounts?.[0]?.address,
+  ], [wallet]);
 
-  useEffect(() => {
-    const address = wallet?.accounts?.[0]?.address;
-    const chainId = wallet?.chains?.[0]?.id;
-    if (!address || !chainId || !wagmiConfig) {
-      setUrbitIDs(undefined);
-    } else {
-      const getOwnedPoints = async () => {
-        let result: number[] | undefined = undefined;
-        let error: Error | undefined = undefined;
-        let attempt: number = 1;
-        const maxAttempts: number = 3;
-
-        while (attempt++ < maxAttempts) {
-          try {
-            const attemptResult: unknown = await readContract(wagmiConfig, {
-              abi: CONTRACT.AZIMUTH.ABI,
-              address: CONTRACT.AZIMUTH.ADDRESS.ETHEREUM,
-              functionName: "getOwnedPoints",
-              args: [address],
-            });
-            result = (attemptResult as number[]);
-          } catch (attemptError: any) {
-            error = attemptError;
-            await delay(500);
-          }
-        }
-
-        if (!result) { console.log(error); }
-        return result;
-      };
-      getOwnedPoints().then((points: number[] | undefined) => {
-        setUrbitIDs(points);
+  const { data, isLoading, isError } = useQuery({
+    queryKey: queryKey,
+    queryFn: async () => {
+      const chainId: string = (queryKey[2] as string);
+      const address: string = (queryKey[3] as string);
+      console.log(`querying ${chainId}:${address}`);
+      const points = await readContract((wagmiConfig as WagmiConfig), {
+        abi: CONTRACT.AZIMUTH.ABI,
+        address: CONTRACT.AZIMUTH.ADDRESS.ETHEREUM,
+        // address: CONTRACT.AZIMUTH.ADDRESS.SEPOLIA,
+        functionName: "getOwnedPoints",
+        args: [address],
       });
-    }
-  }, [wallet?.accounts?.[0]?.address, wallet?.chains?.[0]]);
+      return (points as number[]).map((id: number): UrbitID => ({
+        id,
+        patp: ob.patp(id),
+        clan: ob.clan(ob.patp(id)),
+      }));
+    },
+    enabled: !!(queryKey[2]) && !!(queryKey[3]) && !!wagmiConfig,
+    staleTime: 10 * 60 * 1000,
+    retryOnMount: false,
+    refetchOnMount: false,
+  });
 
-  return urbitIDs;
+  return isLoading ? undefined
+    : isError ? null
+    : (data as UrbitID[]);
 }

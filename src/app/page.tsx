@@ -24,7 +24,14 @@ export default function Home(): React.ReactNode {
         </li>
         <li>
           <span className="font-bold">Urbit IDs: </span>
-          <code>{!!urbitIDs ? urbitIDs : "loading…"}</code>
+          <code>
+            {(urbitIDs === undefined) ? (
+              "loading…"
+            ) : (urbitIDs === null) ? (
+              "failed to fetch"
+            ) : urbitIDs.map((uid) => uid.patp).join(" ")
+            }
+          </code>
         </li>
       </ul>
       <button

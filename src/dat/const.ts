@@ -1,10 +1,10 @@
 import AZIMUTH_CONTRACT from "./contract/azimuth.json";
 import ECLIPTIC_CONTRACT from "./contract/ecliptic.json";
 
-// export const APP = Object.freeze({
-//   NAME: "%slab",
-//   DEBUG: import.meta.env.MODE === "development",
-// });
+export const APP = Object.freeze({
+  TAG: "%slab",
+  DEBUG: process.env.NODE_ENV !== "production",
+});
 
 export const BLOCKCHAIN = Object.freeze({
   ID: Object.freeze({

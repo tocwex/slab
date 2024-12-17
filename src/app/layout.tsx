@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { UrbitIDProvider } from '@/cmp/UrbitIDProvider';
-import localFont from "next/font/local";
+import { AppWrapper } from '@/comp/AppWrapper';
 import "./globals.css";
 import "./fonts.css";
 
@@ -24,9 +23,9 @@ export default function RootLayout({
   return (
     <html lang="en-US">
       <body className="bg-black text-white font-sans antialiased">
-        <UrbitIDProvider>
+        <AppWrapper>
           {children}
-        </UrbitIDProvider>
+        </AppWrapper>
       </body>
     </html>
   );

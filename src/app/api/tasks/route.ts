@@ -1,5 +1,5 @@
 "use server";
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/dat/prisma';
 import { NextRequest, NextResponse } from "next/server";
 
 // NOTE: This is Nextjs v13+ "route handler" syntax

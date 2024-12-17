@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@prisma/client": "^6.0.1",
+    "@tanstack/react-query": "^5.62.8",
     "@wagmi/core": "^2.10.4",
     "@web3-onboard/injected-wallets": "^2.11.2",
     "@web3-onboard/react": "^2.10.0",

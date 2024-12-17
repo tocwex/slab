@@ -2,7 +2,7 @@ import type { CommonPositions } from '@web3-onboard/core/dist/types';
 import { init as web3Init } from '@web3-onboard/react';
 import wagmi from '@web3-onboard/wagmi'
 import injectedModule from '@web3-onboard/injected-wallets'
-import { BLOCKCHAIN } from '@/dat/const';
+import { APP, BLOCKCHAIN } from '@/dat/const';
 
 const web3onboardClientSingleton = () => (web3Init({
   wallets: [
@@ -58,4 +58,4 @@ declare const globalThis: {
 
 export const web3onboard = globalThis.web3onboardGlobal ?? web3onboardClientSingleton();
 
-if (process.env.NODE_ENV !== "production") globalThis.web3onboardGlobal = web3onboard;
+if (APP.DEBUG) globalThis.web3onboardGlobal = web3onboard;

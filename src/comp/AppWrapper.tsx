@@ -1,14 +1,16 @@
 "use client";
 import { useCallback, useMemo } from 'react';
+import { QueryClientProvider } from '@tanstack/react-query'
 import { Web3OnboardProvider } from '@web3-onboard/react';
 import { useConnectWallet, useWagmiConfig } from '@web3-onboard/react';
 import { getAccount, readContract } from '@web3-onboard/wagmi';
 import * as ob from "urbit-ob";
 
-import { web3onboard } from '@/lib/web3onboard';
+import { web3onboard } from '@/dat/web3onboard';
+import { react_query } from '@/dat/react-query';
 import { useUrbitIDs } from '@/lib/wallet';
 
-export function UrbitIDProvider({
+export function AppWrapper({
   children,
 }: Readonly<{
   children: React.ReactNode;
@@ -60,8 +62,12 @@ export function UrbitIDProvider({
   }, []);
 
   return (
-    <Web3OnboardProvider web3Onboard={web3onboard}>
-      <UrbitIDGate children={children} />
-    </Web3OnboardProvider>
+    <QueryClientProvider client={react_query}>
+      <Web3OnboardProvider web3Onboard={web3onboard}>
+        <UrbitIDGate>
+          {children}
+        </UrbitIDGate>
+      </Web3OnboardProvider>
+    </QueryClientProvider>
   );
 }
