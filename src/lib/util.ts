@@ -1,3 +1,6 @@
+import type { UrbitID, UrbitClan } from '@/type/urbit';
+import * as ob from "urbit-ob";
+
 export function delay(milliseconds: number): Promise<void> {
   return new Promise(res => setTimeout(res, milliseconds));
 }
@@ -27,4 +30,18 @@ export function rateLimit(maxRequests: number, perSeconds: number): (func: any) 
 
 export function trimAddress(address: string): string {
   return `${address.slice(0, 5)}…${address.slice(-4)}`;
+}
+
+export function formUrbitID(value: number | string): UrbitID {
+  let [id, patp, clan]: [string, string, UrbitClan] = ["", "", "comet"];
+  if (typeof value === "number" || !isNaN((value as unknown as number))) {
+    id = String(value);
+    patp = ob.patp(id);
+    clan = ob.clan(patp);
+  } else if (ob.isValidPatp(value)) { // typeof value === "string"
+    patp = value;
+    id = String(ob.patp2dec(value));
+    clan = ob.clan(patp);
+  }
+  return ({id, patp, clan});
 }

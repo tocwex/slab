@@ -2,10 +2,7 @@
 import { useCallback, useMemo } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query'
 import { Web3OnboardProvider } from '@web3-onboard/react';
-import { useConnectWallet, useWagmiConfig } from '@web3-onboard/react';
-import { getAccount, readContract } from '@web3-onboard/wagmi';
-import * as ob from "urbit-ob";
-
+import { useConnectWallet } from '@web3-onboard/react';
 import { useUrbitIDs } from '@/lib/wallet';
 import { trimAddress } from '@/lib/util';
 import { web3onboard } from '@/dat/web3onboard';
@@ -23,6 +20,7 @@ export function AppWrapper({
   }>): React.ReactNode => {
     const [{wallet, connecting}, connect, disconnect] = useConnectWallet();
     const urbitIDs = useUrbitIDs();
+
     const isUrbitProvider: boolean = useMemo(() => (
       !connecting && !!wallet && !!urbitIDs && urbitIDs.length > 0
     ), [connecting, wallet, urbitIDs]);
@@ -33,27 +31,37 @@ export function AppWrapper({
     return (
       <div className="w-full flex flex-col justify-center items-center">
         {isUrbitProvider ? children : (
-          <div className="h-lvh flex flex-col gap-4 justify-center items-center">
+          <div className="h-lvh main">
             <h1 className="text-4xl font-bold underline">
               %slab
             </h1>
             <h4 className="font-medium">
               {(!wallet) ? (
-                "Connect a Web3 wallet holding an Urbit ID to continue."
+                <span>
+                  Connect a Web3 wallet holding an Urbit ID to continue.
+                </span>
               ) : (connecting || urbitIDs === undefined) ? (
-                "…loading…"
+                <span>
+                  …loading…
+                </span>
               ) : (urbitIDs === null) ? (
-                `Unable to fetch Web3 wallet details for ${address}; please try again.`
-              ) : `Web3 wallet ${address} doesn't contain an Urbit ID; please connect another.`
-              }
+                <>
+                  <span>Unable to fetch Web3 wallet details for </span>
+                  <code className="font-bold">{address}</code>
+                  <span>; please try again.</span>
+                </>
+              ) : (
+                <>
+                  <span>Web3 wallet </span>
+                  <code className="font-semibold">{address}</code>
+                  <span> doesn't contain an Urbit ID; please connect another.</span>
+                </>
+              )}
             </h4>
             <button
               disabled={connecting}
               onClick={async () => (wallet ? disconnect(wallet) : connect())}
-              className={`
-                flex items-center justify-center mt-4 px-4 py-1.5 rounded-full
-                border border-white font-bold text-white whitespace-nowrap
-              `}
+              className="mt-4 button-lg"
             >
               {connecting
                 ? "Connecting…"
