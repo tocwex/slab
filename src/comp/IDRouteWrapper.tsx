@@ -1,5 +1,5 @@
 "use client";
-import type { UrbitID } from "@/type/urbit";
+import type { UrbitID } from "@/type/slab";
 import { useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useConnectWallet } from '@web3-onboard/react';

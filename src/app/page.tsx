@@ -1,6 +1,6 @@
 "use client";
 import type { Task } from '@prisma/client';
-import type { UrbitID } from "@/type/urbit";
+import type { UrbitID } from "@/type/slab";
 import { FormEvent, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUrbitIDs } from '@/hook/wallet';

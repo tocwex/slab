@@ -1,4 +1,4 @@
-import type { UrbitID, UrbitClan } from '@/type/urbit';
+import type { UrbitID, UrbitClan } from '@/type/slab';
 import * as ob from "urbit-ob";
 
 export function delay(milliseconds: number): Promise<void> {

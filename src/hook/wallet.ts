@@ -1,5 +1,5 @@
 import type { Config as WagmiConfig } from '@wagmi/core';
-import type { UrbitID } from '@/type/urbit';
+import type { Loadable, UrbitID } from '@/type/slab';
 
 import { useMemo } from 'react';
 import { QueryKey, useQuery } from '@tanstack/react-query';
@@ -9,7 +9,7 @@ import { readContract } from '@web3-onboard/wagmi';
 import { formUrbitID } from '@/lib/util';
 import { APP, CONTRACT } from '@/dat/const';
 
-export function useUrbitIDs(): UrbitID[] | null | undefined {
+export function useUrbitIDs(): Loadable<UrbitID[]> {
   const [{wallet}, _, __] = useConnectWallet();
   const wagmiConfig = useWagmiConfig();
   const queryKey: QueryKey = useMemo(() => [
@@ -23,8 +23,8 @@ export function useUrbitIDs(): UrbitID[] | null | undefined {
       const address: string = (queryKey[3] as string);
       const points = await readContract((wagmiConfig as WagmiConfig), {
         abi: CONTRACT.AZIMUTH.ABI,
-        address: CONTRACT.AZIMUTH.ADDRESS.ETHEREUM,
-        // address: CONTRACT.AZIMUTH.ADDRESS.SEPOLIA,
+        // address: CONTRACT.AZIMUTH.ADDRESS.ETHEREUM,
+        address: CONTRACT.AZIMUTH.ADDRESS.SEPOLIA,
         functionName: "getOwnedPoints",
         args: [address],
       });

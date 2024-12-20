@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { AppWrapper } from '@/comp/AppWrapper';
 import "./globals.css";
 import "./fonts.css";
@@ -20,9 +21,9 @@ export default function RootLayout({
     <html lang="en-US">
       <body className="bg-black relative text-white font-sans antialiased">
         <div className="absolute top-4 left-4">
-          <a href="/" className="button-lg">
+          <Link href="/" className="button-lg">
             HOME
-          </a>
+          </Link>
         </div>
         <div className="max-w-3xl mx-auto">
           <AppWrapper>
