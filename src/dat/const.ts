@@ -21,6 +21,13 @@ export const BLOCKCHAIN = Object.freeze({
   }),
 });
 
+export const ACCOUNT = Object.freeze({
+  NULL: Object.freeze({
+    ETHEREUM: "0x0000000000000000000000000000000000000000",
+    SEPOLIA: "0x0000000000000000000000000000000000000000",
+  }),
+});
+
 export const CONTRACT = Object.freeze({
   AZIMUTH: Object.freeze({
     ADDRESS: Object.freeze({

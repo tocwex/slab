@@ -1,9 +1,9 @@
 "use client";
 import type { UrbitID } from "@/type/urbit";
-import { useCallback, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useConnectWallet } from '@web3-onboard/react';
-import { useUrbitIDs } from '@/lib/wallet';
+import { useUrbitIDs } from '@/hook/wallet';
 import { trimAddress, formUrbitID } from '@/lib/util';
 
 export function IDRouteWrapper({
@@ -25,6 +25,8 @@ export function IDRouteWrapper({
   const isRouteIDHolder: boolean = useMemo(() => (
     (urbitIDs ?? []).map(({id}) => id).includes(routeID.id)
   ), [routeID, urbitIDs]);
+
+  // TODO: Consider auto-redirecting to index when wallet is disconnected
 
   return !routeID.id ? (
     <div className="h-lvh main">

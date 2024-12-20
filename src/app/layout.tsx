@@ -18,10 +18,17 @@ export default function RootLayout({
   // it just be removed?
   return (
     <html lang="en-US">
-      <body className="bg-black text-white font-sans max-w-3xl mx-auto antialiased">
-        <AppWrapper>
-          {children}
-        </AppWrapper>
+      <body className="bg-black relative text-white font-sans antialiased">
+        <div className="absolute top-4 left-4">
+          <a href="/" className="button-lg">
+            HOME
+          </a>
+        </div>
+        <div className="max-w-3xl mx-auto">
+          <AppWrapper>
+            {children}
+          </AppWrapper>
+        </div>
       </body>
     </html>
   );

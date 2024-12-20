@@ -3,7 +3,7 @@ import { useCallback, useMemo } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query'
 import { Web3OnboardProvider } from '@web3-onboard/react';
 import { useConnectWallet } from '@web3-onboard/react';
-import { useUrbitIDs } from '@/lib/wallet';
+import { useUrbitIDs } from '@/hook/wallet';
 import { trimAddress } from '@/lib/util';
 import { web3onboard } from '@/dat/web3onboard';
 import { react_query } from '@/dat/react-query';

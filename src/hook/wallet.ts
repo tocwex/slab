@@ -1,5 +1,5 @@
-import type { UrbitID } from '@/type/urbit';
 import type { Config as WagmiConfig } from '@wagmi/core';
+import type { UrbitID } from '@/type/urbit';
 
 import { useMemo } from 'react';
 import { QueryKey, useQuery } from '@tanstack/react-query';

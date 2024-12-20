@@ -3,7 +3,7 @@ import type { Task } from '@prisma/client';
 import type { UrbitID } from "@/type/urbit";
 import { FormEvent, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUrbitIDs } from '@/lib/wallet';
+import { useUrbitIDs } from '@/hook/wallet';
 
 export default function Home(): React.ReactNode {
   const router = useRouter()
