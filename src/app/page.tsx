@@ -21,7 +21,7 @@ export default function Home(): React.ReactNode {
       <h1 className="text-4xl font-bold underline">
         %slab
       </h1>
-      <select onChange={gotoUrbitID} className="select-lg">
+      <select onChange={gotoUrbitID} className="input-lg">
         <option key="" value="">
           Select Urbit ID
         </option>

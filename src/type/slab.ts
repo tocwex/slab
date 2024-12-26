@@ -9,7 +9,23 @@ export interface UrbitID {
   clan: UrbitClan;
 }
 
+export interface Token {
+  name: string;
+  symbol: string;
+  decimals: number;
+}
+
+export interface TokenHolding {
+  token: Token;
+  balance: number; // TODO: BigNumber?
+}
+
+export type TokenHoldings = {
+  [symbol: string]: TokenHolding;
+};
+
 export interface TokenboundAccount {
   address: Address;
   deployed: boolean;
+  holdings: TokenHoldings;
 }

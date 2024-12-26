@@ -1,5 +1,6 @@
 import AZIMUTH_CONTRACT from "./contract/azimuth.json";
 import ECLIPTIC_CONTRACT from "./contract/ecliptic.json";
+import USDC_CONTRACT from "./contract/usdc.json";
 
 export const APP = Object.freeze({
   TAG: "%slab",
@@ -42,5 +43,26 @@ export const CONTRACT = Object.freeze({
       SEPOLIA: "0xf81109BE13862261234c24659aF412Fe70a683e4",
     }),
     ABI: ECLIPTIC_CONTRACT.abi,
+  }),
+  USDC: Object.freeze({
+    ADDRESS: Object.freeze({
+      ETHEREUM: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      SEPOLIA: "0xB962E45F33814833744b8a102C7C626a98B32e38",
+    }),
+    NAME: "USD Coin",
+    SYMBOL: "USDC",
+    DECIMALS: 6,
+    ABI: USDC_CONTRACT,
+  }),
+});
+
+// FIXME: These expressions need a lot of work; see more information here:
+// https://github.com/urbit/urbit-ob/blob/master/src/internal/co.js
+export const REGEX = Object.freeze({
+  AZIMUTH: Object.freeze({
+    GALAXY: "~[a-z]{3}",
+    STAR: "~[a-z]{6}",
+    PLANET: "~[a-z]{6}-[a-z]{6}",
+    POINT: "~(([a-z]{3})|([a-z]{6}(-[a-z]{6}){0,3})|([a-z]{6}(-[a-z]{6}){3})--([a-z]{6}(-[a-z]{6}){3}))",
   }),
 });

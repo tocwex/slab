@@ -1,13 +1,73 @@
 import type { QueryKey, UseMutationOptions } from '@tanstack/react-query';
 import type { Config as WagmiConfig } from '@wagmi/core';
-import type { Address, Loadable, UrbitID, TokenboundAccount } from '@/type/slab';
+import type {
+  Address, Loadable, UrbitID,
+  Token, TokenHolding, TokenHoldings, TokenboundAccount,
+} from '@/type/slab';
 import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useConnectWallet, useWagmiConfig } from '@web3-onboard/react';
-import { getWalletClient, waitForTransactionReceipt } from '@web3-onboard/wagmi';
+import { getWalletClient, getBalance, waitForTransactionReceipt } from '@web3-onboard/wagmi';
 import { TokenboundClient } from '@tokenbound/sdk';
-import { hexToNumber } from 'viem';
+import { formatUnits, hexToNumber } from 'viem';
+import { formUrbitID } from '@/lib/util';
 import { APP, ACCOUNT, CONTRACT } from '@/dat/const';
+
+export function useTokenboundSendMutation(
+  urbitID: UrbitID,
+  options?: UseMutationOptions<Address, unknown, any, unknown>,
+) {
+  const [{wallet}, _, __] = useConnectWallet();
+  const wagmiConfig = useWagmiConfig();
+  const tbClient = useTokenboundClient();
+  const tbAccount = useTokenboundAccount(urbitID);
+  const queryKey: QueryKey = useMemo(() => [
+    APP.TAG, "tokenbound", "account", wallet?.chains?.[0]?.id, urbitID.id,
+  ], [wallet, urbitID.id]);
+
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({token, recipient, amount}: {
+      token: string,
+      recipient: string,
+      amount: number,
+    }) => {
+      if (!tbClient) throw Error("TokenboundClient unavailable");
+      if (!wagmiConfig) throw Error("TokenboundClient unavailable");
+      const address: Address = await tbClient.getAccount({
+        // tokenContract: CONTRACT.ECLIPTIC.ADDRESS.ETHEREUM,
+        tokenContract: CONTRACT.ECLIPTIC.ADDRESS.SEPOLIA,
+        tokenId: formUrbitID(recipient).id,
+      });
+      const txHash = await (token === "ETH") ? tbClient.transferETH({
+        account: tbAccount.address,
+        amount: amount,
+        recipientAddress: address,
+      }) : tbClient.transferERC20({
+        account: tbAccount.address,
+        amount: amount,
+        recipientAddress: address,
+        erc20tokenAddress: CONTRACT[token].ADDRESS.SEPOLIA,
+        erc20tokenDecimals: CONTRACT[token].DECIMALS,
+      });
+      // FIXME: This doesn't really seem to work, but it hasn't been tested
+      // very thoroughly
+      const txReceipt = await waitForTransactionReceipt(wagmiConfig, {hash: txHash});
+      return txReceipt;
+    },
+    onMutate: async (variables) => {
+      await queryClient.cancelQueries({ queryKey: queryKey });
+      return await queryClient.getQueryData(queryKey);
+    },
+    onError: (err, variables, oldData) => {
+      queryClient.setQueryData(queryKey, oldData)
+    },
+    onSettled: (_data, _error, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKey })
+    },
+    ...options,
+  });
+}
 
 export function useTokenboundCreateMutation(
   urbitID: UrbitID,
@@ -16,7 +76,6 @@ export function useTokenboundCreateMutation(
   const [{wallet}, _, __] = useConnectWallet();
   const wagmiConfig = useWagmiConfig();
   const tbClient = useTokenboundClient();
-  const tbAccount = useTokenboundAccount(urbitID);
   const queryKey: QueryKey = useMemo(() => [
     APP.TAG, "tokenbound", "account", wallet?.chains?.[0]?.id, urbitID.id,
   ], [wallet, urbitID.id]);
@@ -33,9 +92,7 @@ export function useTokenboundCreateMutation(
       });
       // FIXME: This doesn't really seem to work, but it hasn't been tested
       // very thoroughly
-      const txReceipt = await waitForTransactionReceipt(wagmiConfig, {
-        hash: txHash,
-      });
+      const txReceipt = await waitForTransactionReceipt(wagmiConfig, {hash: txHash});
       return txReceipt;
     },
     onMutate: async (variables) => {
@@ -55,6 +112,7 @@ export function useTokenboundCreateMutation(
 export function useTokenboundAccount(urbitID: UrbitID): Loadable<TokenboundAccount> {
   const [{wallet}, _, __] = useConnectWallet();
   const tbClient = useTokenboundClient();
+  const wagmiConfig = useWagmiConfig();
   const queryKey: QueryKey = useMemo(() => [
     APP.TAG, "tokenbound", "account", wallet?.chains?.[0]?.id, urbitID.id,
   ], [wallet, urbitID.id]);
@@ -71,9 +129,31 @@ export function useTokenboundAccount(urbitID: UrbitID): Loadable<TokenboundAccou
       const tbIsDeployed: boolean = await tbClient.checkAccountDeployment({
         accountAddress: tbAddress,
       });
+      const tbHoldings: TokenHoldings = {};
+      for (const token of ["ETH", "USDC"]) {
+        const holding = await getBalance((wagmiConfig as WagmiConfig), {
+          address: tbAddress,
+          token: (token === "ETH")
+            ? undefined
+            : CONTRACT[token].ADDRESS.SEPOLIA,
+        });
+        tbHoldings[token] = {
+          balance: holding.value,
+          token: (token === "ETH") ? {
+            name: "Ethereum",
+            symbol: "ETH",
+            decimals: 18,
+          } : {
+            name: CONTRACT[token].NAME,
+            symbol: CONTRACT.USDC.SYMBOL,
+            decimals: CONTRACT.USDC.DECIMALS,
+          },
+        };
+      }
       return {
         address: tbAddress,
         deployed: tbIsDeployed,
+        holdings: tbHoldings,
       };
     },
     enabled: !!tbClient,
