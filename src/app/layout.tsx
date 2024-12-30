@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AppWrapper } from '@/comp/AppWrapper';
+import { AppWrapper } from './components';
 import "./globals.css";
 import "./fonts.css";
 

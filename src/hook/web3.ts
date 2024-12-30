@@ -10,7 +10,7 @@ import { useConnectWallet, useWagmiConfig } from '@web3-onboard/react';
 import { getWalletClient, getBalance, waitForTransactionReceipt } from '@web3-onboard/wagmi';
 import { TokenboundClient } from '@tokenbound/sdk';
 import { formatUnits, hexToNumber } from 'viem';
-import { formUrbitID } from '@/lib/util';
+import { formToken, formUrbitID } from '@/lib/util';
 import { APP, ACCOUNT, CONTRACT } from '@/dat/const';
 
 export function useTokenboundSendMutation(
@@ -27,19 +27,21 @@ export function useTokenboundSendMutation(
 
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({token, recipient, amount}: {
+    mutationFn: async ({token: symbol, recipient, amount}: {
       token: string,
       recipient: string,
       amount: number,
     }) => {
+      if (!wagmiConfig) throw Error("WagmiClient unavailable");
       if (!tbClient) throw Error("TokenboundClient unavailable");
-      if (!wagmiConfig) throw Error("TokenboundClient unavailable");
+      if (!tbAccount) throw Error("TokenboundAccount unavailable");
       const address: Address = await tbClient.getAccount({
         // tokenContract: CONTRACT.ECLIPTIC.ADDRESS.ETHEREUM,
         tokenContract: CONTRACT.ECLIPTIC.ADDRESS.SEPOLIA,
         tokenId: formUrbitID(recipient).id,
       });
-      const txHash = await (token === "ETH") ? tbClient.transferETH({
+      const token = formToken(wallet, symbol);
+      const txHash = await ((symbol === "ETH") ? tbClient.transferETH({
         account: tbAccount.address,
         amount: amount,
         recipientAddress: address,
@@ -47,13 +49,13 @@ export function useTokenboundSendMutation(
         account: tbAccount.address,
         amount: amount,
         recipientAddress: address,
-        erc20tokenAddress: CONTRACT[token].ADDRESS.SEPOLIA,
-        erc20tokenDecimals: CONTRACT[token].DECIMALS,
-      });
+        erc20tokenAddress: token.address,
+        erc20tokenDecimals: token.decimals,
+      }));
       // FIXME: This doesn't really seem to work, but it hasn't been tested
       // very thoroughly
       const txReceipt = await waitForTransactionReceipt(wagmiConfig, {hash: txHash});
-      return txReceipt;
+      return txReceipt.transactionHash;
     },
     onMutate: async (variables) => {
       await queryClient.cancelQueries({ queryKey: queryKey });
@@ -83,8 +85,8 @@ export function useTokenboundCreateMutation(
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async () => {
+      if (!wagmiConfig) throw Error("WagmiConfig unavailable");
       if (!tbClient) throw Error("TokenboundClient unavailable");
-      if (!wagmiConfig) throw Error("TokenboundClient unavailable");
       const { txHash } = await tbClient.createAccount({
         // tokenContract: CONTRACT.ECLIPTIC.ADDRESS.ETHEREUM,
         tokenContract: CONTRACT.ECLIPTIC.ADDRESS.SEPOLIA,
@@ -93,7 +95,7 @@ export function useTokenboundCreateMutation(
       // FIXME: This doesn't really seem to work, but it hasn't been tested
       // very thoroughly
       const txReceipt = await waitForTransactionReceipt(wagmiConfig, {hash: txHash});
-      return txReceipt;
+      return txReceipt.transactionHash;
     },
     onMutate: async (variables) => {
       await queryClient.cancelQueries({ queryKey: queryKey });
@@ -120,6 +122,7 @@ export function useTokenboundAccount(urbitID: UrbitID): Loadable<TokenboundAccou
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKey,
     queryFn: async () => {
+      if (!wagmiConfig) throw Error("WagmiConfig unavailable");
       if (!tbClient) throw Error("TokenboundClient unavailable");
       const tbAddress: Address = await tbClient.getAccount({
         // tokenContract: CONTRACT.ECLIPTIC.ADDRESS.ETHEREUM,
@@ -130,24 +133,17 @@ export function useTokenboundAccount(urbitID: UrbitID): Loadable<TokenboundAccou
         accountAddress: tbAddress,
       });
       const tbHoldings: TokenHoldings = {};
-      for (const token of ["ETH", "USDC"]) {
+      for (const symbol of ["ETH", "USDC"]) {
+        const token = formToken(wallet, symbol);
         const holding = await getBalance((wagmiConfig as WagmiConfig), {
           address: tbAddress,
-          token: (token === "ETH")
+          token: (symbol === "ETH")
             ? undefined
-            : CONTRACT[token].ADDRESS.SEPOLIA,
+            : token.address,
         });
-        tbHoldings[token] = {
+        tbHoldings[symbol] = {
           balance: holding.value,
-          token: (token === "ETH") ? {
-            name: "Ethereum",
-            symbol: "ETH",
-            decimals: 18,
-          } : {
-            name: CONTRACT[token].NAME,
-            symbol: CONTRACT.USDC.SYMBOL,
-            decimals: CONTRACT.USDC.DECIMALS,
-          },
+          token: token,
         };
       }
       return {

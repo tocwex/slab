@@ -13,11 +13,12 @@ export interface Token {
   name: string;
   symbol: string;
   decimals: number;
+  address: Address;
 }
 
 export interface TokenHolding {
   token: Token;
-  balance: number; // TODO: BigNumber?
+  balance: bigint;
 }
 
 export type TokenHoldings = {

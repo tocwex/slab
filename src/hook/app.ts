@@ -10,3 +10,11 @@ export function useRouteUrbitID(): Nullable<UrbitID> {
   ), [params?.id]);
   return routeID;
 }
+
+export function useRouteUrbitPDO(): Nullable<UrbitID> {
+  const params = useParams<{pdo: string}>();
+  const routePDO: UrbitID | undefined = useMemo(() => (
+    !(params?.pdo) ? undefined : formUrbitID(params?.pdo)
+  ), [params?.pdo]);
+  return routePDO;
+}

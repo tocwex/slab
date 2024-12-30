@@ -8,47 +8,51 @@ export const APP = Object.freeze({
 });
 
 export const BLOCKCHAIN = Object.freeze({
-  ID: Object.freeze({
+  ID: (Object.freeze({
     ETHEREUM: 1,
     SEPOLIA: 11155111,
-  }),
-  TAG: Object.freeze({
+  }) as {[network: string]: number;}),
+  TAG: (Object.freeze({
     1: "ETHEREUM",
     11155111: "SEPOLIA",
-  }),
-  RPC: Object.freeze({
+  }) as {[network: number]: string;}),
+  SYM: (Object.freeze({
+    1: "ETH",
+    11155111: "sepETH",
+  }) as {[network: number]: string;}),
+  RPC: (Object.freeze({
     ETHEREUM: `https://eth-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_KEY}`,
     SEPOLIA: `https://eth-sepolia.g.alchemy.com/v2/${process.env.ALCHEMY_KEY}`,
-  }),
+  }) as {[network: string]: string;}),
 });
 
 export const ACCOUNT = Object.freeze({
-  NULL: Object.freeze({
+  NULL: (Object.freeze({
     ETHEREUM: "0x0000000000000000000000000000000000000000",
     SEPOLIA: "0x0000000000000000000000000000000000000000",
-  }),
+  }) as {[network: string]: `0x${string}`;}),
 });
 
 export const CONTRACT = Object.freeze({
   AZIMUTH: Object.freeze({
-    ADDRESS: Object.freeze({
+    ADDRESS: (Object.freeze({
       ETHEREUM: "0x223c067f8cf28ae173ee5cafea60ca44c335fecb",
       SEPOLIA: "0x6EB93da65d19a3e4501210C1B289A0734487ed84",
-    }),
+    }) as {[network: string]: `0x${string}`;}),
     ABI: AZIMUTH_CONTRACT.abi,
   }),
   ECLIPTIC: Object.freeze({
-    ADDRESS: Object.freeze({
+    ADDRESS: (Object.freeze({
       ETHEREUM: "0x33EeCbf908478C10614626A9D304bfe18B78DD73",
       SEPOLIA: "0xf81109BE13862261234c24659aF412Fe70a683e4",
-    }),
+    }) as {[network: string]: `0x${string}`;}),
     ABI: ECLIPTIC_CONTRACT.abi,
   }),
   USDC: Object.freeze({
-    ADDRESS: Object.freeze({
+    ADDRESS: (Object.freeze({
       ETHEREUM: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
       SEPOLIA: "0xB962E45F33814833744b8a102C7C626a98B32e38",
-    }),
+    }) as {[network: string]: `0x${string}`;}),
     NAME: "USD Coin",
     SYMBOL: "USDC",
     DECIMALS: 6,
@@ -59,10 +63,10 @@ export const CONTRACT = Object.freeze({
 // FIXME: These expressions need a lot of work; see more information here:
 // https://github.com/urbit/urbit-ob/blob/master/src/internal/co.js
 export const REGEX = Object.freeze({
-  AZIMUTH: Object.freeze({
+  AZIMUTH: (Object.freeze({
     GALAXY: "~[a-z]{3}",
     STAR: "~[a-z]{6}",
     PLANET: "~[a-z]{6}-[a-z]{6}",
     POINT: "~(([a-z]{3})|([a-z]{6}(-[a-z]{6}){0,3})|([a-z]{6}(-[a-z]{6}){3})--([a-z]{6}(-[a-z]{6}){3}))",
-  }),
+  }) as {[point: string]: string;}),
 });

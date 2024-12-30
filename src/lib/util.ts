@@ -1,5 +1,8 @@
-import type { UrbitID, UrbitClan } from '@/type/slab';
+import type { Nullable, Address, UrbitID, UrbitClan, Token } from '@/type/slab';
+import type { WalletState } from '@web3-onboard/core';
+import { ACCOUNT, BLOCKCHAIN, CONTRACT } from '@/dat/const';
 import * as ob from "urbit-ob";
+import { hexToNumber } from 'viem';
 
 export function delay(milliseconds: number): Promise<void> {
   return new Promise(res => setTimeout(res, milliseconds));
@@ -30,6 +33,26 @@ export function rateLimit(maxRequests: number, perSeconds: number): (func: any) 
 
 export function trimAddress(address: string): string {
   return `${address.slice(0, 5)}…${address.slice(-4)}`;
+}
+
+export function formToken(wallet: WalletState | null, symbol: string): Token {
+  const chainId: number = ((): number => {
+    const chainId: string | undefined = wallet?.chains?.[0]?.id;
+    return chainId ? hexToNumber((chainId as Address)) : BLOCKCHAIN.ID.ETHEREUM;
+  })();
+  const chainTag: string = BLOCKCHAIN?.TAG[chainId] ?? BLOCKCHAIN.TAG[BLOCKCHAIN.ID.ETHEREUM];
+  return (symbol === "ETH")
+    ? {
+      name: BLOCKCHAIN.TAG?.[chainId] ?? BLOCKCHAIN.TAG[BLOCKCHAIN.ID.ETHEREUM],
+      symbol: BLOCKCHAIN.SYM?.[chainId] ?? BLOCKCHAIN.SYM[BLOCKCHAIN.ID.ETHEREUM],
+      decimals: 18,
+      address: ACCOUNT.NULL?.[chainTag] ?? ACCOUNT.NULL.ETHEREUM,
+    } : {
+      name: (CONTRACT as any)?.[symbol]?.NAME ?? "<unknown>",
+      symbol: (CONTRACT as any)?.[symbol]?.SYMBOL ?? "---",
+      decimals: (CONTRACT as any)?.[symbol]?.DECIMALS ?? 18,
+      address: (CONTRACT as any)?.[symbol]?.ADDRESS?.[chainTag] ?? ACCOUNT.NULL.ETHEREUM,
+    };
 }
 
 export function formUrbitID(value: number | string): UrbitID {
