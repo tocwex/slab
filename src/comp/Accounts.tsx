@@ -7,7 +7,7 @@ import {
   useTokenboundAccount, useSafeAccount,
   useTokenboundCreateMutation, useTokenboundSendMutation,
 } from '@/hook/web3';
-import { } from '@/hook/web3';
+import { AddressFrame } from '@/comp/Frames';
 import { trimAddress } from '@/lib/util';
 import { formatUnits } from 'viem';
 import { REGEX } from '@/dat/const';
@@ -30,19 +30,19 @@ export function SafeAccountInfo({
           </h2>
           <ul className="list-disc">
             <li>
-              <span className="font-bold">address: </span>
-              <span>{trimAddress(safeAccount.address)}</span>
+              <span className="font-bold">vault: </span>
+              <AddressFrame address={(safeAccount.address as Address)} />
             </li>
             <li>
               <span className="font-bold">threshold: </span>
-              <span>{safeAccount.threshold}</span>
+              <span>{safeAccount.threshold} / {safeAccount.owners.length}</span>
             </li>
             <li>
               <span className="font-bold">managers: </span>
               <ul className="list-disc pl-4">
-                {safeAccount.owners.map((owner: Address) => (
+                {safeAccount.owners.map((owner: string) => (
                   <li key={owner}>
-                    <code>{trimAddress(owner)}</code>
+                    <AddressFrame address={(owner as Address)} />
                   </li>
                 ))}
               </ul>
@@ -104,12 +104,7 @@ export function TokenboundAccountInfo({
           ) : !tbAccount.deployed ? (
             <span>No</span>
           ) : (
-            <Link
-              href={`https://sepolia.etherscan.io/address/${tbAccount.address}`}
-              target="_blank"
-            >
-              <code>{trimAddress(tbAccount.address)}</code>
-            </Link>
+            <AddressFrame address={tbAccount.address} />
           )}
         </li>
       </ul>

@@ -1,6 +1,8 @@
 export type Nullable<T> = T | undefined;
 export type Loadable<T> = T | null | undefined;
+
 export type Address = `0x${string}`;
+export type AddressType = 'account' | 'transaction' | 'signature';
 
 export type UrbitClan = 'galaxy' | 'star' | 'planet' | 'moon' | 'comet';
 export interface UrbitID {
@@ -29,11 +31,4 @@ export interface TokenboundAccount {
   address: Address;
   deployed: boolean;
   holdings: TokenHoldings;
-}
-
-export interface SafeAccount {
-  address: Address;
-  threshold: number;
-  owners: Address[];
-  // transactions: string[];
 }

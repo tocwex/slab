@@ -1,10 +1,10 @@
 import type { QueryKey, UseMutationOptions } from '@tanstack/react-query';
 import type { Config as WagmiConfig } from '@wagmi/core';
+import type { SafeInfoResponse } from '@safe-global/api-kit'
 import type { EIP1193Provider } from 'viem';
 import type {
   Address, Loadable, UrbitID,
-  Token, TokenHolding, TokenHoldings,
-  TokenboundAccount, SafeAccount,
+  Token, TokenHolding, TokenHoldings, TokenboundAccount,
 } from '@/type/slab';
 import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -15,6 +15,7 @@ import {
 } from '@web3-onboard/wagmi';
 import { TokenboundClient } from '@tokenbound/sdk';
 import Safe from '@safe-global/protocol-kit';
+import SafeApiKit from '@safe-global/api-kit'
 import { formatUnits, hexToNumber } from 'viem';
 import { formToken, formUrbitID } from '@/lib/util';
 import { APP, ACCOUNT, CONTRACT } from '@/dat/const';
@@ -169,7 +170,7 @@ export function useTokenboundAccount(urbitID: UrbitID): Loadable<TokenboundAccou
     : (data as TokenboundAccount);
 }
 
-export function useSafeAccount(urbitID: UrbitID): Loadable<SafeAccount> {
+export function useSafeAccount(urbitID: UrbitID): Loadable<SafeInfoResponse> {
   const [{wallet}, _, __] = useConnectWallet();
   const wagmiConfig = useWagmiConfig();
   const queryKey: QueryKey = useMemo(() => [
@@ -180,32 +181,45 @@ export function useSafeAccount(urbitID: UrbitID): Loadable<SafeAccount> {
     queryKey: queryKey,
     queryFn: async () => {
       if (!wagmiConfig) throw Error("WagmiConfig unavailable");
+      // NOTE: Formula for extracting "provider" from Wagmi taken from:
+      // https://github.com/wevm/wagmi/discussions/639#discussioncomment-9588515
       const { connector } = await getAccount(wagmiConfig);
       const provider = await connector?.getProvider();
       if (!provider) throw Error("EIP1193Provider unavailable");
+      const chainId: number = hexToNumber((queryKey[3] as `0x${string}`));
 
       const token = formToken(wallet, "ECLIPTIC");
+      // TODO: Debug cases where 'safeAddress' is not a Gnosis safe
       const safeAddress = ((await readContract(wagmiConfig, {
         abi: CONTRACT.ECLIPTIC.ABI,
         address: token.address,
         functionName: "ownerOf",
         args: [urbitID.id],
       })) as Address);
-      // TODO: Debug cases where 'safeAddress' is not a Gnosis safe
-      const safeClient: Safe = await Safe.init({
-        // @ts-ignore
-        provider: (provider as EIP1193Provider),
-        signer: wallet?.accounts?.[0]?.address,
-        safeAddress: safeAddress,
-      });
 
-      const safeOwners: Address[] = ((await safeClient.getOwners()) as Address[]);
-      const safeThreshold: number = await safeClient.getThreshold();
-      return {
-        address: safeAddress,
-        owners: safeOwners,
-        threshold: safeThreshold,
-      };
+      const safeClient = new SafeApiKit({
+        chainId: BigInt(chainId),
+      });
+      const safeInfo = await safeClient.getSafeInfo(safeAddress);
+      return safeInfo;
+
+      // NOTE: I suspect that the following alternative method goes through the
+      // RPC endpoint instead of the safe.global API, which may be desirable at
+      // some point in the future.
+      //
+      // const safeClient: Safe = await Safe.init({
+      //   // @ts-ignore
+      //   provider: (provider as EIP1193Provider),
+      //   signer: wallet?.accounts?.[0]?.address,
+      //   safeAddress: safeAddress,
+      // });
+      // const safeOwners: Address[] = ((await safeClient.getOwners()) as Address[]);
+      // const safeThreshold: number = await safeClient.getThreshold();
+      // return {
+      //   address: safeAddress,
+      //   owners: safeOwners,
+      //   threshold: safeThreshold,
+      // };
     },
     enabled: !!(queryKey[3]) && !!(queryKey[4]),
     staleTime: Infinity,
@@ -215,7 +229,7 @@ export function useSafeAccount(urbitID: UrbitID): Loadable<SafeAccount> {
 
   return isLoading ? undefined
     : isError ? null
-    : (data as SafeAccount);
+    : (data as SafeInfoResponse);
 }
 
 export function useTokenboundClient(): Loadable<TokenboundClient> {
@@ -242,3 +256,6 @@ export function useTokenboundClient(): Loadable<TokenboundClient> {
     : isError ? null
     : (data as TokenboundClient);
 }
+
+// export function useChain(): Loadable<bigint> {
+// }
