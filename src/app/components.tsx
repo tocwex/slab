@@ -1,9 +1,11 @@
 "use client";
+import type { Address } from "@/type/slab";
 import { useCallback, useMemo } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query'
 import { Web3OnboardProvider } from '@web3-onboard/react';
 import { useConnectWallet } from '@web3-onboard/react';
 import { useUrbitIDs } from '@/hook/wallet';
+import { AddressFrame } from '@/comp/Frames';
 import { HugeLoadingIcon } from '@/comp/Icons';
 import { trimAddress } from '@/lib/util';
 import { web3onboard } from '@/dat/web3onboard';
@@ -25,8 +27,8 @@ export function AppWrapper({
     const isUrbitProvider: boolean = useMemo(() => (
       !connecting && !!wallet && !!urbitIDs && urbitIDs.length > 0
     ), [connecting, wallet, urbitIDs]);
-    const address: string | undefined = useMemo(() => (
-      trimAddress(wallet?.accounts?.[0]?.address ?? "")
+    const address: Address = useMemo(() => (
+      ((wallet?.accounts?.[0]?.address ?? "0x0") as Address)
     ), [wallet]);
 
     return (
@@ -46,13 +48,13 @@ export function AppWrapper({
               ) : (urbitIDs === null) ? (
                 <>
                   <span>Unable to fetch Web3 wallet details for </span>
-                  <code className="font-bold">{address}</code>
+                  <AddressFrame address={address} />
                   <span>; please try again.</span>
                 </>
               ) : (
                 <>
                   <span>Web3 wallet </span>
-                  <code className="font-semibold">{address}</code>
+                  <AddressFrame address={address} />
                   <span> doesn't contain an Urbit ID; please connect another.</span>
                 </>
               )}

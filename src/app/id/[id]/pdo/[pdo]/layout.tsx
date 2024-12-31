@@ -1,4 +1,5 @@
 import type { Metadata, ResolvedMetadata, ResolvingMetadata } from 'next';
+import { PDORouteWrapper } from './components';
 
 // https://nextjs.org/docs/app/api-reference/functions/generate-metadata#generatemetadata-function
 export async function generateMetadata(
@@ -19,8 +20,8 @@ export default function PDOLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <>
+    <PDORouteWrapper>
       {children}
-    </>
+    </PDORouteWrapper>
   );
 }

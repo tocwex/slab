@@ -1,9 +1,10 @@
 "use client";
 import type { UrbitID } from "@/type/slab";
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useConnectWallet } from '@web3-onboard/react';
 import { useUrbitIDs } from '@/hook/wallet';
+import { AddressFrame, UrbitIDFrame } from '@/comp/Frames';
 import { trimAddress, formUrbitID } from '@/lib/util';
 
 export function IDRouteWrapper({
@@ -26,6 +27,11 @@ export function IDRouteWrapper({
     (urbitIDs ?? []).map(({id}) => id).includes(routeID.id)
   ), [routeID, urbitIDs]);
 
+  const gotoHome = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    router.push(`/`);
+  }, [router]);
+
   // TODO: Consider auto-redirecting to index when wallet is disconnected
 
   return !routeID.id ? (
@@ -42,7 +48,7 @@ export function IDRouteWrapper({
         <span>Please log in with a valid Urbit ID.</span>
       </h4>
       <button
-        onClick={async () => router.push(`/`)}
+        onClick={gotoHome}
         className="mt-4 button-lg"
       >
         Retry
@@ -55,9 +61,10 @@ export function IDRouteWrapper({
       </h1>
       <h4 className="font-medium">
         <span>Web3 wallet </span>
+        <AddressFrame address={wallet?.accounts?.[0]?.address ?? "0x0"} />
         <code className="font-bold">{address}</code>
         <span> doesn't hold Urbit ID </span>
-        <span className="font-bold">{params?.id}</span>
+        <UrbitIDFrame urbitID={routeID} />
         <span>.</span>
       </h4>
       <h4 className="font-medium">

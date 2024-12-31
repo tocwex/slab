@@ -1,18 +1,20 @@
+import { ReactNode, SVGProps } from 'react';
+
 interface IconProps extends SVGProps<SVGSVGElement> {
   primary?: string;
   secondary?: string;
 }
 
-export function HugeLoadingIcon({className, ...props}: SVGProps<SVGSVGElement>): React.ReactNode {
+export function HugeLoadingIcon({className, ...props}: SVGProps<SVGSVGElement>): ReactNode {
   return (<BaseLoadingIcon className={`w-20 h-20 border-4 ${className}`} {...props} />);
 }
-export function TinyLoadingIcon({className, ...props}: SVGProps<SVGSVGElement>): React.ReactNode {
+export function TinyLoadingIcon({className, ...props}: SVGProps<SVGSVGElement>): ReactNode {
   return (<BaseLoadingIcon className={`w-6 h-6 border-[1.75px] ${className}`} {...props} />);
 }
-export function TextLoadingIcon({className, ...props}: SVGProps<SVGSVGElement>): React.ReactNode {
+export function TextLoadingIcon({className, ...props}: SVGProps<SVGSVGElement>): ReactNode {
   return (<BaseLoadingIcon className={`w-4 h-4 border ${className}`} {...props} />);
 }
-export function BaseLoadingIcon({className, ...props}: SVGProps<SVGSVGElement>): React.ReactNode {
+export function BaseLoadingIcon({className, ...props}: SVGProps<SVGSVGElement>): ReactNode {
   return (
     <LoadingIcon
       primary="fill-white"
@@ -22,7 +24,7 @@ export function BaseLoadingIcon({className, ...props}: SVGProps<SVGSVGElement>):
     />
   );
 }
-export function LoadingIcon({primary, secondary, className}: IconProps): React.ReactNode {
+export function LoadingIcon({primary, secondary, className}: IconProps): ReactNode {
   return (
     <svg className={`animate-spin ${className}`} fill="current" viewBox="0 0 1052 1052">
       <path

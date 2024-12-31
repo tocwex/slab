@@ -7,7 +7,7 @@ import {
   useTokenboundAccount, useSafeAccount,
   useTokenboundCreateMutation, useTokenboundSendMutation,
 } from '@/hook/web3';
-import { AddressFrame } from '@/comp/Frames';
+import { AddressFrame, UrbitIDFrame } from '@/comp/Frames';
 import { TinyLoadingIcon, TextLoadingIcon } from '@/comp/Icons';
 import { trimAddress } from '@/lib/util';
 import { formatUnits } from 'viem';
@@ -41,7 +41,8 @@ export function SafeAccountInfo({
               <ul className="list-disc pl-4">
                 {safeAccount.owners.map((owner: string, index: number) => (
                   <li key={owner}>
-                    <code className="font-bold">{safeAccount.ownurs[index].patp}: </code>
+                    <UrbitIDFrame urbitID={safeAccount.ownurs[index]} />
+                    <span>: </span>
                     <AddressFrame address={(owner as Address)} />
                   </li>
                 ))}
@@ -87,7 +88,7 @@ export function TokenboundAccountInfo({
       <ul className="list-disc">
         <li>
           <span className="font-bold">urbit id: </span>
-          <span>{urbitID.patp}</span>
+          <UrbitIDFrame urbitID={urbitID} />
         </li>
         <li>
           <span className="font-bold">point type: </span>
