@@ -6,6 +6,13 @@ a {
     @apply font-bold underline;
 }
 
+:is(button, [type='button'], [type='reset'], [type='submit']):disabled {
+    @apply bg-white/20;
+}
+:is(button, [type='button'], [type='reset'], [type='submit']):disabled svg {
+    @apply bg-white/20;
+}
+
 .main {
     @apply flex flex-col gap-4 py-2 px-4 justify-center items-center;
 }

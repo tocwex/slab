@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useSafeAccount } from '@/hook/web3';
 import { useUrbitIDs } from '@/hook/wallet';
 import { UrbitIDFrame } from '@/comp/Frames';
+import { HugeLoadingIcon } from '@/comp/Icons';
 import { formUrbitID } from '@/lib/util';
 
 export function PDORouteWrapper({
@@ -57,17 +58,35 @@ export function PDORouteWrapper({
       <h1 className="text-4xl font-bold underline">
         %slab
       </h1>
-      <h4 className="font-medium">
-        <span>Urbit ID </span>
-        <UrbitIDFrame urbitID={routeID} />
-        <span> is not a signer for PDO </span>
-        <UrbitIDFrame urbitID={routePDO} />
-        <span>.</span>
-      </h4>
-      <h4 className="font-medium">
-        <span>Please select a valid Urbit ID to continue.</span>
-      </h4>
+      {(safeAccount === undefined) ? (
+        <HugeLoadingIcon />
+      ) : (safeAccount === null) ? (
+        <div className="flex flex-col gap-2 text-center">
+          <h4 className="font-medium">
+            <span>Unable to load PDO for </span>
+            <UrbitIDFrame urbitID={routePDO} />
+            <span>.</span>
+          </h4>
+          <h4 className="font-medium">
+            <span>Either the Urbit ID isn't a PDO or there were network errors.</span>
+          </h4>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          <h4 className="font-medium">
+            <span>Urbit ID </span>
+            <UrbitIDFrame urbitID={routeID} />
+            <span> is not a signer for PDO </span>
+            <UrbitIDFrame urbitID={routePDO} />
+            <span>.</span>
+          </h4>
+          <h4 className="font-medium">
+            <span>Please select a valid Urbit ID to continue.</span>
+          </h4>
+        </div>
+      )}
       <button
+        disabled={(safeAccount === undefined)}
         onClick={gotoHome}
         className="mt-4 button-lg"
       >

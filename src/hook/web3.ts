@@ -188,10 +188,9 @@ export function useSafeAccount(urbitID: UrbitID): Loadable<SafeAccount> {
       const { connector } = await getAccount(wagmiConfig);
       const provider = await connector?.getProvider();
       if (!provider) throw Error("EIP1193Provider unavailable");
-      const chainId: number = hexToNumber((queryKey[3] as `0x${string}`));
+      const chainId: number = hexToNumber((queryKey[3] as Address));
 
       const token = formToken(wallet, "ECLIPTIC");
-      // TODO: Debug cases where 'safeAddress' is not a Gnosis safe
       const safeAddress = ((await readContract(wagmiConfig, {
         abi: CONTRACT.ECLIPTIC.ABI,
         address: token.address,
@@ -199,11 +198,8 @@ export function useSafeAccount(urbitID: UrbitID): Loadable<SafeAccount> {
         args: [urbitID.id],
       })) as Address);
 
-      const safeClient = new SafeApiKit({
-        chainId: BigInt(chainId),
-      });
+      const safeClient = new SafeApiKit({chainId: BigInt(chainId)});
       const safeInfo = await safeClient.getSafeInfo(safeAddress);
-
       const safeOwnurs: UrbitID[] = [];
       for (const owner of safeInfo.owners) {
         // TODO: Assert that 'tokenContract' is the Ecliptic contract address
@@ -258,7 +254,7 @@ export function useTokenboundClient(): Loadable<TokenboundClient> {
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKey,
     queryFn: async () => {
-      const chainId: number = hexToNumber((queryKey[3] as `0x${string}`));
+      const chainId: number = hexToNumber((queryKey[3] as Address));
       const walletClient = await getWalletClient((wagmiConfig as WagmiConfig));
       return new TokenboundClient({walletClient, chainId});
     },
