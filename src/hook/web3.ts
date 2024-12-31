@@ -1,14 +1,20 @@
 import type { QueryKey, UseMutationOptions } from '@tanstack/react-query';
 import type { Config as WagmiConfig } from '@wagmi/core';
+import type { EIP1193Provider } from 'viem';
 import type {
   Address, Loadable, UrbitID,
-  Token, TokenHolding, TokenHoldings, TokenboundAccount,
+  Token, TokenHolding, TokenHoldings,
+  TokenboundAccount, SafeAccount,
 } from '@/type/slab';
 import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useConnectWallet, useWagmiConfig } from '@web3-onboard/react';
-import { getWalletClient, getBalance, waitForTransactionReceipt } from '@web3-onboard/wagmi';
+import {
+  getWalletClient, getAccount, getBalance,
+  readContract, waitForTransactionReceipt,
+} from '@web3-onboard/wagmi';
 import { TokenboundClient } from '@tokenbound/sdk';
+import Safe from '@safe-global/protocol-kit';
 import { formatUnits, hexToNumber } from 'viem';
 import { formToken, formUrbitID } from '@/lib/util';
 import { APP, ACCOUNT, CONTRACT } from '@/dat/const';
@@ -161,6 +167,55 @@ export function useTokenboundAccount(urbitID: UrbitID): Loadable<TokenboundAccou
   return isLoading ? undefined
     : isError ? null
     : (data as TokenboundAccount);
+}
+
+export function useSafeAccount(urbitID: UrbitID): Loadable<SafeAccount> {
+  const [{wallet}, _, __] = useConnectWallet();
+  const wagmiConfig = useWagmiConfig();
+  const queryKey: QueryKey = useMemo(() => [
+    APP.TAG, "safe", "account", wallet?.chains?.[0]?.id, wagmiConfig?.state?.current, urbitID.id,
+  ], [wallet, urbitID.id]);
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: queryKey,
+    queryFn: async () => {
+      if (!wagmiConfig) throw Error("WagmiConfig unavailable");
+      const { connector } = await getAccount(wagmiConfig);
+      const provider = await connector?.getProvider();
+      if (!provider) throw Error("EIP1193Provider unavailable");
+
+      const token = formToken(wallet, "ECLIPTIC");
+      const safeAddress = ((await readContract(wagmiConfig, {
+        abi: CONTRACT.ECLIPTIC.ABI,
+        address: token.address,
+        functionName: "ownerOf",
+        args: [urbitID.id],
+      })) as Address);
+      // TODO: Debug cases where 'safeAddress' is not a Gnosis safe
+      const safeClient: Safe = await Safe.init({
+        // @ts-ignore
+        provider: (provider as EIP1193Provider),
+        signer: wallet?.accounts?.[0]?.address,
+        safeAddress: safeAddress,
+      });
+
+      const safeOwners: Address[] = ((await safeClient.getOwners()) as Address[]);
+      const safeThreshold: number = await safeClient.getThreshold();
+      return {
+        address: safeAddress,
+        owners: safeOwners,
+        threshold: safeThreshold,
+      };
+    },
+    enabled: !!(queryKey[3]) && !!(queryKey[4]),
+    staleTime: Infinity,
+    retryOnMount: false,
+    refetchOnMount: false,
+  });
+
+  return isLoading ? undefined
+    : isError ? null
+    : (data as SafeAccount);
 }
 
 export function useTokenboundClient(): Loadable<TokenboundClient> {

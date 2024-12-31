@@ -1,12 +1,58 @@
 "use client";
-import type { UrbitID, TokenHolding } from "@/type/slab";
+import type { UrbitID, TokenHolding, Address } from "@/type/slab";
 import { useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useTokenboundAccount, useTokenboundCreateMutation, useTokenboundSendMutation } from '@/hook/web3';
+import {
+  useTokenboundAccount, useSafeAccount,
+  useTokenboundCreateMutation, useTokenboundSendMutation,
+} from '@/hook/web3';
+import { } from '@/hook/web3';
 import { trimAddress } from '@/lib/util';
 import { formatUnits } from 'viem';
 import { REGEX } from '@/dat/const';
+
+export function SafeAccountInfo({
+  urbitID,
+}: {
+  urbitID: UrbitID;
+}): React.ReactNode {
+  const safeAccount = useSafeAccount(urbitID);
+
+  // TODO: Include Urbit IDs for all owners of the safe account
+
+  return (
+    <div className="main">
+      {!!safeAccount && (
+        <form className="flex flex-col gap-2">
+          <h2 className="text-2xl">
+            PDO Information
+          </h2>
+          <ul className="list-disc">
+            <li>
+              <span className="font-bold">address: </span>
+              <span>{trimAddress(safeAccount.address)}</span>
+            </li>
+            <li>
+              <span className="font-bold">threshold: </span>
+              <span>{safeAccount.threshold}</span>
+            </li>
+            <li>
+              <span className="font-bold">managers: </span>
+              <ul className="list-disc pl-4">
+                {safeAccount.owners.map((owner: Address) => (
+                  <li key={owner}>
+                    <code>{trimAddress(owner)}</code>
+                  </li>
+                ))}
+              </ul>
+            </li>
+          </ul>
+        </form>
+      )}
+    </div>
+  );
+}
 
 export function TokenboundAccountInfo({
   urbitID,

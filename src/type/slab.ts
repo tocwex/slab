@@ -30,3 +30,10 @@ export interface TokenboundAccount {
   deployed: boolean;
   holdings: TokenHoldings;
 }
+
+export interface SafeAccount {
+  address: Address;
+  threshold: number;
+  owners: Address[];
+  // transactions: string[];
+}

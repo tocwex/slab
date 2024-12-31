@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@prisma/client": "^6.0.1",
+    "@safe-global/protocol-kit": "^5.1.1",
     "@tanstack/react-query": "^5.62.8",
     "@tokenbound/sdk": "^0.5.5",
     "@urbit/sigil-js": "^2.2.0",

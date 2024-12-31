@@ -46,6 +46,9 @@ export const CONTRACT = Object.freeze({
       ETHEREUM: "0x33EeCbf908478C10614626A9D304bfe18B78DD73",
       SEPOLIA: "0xf81109BE13862261234c24659aF412Fe70a683e4",
     }) as {[network: string]: `0x${string}`;}),
+    NAME: "Azimuth Points",
+    SYMBOL: "AZP",
+    DECIMALS: 0,
     ABI: ECLIPTIC_CONTRACT.abi,
   }),
   USDC: Object.freeze({
