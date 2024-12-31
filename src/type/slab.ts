@@ -1,3 +1,5 @@
+import type { SafeInfoResponse } from '@safe-global/api-kit';
+
 export type Nullable<T> = T | undefined;
 export type Loadable<T> = T | null | undefined;
 
@@ -31,4 +33,8 @@ export interface TokenboundAccount {
   address: Address;
   deployed: boolean;
   holdings: TokenHoldings;
+}
+
+export interface SafeAccount extends SafeInfoResponse {
+  ownurs: UrbitID[]; // parallel to `safe.owners`
 }

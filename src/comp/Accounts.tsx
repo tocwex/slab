@@ -8,6 +8,7 @@ import {
   useTokenboundCreateMutation, useTokenboundSendMutation,
 } from '@/hook/web3';
 import { AddressFrame } from '@/comp/Frames';
+import { TinyLoadingIcon, TextLoadingIcon } from '@/comp/Icons';
 import { trimAddress } from '@/lib/util';
 import { formatUnits } from 'viem';
 import { REGEX } from '@/dat/const';
@@ -18,8 +19,6 @@ export function SafeAccountInfo({
   urbitID: UrbitID;
 }): React.ReactNode {
   const safeAccount = useSafeAccount(urbitID);
-
-  // TODO: Include Urbit IDs for all owners of the safe account
 
   return (
     <div className="main">
@@ -40,8 +39,9 @@ export function SafeAccountInfo({
             <li>
               <span className="font-bold">managers: </span>
               <ul className="list-disc pl-4">
-                {safeAccount.owners.map((owner: string) => (
+                {safeAccount.owners.map((owner: string, index: number) => (
                   <li key={owner}>
+                    <code className="font-bold">{safeAccount.ownurs[index].patp}: </code>
                     <AddressFrame address={(owner as Address)} />
                   </li>
                 ))}
@@ -98,20 +98,26 @@ export function TokenboundAccountInfo({
           <span>{urbitID.id}</span>
         </li>
         <li>
-          <span className="font-bold">has tba?: </span>
-          {!tbAccount ? (
-            <span>…loading…</span>
-          ) : !tbAccount.deployed ? (
-            <span>No</span>
-          ) : (
-            <AddressFrame address={tbAccount.address} />
-          )}
+          <div className="flex flex-row items-center gap-2">
+            <span className="font-bold">has tba?: </span>
+            {!tbAccount ? (
+              <TextLoadingIcon />
+            ) : !tbAccount.deployed ? (
+              <span>No</span>
+            ) : (
+              <AddressFrame address={tbAccount.address} />
+            )}
+          </div>
         </li>
       </ul>
       {(!!tbAccount && !tbAccount.deployed) && (
-        <button onClick={tbCreateMutate} className="mt-4 button-lg">
+        <button
+          disabled={(tbCreateStatus === "pending")}
+          onClick={tbCreateMutate}
+          className="w-full button-lg"
+        >
           {(tbCreateStatus === "pending") ? (
-            "…loading…"
+            <TinyLoadingIcon />
           ) : (tbCreateStatus === "error") ? (
             "error"
           ) : (
@@ -154,9 +160,13 @@ export function TokenboundAccountInfo({
               placeholder="amount"
               className="input-lg"
             />
-            <button onClick={onSend} className="mt-4 button-lg">
+            <button
+              disabled={(tbSendStatus === "pending")}
+              onClick={onSend}
+              className="w-full button-lg"
+            >
               {(tbSendStatus === "pending") ? (
-                "…loading…"
+                <TinyLoadingIcon />
               ) : (tbSendStatus === "error") ? (
                 "error"
               ) : (

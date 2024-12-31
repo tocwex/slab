@@ -1,10 +1,10 @@
 import type { QueryKey, UseMutationOptions } from '@tanstack/react-query';
 import type { Config as WagmiConfig } from '@wagmi/core';
-import type { SafeInfoResponse } from '@safe-global/api-kit'
 import type { EIP1193Provider } from 'viem';
 import type {
   Address, Loadable, UrbitID,
-  Token, TokenHolding, TokenHoldings, TokenboundAccount,
+  Token, TokenHolding, TokenHoldings,
+  TokenboundAccount, SafeAccount,
 } from '@/type/slab';
 import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -170,8 +170,9 @@ export function useTokenboundAccount(urbitID: UrbitID): Loadable<TokenboundAccou
     : (data as TokenboundAccount);
 }
 
-export function useSafeAccount(urbitID: UrbitID): Loadable<SafeInfoResponse> {
+export function useSafeAccount(urbitID: UrbitID): Loadable<SafeAccount> {
   const [{wallet}, _, __] = useConnectWallet();
+  const tbClient = useTokenboundClient();
   const wagmiConfig = useWagmiConfig();
   const queryKey: QueryKey = useMemo(() => [
     APP.TAG, "safe", "account", wallet?.chains?.[0]?.id, wagmiConfig?.state?.current, urbitID.id,
@@ -181,6 +182,7 @@ export function useSafeAccount(urbitID: UrbitID): Loadable<SafeInfoResponse> {
     queryKey: queryKey,
     queryFn: async () => {
       if (!wagmiConfig) throw Error("WagmiConfig unavailable");
+      if (!tbClient) throw Error("TokenboundClient unavailable");
       // NOTE: Formula for extracting "provider" from Wagmi taken from:
       // https://github.com/wevm/wagmi/discussions/639#discussioncomment-9588515
       const { connector } = await getAccount(wagmiConfig);
@@ -201,7 +203,21 @@ export function useSafeAccount(urbitID: UrbitID): Loadable<SafeInfoResponse> {
         chainId: BigInt(chainId),
       });
       const safeInfo = await safeClient.getSafeInfo(safeAddress);
-      return safeInfo;
+
+      const safeOwnurs: UrbitID[] = [];
+      for (const owner of safeInfo.owners) {
+        // TODO: Assert that 'tokenContract' is the Ecliptic contract address
+        const { tokenContract, tokenId } = await tbClient.getNFT({
+          accountAddress: (owner as Address),
+        });
+        const ownur: UrbitID = formUrbitID(tokenId);
+        safeOwnurs.push(ownur);
+      }
+
+      return {
+        ownurs: safeOwnurs,
+        ...safeInfo,
+      };
 
       // NOTE: I suspect that the following alternative method goes through the
       // RPC endpoint instead of the safe.global API, which may be desirable at
@@ -221,7 +237,7 @@ export function useSafeAccount(urbitID: UrbitID): Loadable<SafeInfoResponse> {
       //   threshold: safeThreshold,
       // };
     },
-    enabled: !!(queryKey[3]) && !!(queryKey[4]),
+    enabled: !!tbClient && !!(queryKey[3]) && !!(queryKey[4]),
     staleTime: Infinity,
     retryOnMount: false,
     refetchOnMount: false,
@@ -229,7 +245,7 @@ export function useSafeAccount(urbitID: UrbitID): Loadable<SafeInfoResponse> {
 
   return isLoading ? undefined
     : isError ? null
-    : (data as SafeInfoResponse);
+    : (data as SafeAccount);
 }
 
 export function useTokenboundClient(): Loadable<TokenboundClient> {

@@ -4,6 +4,7 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { Web3OnboardProvider } from '@web3-onboard/react';
 import { useConnectWallet } from '@web3-onboard/react';
 import { useUrbitIDs } from '@/hook/wallet';
+import { HugeLoadingIcon } from '@/comp/Icons';
 import { trimAddress } from '@/lib/util';
 import { web3onboard } from '@/dat/web3onboard';
 import { react_query } from '@/dat/react-query';
@@ -41,9 +42,7 @@ export function AppWrapper({
                   Connect a Web3 wallet holding an Urbit ID to continue.
                 </span>
               ) : (connecting || urbitIDs === undefined) ? (
-                <span>
-                  …loading…
-                </span>
+                <HugeLoadingIcon />
               ) : (urbitIDs === null) ? (
                 <>
                   <span>Unable to fetch Web3 wallet details for </span>
