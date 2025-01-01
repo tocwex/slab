@@ -3,11 +3,11 @@ import type { Task } from '@prisma/client';
 import type { UrbitID } from "@/type/slab";
 import { FormEvent, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUrbitIDs } from '@/hook/wallet';
+import { useWalletUrbitIDs } from '@/hook/wallet';
 
 export default function Home(): React.ReactNode {
   const router = useRouter()
-  const urbitIDs = useUrbitIDs();
+  const urbitIDs = useWalletUrbitIDs();
 
   const gotoUrbitID = useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
     const urbitID: string | undefined = event.target?.value;

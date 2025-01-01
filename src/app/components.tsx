@@ -4,7 +4,7 @@ import { useCallback, useMemo } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query'
 import { Web3OnboardProvider } from '@web3-onboard/react';
 import { useConnectWallet } from '@web3-onboard/react';
-import { useUrbitIDs } from '@/hook/wallet';
+import { useWalletUrbitIDs } from '@/hook/wallet';
 import { AddressFrame } from '@/comp/Frames';
 import { HugeLoadingIcon } from '@/comp/Icons';
 import { trimAddress } from '@/lib/util';
@@ -22,7 +22,7 @@ export function AppWrapper({
     children: React.ReactNode;
   }>): React.ReactNode => {
     const [{wallet, connecting}, connect, disconnect] = useConnectWallet();
-    const urbitIDs = useUrbitIDs();
+    const urbitIDs = useWalletUrbitIDs();
 
     const isUrbitProvider: boolean = useMemo(() => (
       !connecting && !!wallet && !!urbitIDs && urbitIDs.length > 0

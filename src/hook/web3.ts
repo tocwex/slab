@@ -2,8 +2,8 @@ import type { QueryKey, UseMutationOptions } from '@tanstack/react-query';
 import type { Config as WagmiConfig } from '@wagmi/core';
 import type { EIP1193Provider } from 'viem';
 import type {
-  Address, Loadable, UrbitID,
-  Token, TokenHolding, TokenHoldings,
+  Loadable, Nullable, Address, UrbitID, WalletMeta,
+  Contract, Token, TokenHolding, TokenHoldings,
   TokenboundAccount, SafeAccount,
 } from '@/type/slab';
 import { useMemo } from 'react';
@@ -15,22 +15,85 @@ import {
 } from '@web3-onboard/wagmi';
 import { TokenboundClient } from '@tokenbound/sdk';
 import Safe from '@safe-global/protocol-kit';
-import SafeApiKit from '@safe-global/api-kit'
-import { formatUnits, hexToNumber } from 'viem';
-import { formToken, formUrbitID } from '@/lib/util';
+import SafeApiKit from '@safe-global/api-kit';
+import { formatUnits, hexToNumber, hexToBigInt } from 'viem';
+import { formContract, formToken, formUrbitID } from '@/lib/util';
 import { APP, ACCOUNT, CONTRACT } from '@/dat/const';
+
+export function useSafePDOs(urbitID: UrbitID): Loadable<UrbitID[]> {
+  const wallet = useWalletMeta();
+  const tbClient = useTokenboundClient();
+  const queryKey: QueryKey = useMemo(() => [
+    APP.TAG, "safe", "pdos", wallet?.stateId, urbitID.id,
+  ], [wallet?.stateId, urbitID.id]);
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: queryKey,
+    queryFn: async () => {
+      if (!wallet) throw Error("Invalid wallet");
+      if (!tbClient) throw Error("TokenboundClient unavailable");
+      const azimuth: Contract = formContract(wallet.chainId, "AZP");
+      const ecliptic: Token = formToken(wallet.chainId, "ECL");
+      const safeClient = new SafeApiKit({chainId: wallet.chainId});
+
+      const tbAddress: Address = await tbClient.getAccount({
+        tokenContract: ecliptic.address,
+        tokenId: urbitID.id,
+      });
+      console.log(tbAddress);
+      // TODO: Consider EOA-owned safes as well, or just TBA safes?
+      const { safes } = await safeClient.getSafesByOwner(tbAddress);
+      console.log(safes);
+
+      // NOTE: A Gnosis-recognized escrow contract, i.e. SAFE, is a PDO iff:
+      // - The SAFE holds exactly 1 Urbit ID
+      // - The Urbit ID held by the SAFE has a deployed TBA
+      const urbitPDOs: UrbitID[] = [];
+      for (const safe of safes) {
+        const safePoints = ((await readContract(wallet.wagmi, {
+          abi: azimuth.abi,
+          address: azimuth.address,
+          functionName: "getOwnedPoints",
+          args: [safe],
+        })) as number[]);
+        if (safePoints.length === 1) {
+          const safePoint: number = safePoints[0];
+          const safePointAddress: Address = await tbClient.getAccount({
+            tokenContract: ecliptic.address,
+            tokenId: String(safePoint),
+          });
+          const safePointIsDeployed: boolean = await tbClient.checkAccountDeployment({
+            accountAddress: safePointAddress,
+          });
+          if (safePointIsDeployed) {
+            urbitPDOs.push(formUrbitID(safePoint));
+          }
+        }
+      }
+
+      return urbitPDOs;
+    },
+    enabled: !!wallet && !!tbClient,
+    staleTime: Infinity,
+    retryOnMount: false,
+    refetchOnMount: false,
+  });
+
+  return isLoading ? undefined
+    : isError ? null
+    : (data as UrbitID[]);
+}
 
 export function useTokenboundSendMutation(
   urbitID: UrbitID,
   options?: UseMutationOptions<Address, unknown, any, unknown>,
 ) {
-  const [{wallet}, _, __] = useConnectWallet();
-  const wagmiConfig = useWagmiConfig();
+  const wallet = useWalletMeta();
   const tbClient = useTokenboundClient();
   const tbAccount = useTokenboundAccount(urbitID);
   const queryKey: QueryKey = useMemo(() => [
-    APP.TAG, "tokenbound", "account", wallet?.chains?.[0]?.id, urbitID.id,
-  ], [wallet, urbitID.id]);
+    APP.TAG, "tokenbound", "account", wallet?.stateId, urbitID.id,
+  ], [wallet?.stateId, urbitID.id]);
 
   const queryClient = useQueryClient();
   return useMutation({
@@ -39,15 +102,15 @@ export function useTokenboundSendMutation(
       recipient: string,
       amount: number,
     }) => {
-      if (!wagmiConfig) throw Error("WagmiClient unavailable");
+      if (!wallet) throw Error("Invalid wallet");
       if (!tbClient) throw Error("TokenboundClient unavailable");
       if (!tbAccount) throw Error("TokenboundAccount unavailable");
+      const ecliptic: Token = formToken(wallet.chainId, "ECL");
       const address: Address = await tbClient.getAccount({
-        // tokenContract: CONTRACT.ECLIPTIC.ADDRESS.ETHEREUM,
-        tokenContract: CONTRACT.ECLIPTIC.ADDRESS.SEPOLIA,
+        tokenContract: ecliptic.address,
         tokenId: formUrbitID(recipient).id,
       });
-      const token = formToken(wallet, symbol);
+      const sendToken = formToken(wallet.chainId, symbol);
       const txHash = await ((symbol === "ETH") ? tbClient.transferETH({
         account: tbAccount.address,
         amount: amount,
@@ -56,12 +119,12 @@ export function useTokenboundSendMutation(
         account: tbAccount.address,
         amount: amount,
         recipientAddress: address,
-        erc20tokenAddress: token.address,
-        erc20tokenDecimals: token.decimals,
+        erc20tokenAddress: sendToken.address,
+        erc20tokenDecimals: sendToken.decimals,
       }));
       // FIXME: This doesn't really seem to work, but it hasn't been tested
       // very thoroughly
-      const txReceipt = await waitForTransactionReceipt(wagmiConfig, {hash: txHash});
+      const txReceipt = await waitForTransactionReceipt(wallet.wagmi, {hash: txHash});
       return txReceipt.transactionHash;
     },
     onMutate: async (variables) => {
@@ -82,26 +145,25 @@ export function useTokenboundCreateMutation(
   urbitID: UrbitID,
   options?: UseMutationOptions<Address, unknown, any, unknown>,
 ) {
-  const [{wallet}, _, __] = useConnectWallet();
-  const wagmiConfig = useWagmiConfig();
+  const wallet = useWalletMeta();
   const tbClient = useTokenboundClient();
   const queryKey: QueryKey = useMemo(() => [
-    APP.TAG, "tokenbound", "account", wallet?.chains?.[0]?.id, urbitID.id,
-  ], [wallet, urbitID.id]);
+    APP.TAG, "tokenbound", "account", wallet?.stateId, urbitID.id,
+  ], [wallet?.stateId, urbitID.id]);
 
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async () => {
-      if (!wagmiConfig) throw Error("WagmiConfig unavailable");
+      if (!wallet) throw Error("Invalid wallet");
       if (!tbClient) throw Error("TokenboundClient unavailable");
+      const ecliptic: Token = formToken(wallet.chainId, "ECL");
       const { txHash } = await tbClient.createAccount({
-        // tokenContract: CONTRACT.ECLIPTIC.ADDRESS.ETHEREUM,
-        tokenContract: CONTRACT.ECLIPTIC.ADDRESS.SEPOLIA,
+        tokenContract: ecliptic.address,
         tokenId: urbitID.id,
       });
       // FIXME: This doesn't really seem to work, but it hasn't been tested
       // very thoroughly
-      const txReceipt = await waitForTransactionReceipt(wagmiConfig, {hash: txHash});
+      const txReceipt = await waitForTransactionReceipt(wallet.wagmi, {hash: txHash});
       return txReceipt.transactionHash;
     },
     onMutate: async (variables) => {
@@ -119,21 +181,20 @@ export function useTokenboundCreateMutation(
 }
 
 export function useTokenboundAccount(urbitID: UrbitID): Loadable<TokenboundAccount> {
-  const [{wallet}, _, __] = useConnectWallet();
+  const wallet = useWalletMeta();
   const tbClient = useTokenboundClient();
-  const wagmiConfig = useWagmiConfig();
   const queryKey: QueryKey = useMemo(() => [
-    APP.TAG, "tokenbound", "account", wallet?.chains?.[0]?.id, urbitID.id,
-  ], [wallet, urbitID.id]);
+    APP.TAG, "tokenbound", "account", wallet?.stateId, urbitID.id,
+  ], [wallet?.stateId, urbitID.id]);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKey,
     queryFn: async () => {
-      if (!wagmiConfig) throw Error("WagmiConfig unavailable");
+      if (!wallet) throw Error("Invalid wallet");
       if (!tbClient) throw Error("TokenboundClient unavailable");
+      const ecliptic: Token = formToken(wallet.chainId, "ECL");
       const tbAddress: Address = await tbClient.getAccount({
-        // tokenContract: CONTRACT.ECLIPTIC.ADDRESS.ETHEREUM,
-        tokenContract: CONTRACT.ECLIPTIC.ADDRESS.SEPOLIA,
+        tokenContract: ecliptic.address,
         tokenId: urbitID.id,
       });
       const tbIsDeployed: boolean = await tbClient.checkAccountDeployment({
@@ -141,16 +202,16 @@ export function useTokenboundAccount(urbitID: UrbitID): Loadable<TokenboundAccou
       });
       const tbHoldings: TokenHoldings = {};
       for (const symbol of ["ETH", "USDC"]) {
-        const token = formToken(wallet, symbol);
-        const holding = await getBalance((wagmiConfig as WagmiConfig), {
+        const holdToken = formToken(wallet.chainId, symbol);
+        const holding = await getBalance(wallet.wagmi, {
           address: tbAddress,
           token: (symbol === "ETH")
             ? undefined
-            : token.address,
+            : holdToken.address,
         });
         tbHoldings[symbol] = {
           balance: holding.value,
-          token: token,
+          token: holdToken,
         };
       }
       return {
@@ -159,7 +220,7 @@ export function useTokenboundAccount(urbitID: UrbitID): Loadable<TokenboundAccou
         holdings: tbHoldings,
       };
     },
-    enabled: !!tbClient,
+    enabled: !!wallet && !!tbClient,
     staleTime: Infinity,
     retryOnMount: false,
     refetchOnMount: false,
@@ -171,34 +232,26 @@ export function useTokenboundAccount(urbitID: UrbitID): Loadable<TokenboundAccou
 }
 
 export function useSafeAccount(urbitID: UrbitID): Loadable<SafeAccount> {
-  const [{wallet}, _, __] = useConnectWallet();
+  const wallet = useWalletMeta();
   const tbClient = useTokenboundClient();
-  const wagmiConfig = useWagmiConfig();
   const queryKey: QueryKey = useMemo(() => [
-    APP.TAG, "safe", "account", wallet?.chains?.[0]?.id, wagmiConfig?.state?.current, urbitID.id,
-  ], [wallet, urbitID.id]);
+    APP.TAG, "safe", "account", wallet?.stateId, urbitID.id,
+  ], [wallet?.stateId, urbitID.id]);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKey,
     queryFn: async () => {
-      if (!wagmiConfig) throw Error("WagmiConfig unavailable");
+      if (!wallet) throw Error("Invalid wallet");
       if (!tbClient) throw Error("TokenboundClient unavailable");
-      // NOTE: Formula for extracting "provider" from Wagmi taken from:
-      // https://github.com/wevm/wagmi/discussions/639#discussioncomment-9588515
-      const { connector } = await getAccount(wagmiConfig);
-      const provider = await connector?.getProvider();
-      if (!provider) throw Error("EIP1193Provider unavailable");
-      const chainId: number = hexToNumber((queryKey[3] as Address));
-
-      const token = formToken(wallet, "ECLIPTIC");
-      const safeAddress = ((await readContract(wagmiConfig, {
-        abi: CONTRACT.ECLIPTIC.ABI,
-        address: token.address,
+      const ecliptic: Token = formToken(wallet.chainId, "ECL");
+      const safeAddress = ((await readContract(wallet.wagmi, {
+        abi: ecliptic.abi,
+        address: ecliptic.address,
         functionName: "ownerOf",
         args: [urbitID.id],
       })) as Address);
 
-      const safeClient = new SafeApiKit({chainId: BigInt(chainId)});
+      const safeClient = new SafeApiKit({chainId: wallet.chainId});
       const safeInfo = await safeClient.getSafeInfo(safeAddress);
       const safeOwnurs: UrbitID[] = [];
       for (const owner of safeInfo.owners) {
@@ -219,6 +272,11 @@ export function useSafeAccount(urbitID: UrbitID): Loadable<SafeAccount> {
       // RPC endpoint instead of the safe.global API, which may be desirable at
       // some point in the future.
       //
+      // // NOTE: Formula for extracting "provider" from Wagmi taken from:
+      // // https://github.com/wevm/wagmi/discussions/639#discussioncomment-9588515
+      // const { connector } = await getAccount(wallet.wagmi);
+      // const provider = await connector?.getProvider();
+      // if (!provider) throw Error("EIP1193Provider unavailable");
       // const safeClient: Safe = await Safe.init({
       //   // @ts-ignore
       //   provider: (provider as EIP1193Provider),
@@ -233,7 +291,7 @@ export function useSafeAccount(urbitID: UrbitID): Loadable<SafeAccount> {
       //   threshold: safeThreshold,
       // };
     },
-    enabled: !!tbClient && !!(queryKey[3]) && !!(queryKey[4]),
+    enabled: !!wallet && !!tbClient,
     staleTime: Infinity,
     retryOnMount: false,
     refetchOnMount: false,
@@ -245,20 +303,22 @@ export function useSafeAccount(urbitID: UrbitID): Loadable<SafeAccount> {
 }
 
 export function useTokenboundClient(): Loadable<TokenboundClient> {
-  const [{wallet}, _, __] = useConnectWallet();
-  const wagmiConfig = useWagmiConfig();
+  const wallet = useWalletMeta();
   const queryKey: QueryKey = useMemo(() => [
-    APP.TAG, "tokenbound", "client", wallet?.chains?.[0]?.id, wagmiConfig?.state?.current,
-  ], [wallet?.chains?.[0]?.id, wagmiConfig?.state?.current]);
+    APP.TAG, "tokenbound", "client", wallet?.stateId,
+  ], [wallet?.stateId]);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKey,
     queryFn: async () => {
-      const chainId: number = hexToNumber((queryKey[3] as Address));
-      const walletClient = await getWalletClient((wagmiConfig as WagmiConfig));
-      return new TokenboundClient({walletClient, chainId});
+      if (!wallet) throw Error("Invalid wallet");
+      const walletClient = await getWalletClient(wallet.wagmi);
+      return new TokenboundClient({
+        walletClient: walletClient,
+        chainId: Number(wallet.chainId),
+      });
     },
-    enabled: !!(queryKey[3]) && !!(queryKey[4]),
+    enabled: !!wallet,
     staleTime: Infinity,
     retryOnMount: false,
     refetchOnMount: false,
@@ -269,5 +329,14 @@ export function useTokenboundClient(): Loadable<TokenboundClient> {
     : (data as TokenboundClient);
 }
 
-// export function useChain(): Loadable<bigint> {
-// }
+export function useWalletMeta(): Nullable<WalletMeta> {
+  const [{wallet}, _, __] = useConnectWallet();
+  const wagmiConfig = useWagmiConfig();
+
+  return useMemo(() => (!wagmiConfig?.state?.current ? null : {
+    stateId: wagmiConfig.state.current,
+    wagmi: (wagmiConfig as WagmiConfig),
+    chainId: hexToBigInt(((wallet?.chains?.[0]?.id ?? "0x0") as Address)),
+    address: wallet?.accounts?.[0]?.address ?? ACCOUNT.NULL.ETHEREUM,
+  }), [wagmiConfig?.state?.current]);
+}

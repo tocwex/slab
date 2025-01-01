@@ -3,7 +3,7 @@ import type { UrbitID } from "@/type/slab";
 import { useMemo, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useConnectWallet } from '@web3-onboard/react';
-import { useUrbitIDs } from '@/hook/wallet';
+import { useWalletUrbitIDs } from '@/hook/wallet';
 import { AddressFrame, UrbitIDFrame } from '@/comp/Frames';
 import { trimAddress, formUrbitID } from '@/lib/util';
 
@@ -13,7 +13,7 @@ export function IDRouteWrapper({
   children: React.ReactNode;
 }>): React.ReactNode {
   const [{wallet, connecting}, connect, disconnect] = useConnectWallet();
-  const urbitIDs = useUrbitIDs();
+  const urbitIDs = useWalletUrbitIDs();
   const router = useRouter();
   const params = useParams<{id: string}>();
 

@@ -1,4 +1,7 @@
-import type { Nullable, Address, UrbitID, UrbitClan, Token } from '@/type/slab';
+import type {
+  Nullable, Address, Contract,
+  UrbitID, UrbitClan, Token,
+} from '@/type/slab';
 import type { WalletState } from '@web3-onboard/core';
 import { ACCOUNT, BLOCKCHAIN, CONTRACT } from '@/dat/const';
 import * as ob from "urbit-ob";
@@ -35,23 +38,31 @@ export function trimAddress(address: string): string {
   return `${address.slice(0, 5)}…${address.slice(-4)}`;
 }
 
-export function formToken(wallet: WalletState | null, symbol: string): Token {
-  const chainId: number = ((): number => {
-    const chainId: string | undefined = wallet?.chains?.[0]?.id;
-    return chainId ? hexToNumber((chainId as Address)) : BLOCKCHAIN.ID.ETHEREUM;
-  })();
+export function formContract(chainBid: bigint, symbol: string): Contract {
+  const chainId: number = Number(chainBid);
+  const chainTag: string = BLOCKCHAIN?.TAG[chainId] ?? BLOCKCHAIN.TAG[BLOCKCHAIN.ID.ETHEREUM];
+  return {
+    abi: (CONTRACT as any)?.[symbol]?.ABI ?? [],
+    address: (CONTRACT as any)?.[symbol]?.ADDRESS?.[chainTag] ?? ACCOUNT.NULL.ETHEREUM,
+  };
+}
+
+export function formToken(chainBid: bigint, symbol: string): Token {
+  const chainId: number = Number(chainBid);
   const chainTag: string = BLOCKCHAIN?.TAG[chainId] ?? BLOCKCHAIN.TAG[BLOCKCHAIN.ID.ETHEREUM];
   return (symbol === "ETH")
     ? {
+      abi: [],
+      address: ACCOUNT.NULL?.[chainTag] ?? ACCOUNT.NULL.ETHEREUM,
       name: BLOCKCHAIN.TAG?.[chainId] ?? BLOCKCHAIN.TAG[BLOCKCHAIN.ID.ETHEREUM],
       symbol: BLOCKCHAIN.SYM?.[chainId] ?? BLOCKCHAIN.SYM[BLOCKCHAIN.ID.ETHEREUM],
       decimals: 18,
-      address: ACCOUNT.NULL?.[chainTag] ?? ACCOUNT.NULL.ETHEREUM,
     } : {
+      abi: (CONTRACT as any)?.[symbol]?.ABI ?? [],
+      address: (CONTRACT as any)?.[symbol]?.ADDRESS?.[chainTag] ?? ACCOUNT.NULL.ETHEREUM,
       name: (CONTRACT as any)?.[symbol]?.NAME ?? "<unknown>",
       symbol: (CONTRACT as any)?.[symbol]?.SYMBOL ?? "---",
       decimals: (CONTRACT as any)?.[symbol]?.DECIMALS ?? 18,
-      address: (CONTRACT as any)?.[symbol]?.ADDRESS?.[chainTag] ?? ACCOUNT.NULL.ETHEREUM,
     };
 }
 

@@ -5,16 +5,16 @@ import { formUrbitID } from '@/lib/util';
 
 export function useRouteUrbitID(): Nullable<UrbitID> {
   const params = useParams<{id: string}>();
-  const routeID: UrbitID | undefined = useMemo(() => (
-    !(params?.id) ? undefined : formUrbitID(params?.id)
+  const routeID: UrbitID | null = useMemo(() => (
+    !(params?.id) ? null : formUrbitID(params?.id)
   ), [params?.id]);
   return routeID;
 }
 
 export function useRouteUrbitPDO(): Nullable<UrbitID> {
   const params = useParams<{pdo: string}>();
-  const routePDO: UrbitID | undefined = useMemo(() => (
-    !(params?.pdo) ? undefined : formUrbitID(params?.pdo)
+  const routePDO: UrbitID | null = useMemo(() => (
+    !(params?.pdo) ? null : formUrbitID(params?.pdo)
   ), [params?.pdo]);
   return routePDO;
 }

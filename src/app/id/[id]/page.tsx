@@ -4,20 +4,22 @@ import { useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useRouteUrbitID } from '@/hook/app';
+import { useSafePDOs } from '@/hook/web3';
 import { TokenboundAccountInfo } from '@/comp/Accounts';
+import { TinyLoadingIcon } from '@/comp/Icons';
 import { REGEX } from '@/dat/const';
 
 export default function IDPage(): React.ReactNode {
   const router = useRouter();
   const routeID: UrbitID = (useRouteUrbitID() as UrbitID);
+  const routePDOs = useSafePDOs(routeID);
 
-  const onAccess = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    const accessData = new FormData((event.target as HTMLButtonElement).form ?? undefined);
-    // FIXME: It's very annoyting that this doesn't work
-    // router.push(`${router.asPath}/pdo/${accessData.get("account")}`);
-    router.push(`/id/${routeID.patp}/pdo/${accessData.get("account")}`);
-  }, [router, routeID]);
+  const gotoUrbitID = useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
+    const urbitPDO: string | undefined = event.target?.value;
+    if (!!urbitPDO) {
+      router.push(`/id/${routeID.patp}/pdo/${urbitPDO}`);
+    }
+  }, [router]);
 
   return (
     <div className="main">
@@ -25,24 +27,24 @@ export default function IDPage(): React.ReactNode {
         {routeID.patp} profile
       </h1>
       <TokenboundAccountInfo urbitID={routeID} />
-      <form className="flex flex-col gap-2">
+      <form className="flex flex-col items-center gap-2">
         <h2 className="text-2xl">
           Manage PDO
         </h2>
-        <div className="flex flex-col gap-2">
-          <input type="text" required name="account"
-            placeholder="urbit id"
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            spellCheck="false"
-            pattern={REGEX.AZIMUTH.POINT}
-            className="input-lg"
-          />
-          <button onClick={onAccess} className="button-lg">
-            access
-          </button>
-        </div>
+        {(routePDOs === undefined) ? (
+          <TinyLoadingIcon />
+        ) : (
+          <select onChange={gotoUrbitID} className="input-lg">
+            <option key="" value="">
+              Select PDO
+            </option>
+            {(routePDOs ?? []).map(({id, patp, clan}: UrbitID) => (
+              <option key={id} value={patp}>
+                {patp}
+              </option>
+            ))}
+          </select>
+        )}
       </form>
     </div>
   );

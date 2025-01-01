@@ -1,10 +1,19 @@
 import type { SafeInfoResponse } from '@safe-global/api-kit';
+import type { WagmiConfig } from '@web3-onboard/core';
+import { Abi } from 'abitype';
 
-export type Nullable<T> = T | undefined;
+export type Nullable<T> = T | null;
 export type Loadable<T> = T | null | undefined;
 
 export type Address = `0x${string}`;
 export type AddressType = 'account' | 'transaction' | 'signature';
+
+export interface WalletMeta {
+  stateId: string;
+  wagmi: WagmiConfig;
+  address: Address;
+  chainId: bigint;
+}
 
 export type UrbitClan = 'galaxy' | 'star' | 'planet' | 'moon' | 'comet';
 export interface UrbitID {
@@ -13,18 +22,20 @@ export interface UrbitID {
   clan: UrbitClan;
 }
 
-export interface Token {
+export interface Contract {
+  address: Address;
+  abi: Abi;
+}
+export interface Token extends Contract {
   name: string;
   symbol: string;
   decimals: number;
-  address: Address;
 }
 
 export interface TokenHolding {
   token: Token;
   balance: bigint;
 }
-
 export type TokenHoldings = {
   [symbol: string]: TokenHolding;
 };

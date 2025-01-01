@@ -1,36 +1,36 @@
-import type { Config as WagmiConfig } from '@wagmi/core';
-import type { Loadable, UrbitID } from '@/type/slab';
-
+import type { Loadable, Address, Contract, UrbitID } from '@/type/slab';
 import { useMemo } from 'react';
 import { QueryKey, useQuery } from '@tanstack/react-query';
-import { useConnectWallet, useWagmiConfig } from '@web3-onboard/react';
 import { readContract } from '@web3-onboard/wagmi';
+import { useWalletMeta } from '@/hook/web3';
+import { formContract, formUrbitID } from '@/lib/util';
+import { APP, ACCOUNT, CONTRACT } from '@/dat/const';
 
-import { formUrbitID } from '@/lib/util';
-import { APP, CONTRACT } from '@/dat/const';
+export function useWalletUrbitIDs(): Loadable<UrbitID[]> {
+  const wallet = useWalletMeta();
+  return useUrbitIDs(wallet?.address ?? ACCOUNT.NULL.ETHEREUM);
+}
 
-export function useUrbitIDs(): Loadable<UrbitID[]> {
-  const [{wallet}, _, __] = useConnectWallet();
-  const wagmiConfig = useWagmiConfig();
+export function useUrbitIDs(account: Address): Loadable<UrbitID[]> {
+  const wallet = useWalletMeta();
   const queryKey: QueryKey = useMemo(() => [
-    APP.TAG, "urbit-ids", wallet?.chains?.[0]?.id, wallet?.accounts?.[0]?.address,
-  ], [wallet]);
+    APP.TAG, "wallet", "urbit-ids", wallet?.chainId?.toString(), account,
+  ], [wallet?.chainId, account]);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKey,
     queryFn: async () => {
-      const chainId: string = (queryKey[2] as string);
-      const address: string = (queryKey[3] as string);
-      const points = await readContract((wagmiConfig as WagmiConfig), {
-        abi: CONTRACT.AZIMUTH.ABI,
-        // address: CONTRACT.AZIMUTH.ADDRESS.ETHEREUM,
-        address: CONTRACT.AZIMUTH.ADDRESS.SEPOLIA,
+      if (!wallet) throw Error("Invalid wallet");
+      const azimuth: Contract = formContract(wallet.chainId, "AZP");
+      const points = await readContract(wallet.wagmi, {
+        abi: azimuth.abi,
+        address: azimuth.address,
         functionName: "getOwnedPoints",
-        args: [address],
+        args: [account],
       });
       return (points as number[]).map(formUrbitID);
     },
-    enabled: !!(queryKey[2]) && !!(queryKey[3]) && !!wagmiConfig,
+    enabled: !!wallet,
     staleTime: 10 * 60 * 1000,
     retryOnMount: false,
     refetchOnMount: false,

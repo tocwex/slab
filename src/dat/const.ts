@@ -34,14 +34,14 @@ export const ACCOUNT = Object.freeze({
 });
 
 export const CONTRACT = Object.freeze({
-  AZIMUTH: Object.freeze({
+  AZP: Object.freeze({ // Azimuth
     ADDRESS: (Object.freeze({
       ETHEREUM: "0x223c067f8cf28ae173ee5cafea60ca44c335fecb",
       SEPOLIA: "0x6EB93da65d19a3e4501210C1B289A0734487ed84",
     }) as {[network: string]: `0x${string}`;}),
     ABI: AZIMUTH_CONTRACT.abi,
   }),
-  ECLIPTIC: Object.freeze({
+  ECL: Object.freeze({ // Ecliptic
     ADDRESS: (Object.freeze({
       ETHEREUM: "0x33EeCbf908478C10614626A9D304bfe18B78DD73",
       SEPOLIA: "0xf81109BE13862261234c24659aF412Fe70a683e4",
