@@ -9,10 +9,10 @@ export type Address = `0x${string}`;
 export type AddressType = 'account' | 'transaction' | 'signature';
 
 export interface WalletMeta {
-  stateId: string;
+  stateID: string;
   wagmi: WagmiConfig;
   address: Address;
-  chainId: bigint;
+  chainID: bigint;
 }
 
 export type UrbitClan = 'galaxy' | 'star' | 'planet' | 'moon' | 'comet';

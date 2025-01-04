@@ -14,14 +14,14 @@ export function useWalletUrbitIDs(): Loadable<UrbitID[]> {
 export function useUrbitIDs(account: Address): Loadable<UrbitID[]> {
   const wallet = useWalletMeta();
   const queryKey: QueryKey = useMemo(() => [
-    APP.TAG, "wallet", "urbit-ids", wallet?.chainId?.toString(), account,
-  ], [wallet?.chainId, account]);
+    APP.TAG, "wallet", "urbit-ids", wallet?.chainID?.toString(), account,
+  ], [wallet?.chainID, account]);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKey,
     queryFn: async () => {
       if (!wallet) throw Error("Invalid wallet");
-      const azimuth: Contract = formContract(wallet.chainId, "AZP");
+      const azimuth: Contract = formContract(wallet.chainID, "AZP");
       const points = await readContract(wallet.wagmi, {
         abi: azimuth.abi,
         address: azimuth.address,

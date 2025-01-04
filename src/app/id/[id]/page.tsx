@@ -26,7 +26,6 @@ export default function IDPage(): React.ReactNode {
       <h1 className="text-4xl font-bold underline">
         {routeID.patp} profile
       </h1>
-      <TokenboundAccountInfo urbitID={routeID} />
       <form className="flex flex-col items-center gap-2">
         <h2 className="text-2xl">
           Manage PDO
@@ -46,6 +45,7 @@ export default function IDPage(): React.ReactNode {
           </select>
         )}
       </form>
+      <TokenboundAccountInfo urbitID={routeID} />
     </div>
   );
 }
