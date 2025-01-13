@@ -444,6 +444,7 @@ export function useTokenboundClient(): Loadable<TokenboundClient> {
       return new TokenboundClient({
         walletClient: walletClient,
         chainId: Number(wallet.chainID),
+        implementationAddress: formContract(wallet.chainID, "TKB").address,
       });
     },
     enabled: !!wallet,

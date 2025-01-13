@@ -1,6 +1,6 @@
 {
-  "name": "with-tailwindcss-app",
-  "version": "0.1.0",
+  "name": "%slab",
+  "version": "0.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "tsc": "tsc --noEmit --incremental false",
+    "postinstall": "patch-package",
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
@@ -22,6 +23,7 @@
     "@web3-onboard/react": "^2.10.0",
     "@web3-onboard/wagmi": "^2.0.1",
     "next": "15.1.0",
+    "patch-package": "^8.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "sqlite3": "^5.1.7",

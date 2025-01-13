@@ -1,5 +1,6 @@
 import AZIMUTH_CONTRACT from "./contract/azimuth.json";
 import ECLIPTIC_CONTRACT from "./contract/ecliptic.json";
+import TOKENBOUND_CONTRACT from "./contract/tokenbound.json";
 import USDC_CONTRACT from "./contract/usdc.json";
 
 export const APP = Object.freeze({
@@ -21,8 +22,8 @@ export const BLOCKCHAIN = Object.freeze({
     11155111: "sepETH",
   }) as {[network: number]: string;}),
   RPC: (Object.freeze({
-    ETHEREUM: `https://eth-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_KEY}`,
-    SEPOLIA: `https://eth-sepolia.g.alchemy.com/v2/${process.env.ALCHEMY_KEY}`,
+    ETHEREUM: `https://eth-mainnet.g.alchemy.com/v2/${process.env.NEXT_PUBLIC_ALCHEMY_KEY}`,
+    SEPOLIA: `https://eth-sepolia.g.alchemy.com/v2/${process.env.NEXT_PUBLIC_ALCHEMY_KEY}`,
   }) as {[network: string]: string;}),
 });
 
@@ -34,6 +35,13 @@ export const ACCOUNT = Object.freeze({
 });
 
 export const CONTRACT = Object.freeze({
+  TKB: Object.freeze({ // Tokenbound
+    ADDRESS: (Object.freeze({
+      ETHEREUM: "0x0", // TODO: Add the address once contract is deployed
+      SEPOLIA: "0xC4072296Bc4F5d9458522Eab7809e66935656d40",
+    }) as {[network: string]: `0x${string}`;}),
+    ABI: TOKENBOUND_CONTRACT,
+  }),
   AZP: Object.freeze({ // Azimuth
     ADDRESS: (Object.freeze({
       ETHEREUM: "0x223c067f8cf28ae173ee5cafea60ca44c335fecb",

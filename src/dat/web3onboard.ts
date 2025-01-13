@@ -11,14 +11,14 @@ const web3onboardClientSingleton = () => (web3Init({
   chains: [
     {
       id: BLOCKCHAIN.ID.ETHEREUM,
+      rpcUrl: BLOCKCHAIN.RPC.ETHEREUM,
+      label: "Ethereum",
       token: "ETH",
-      label: "Ethereum Mainnet",
-      rpcUrl: `https://eth-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_KEY}`
     }, {
       id: BLOCKCHAIN.ID.SEPOLIA,
-      token: "ETH",
+      rpcUrl: BLOCKCHAIN.RPC.SEPOLIA,
       label: "Sepolia",
-      rpcUrl: `https://eth-sepolia.g.alchemy.com/v2/${process.env.ALCHEMY_KEY}`
+      token: "sepoliaETH",
     },
   ],
   // FIXME: Want to just have the icon displayed in the metadata, but the name

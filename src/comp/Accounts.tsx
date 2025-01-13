@@ -30,6 +30,7 @@ export function SafeAccountInfo({
           <ul className="list-disc">
             <li>
               <span className="font-bold">vault: </span>
+              {/* TODO: Should probably link to safe.global portal instead */}
               <AddressFrame address={(safeAccount.address as Address)} />
             </li>
             <li>
