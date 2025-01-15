@@ -38,6 +38,17 @@ export function trimAddress(address: string): string {
   return `${address.slice(0, 5)}…${address.slice(-4)}`;
 }
 
+export function hasClanBoon(urbit: UrbitID, clan: UrbitClan): boolean {
+  const CLAN_INDEX = Object.freeze({
+    galaxy: 0,
+    star: 1,
+    planet: 2,
+    moon: 3,
+    comet: 4,
+  });
+  return CLAN_INDEX[urbit.clan] <= CLAN_INDEX[clan];
+}
+
 export function formContract(chainBid: bigint, symbol: string): Contract {
   const chainId: number = Number(chainBid);
   const chainTag: string = BLOCKCHAIN?.TAG[chainId] ?? BLOCKCHAIN.TAG[BLOCKCHAIN.ID.ETHEREUM];

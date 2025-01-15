@@ -17,8 +17,16 @@ a {
     @apply flex flex-col gap-4 py-2 px-4 justify-center items-center;
 }
 
+.input-sm {
+    @apply flex items-center justify-center px-2 py-0.5 border border-white bg-black font-bold text-white whitespace-nowrap;
+}
+
 .input-lg {
     @apply flex items-center justify-center px-4 py-1.5 border border-white bg-black font-bold text-white whitespace-nowrap;
+}
+
+.button-sm {
+    @apply flex items-center justify-center px-2 py-0.5 rounded-full border border-white font-bold text-white whitespace-nowrap;
 }
 
 .button-lg {

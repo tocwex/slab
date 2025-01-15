@@ -12,14 +12,16 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useConnectWallet, useWagmiConfig } from '@web3-onboard/react';
 import {
   getWalletClient, getAccount, getBalance,
-  signMessage, readContract, waitForTransactionReceipt,
+  signMessage, readContract, writeContract,
+  sendTransaction, waitForTransactionReceipt,
 } from '@web3-onboard/wagmi';
 import { TokenboundClient } from '@tokenbound/sdk';
-import Safe from '@safe-global/protocol-kit';
+import Safe, { getSafeAddressFromDeploymentTx } from '@safe-global/protocol-kit';
 import SafeApiKit from '@safe-global/api-kit';
 import { OperationType } from '@safe-global/types-kit';
 import {
-  formatUnits, hexToNumber, hexToBigInt, pad,
+  recoverAddress, recoverMessageAddress, verifyMessage,
+  formatUnits, hexToNumber, hexToBigInt, numberToHex, keccak256, pad,
   parseEther, parseUnits, encodePacked, encodeFunctionData,
 } from 'viem';
 import { formContract, formToken, formUrbitID } from '@/lib/util';
@@ -118,6 +120,85 @@ export function usePDOSendMutation(
       });
 
       return ("0x0" as Address);
+    },
+    onMutate: async (variables) => {
+      await queryClient.cancelQueries({ queryKey: queryKey });
+      return await queryClient.getQueryData(queryKey);
+    },
+    onError: (err, variables, oldData) => {
+      queryClient.setQueryData(queryKey, oldData)
+    },
+    onSettled: (_data, _error, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKey })
+    },
+    ...options,
+  });
+}
+
+export function usePDOCreateMutation(
+  urbitID: UrbitID,
+  options?: UseMutationOptions<Address, unknown, any, unknown>,
+) {
+  const wallet = useWalletMeta();
+  const tbClient = useTokenboundClient();
+  const tbAccount = useTokenboundAccount(urbitID);
+  const queryKey: QueryKey = useMemo(() => [
+    APP.TAG, "wallet", "urbit-ids", wallet?.chainID?.toString(), wallet?.address,
+  ], [wallet?.chainID, wallet?.address]);
+
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({managers, threshold}: {
+      managers: string[],
+      threshold: number,
+    }) => {
+      if (!wallet) throw Error("Invalid wallet");
+      if (!tbClient) throw Error("TokenboundClient unavailable");
+      if (!tbAccount) throw Error("TokenboundAccount unavailable");
+
+      const ecliptic: Token = formToken(wallet.chainID, "ECL");
+      const owners: Address[] = [];
+      for (const managerID of managers.map(formUrbitID)) {
+        if (!managerID.id) throw Error("Invalid Urbit IDs");
+        const managerAddress: Address = await tbClient.getAccount({
+          tokenContract: ecliptic.address,
+          tokenId: managerID.id,
+        });
+        owners.push(managerAddress);
+      }
+
+      // NOTE: Formula for extracting "provider" from Wagmi taken from:
+      // https://github.com/wevm/wagmi/discussions/639#discussioncomment-9588515
+      const { connector } = await getAccount(wallet.wagmi);
+      const provider = await connector?.getProvider();
+      if (!provider) throw Error("EIP1193Provider unavailable");
+      const safeAccount: Safe = await Safe.init({
+        // @ts-ignore
+        provider: (provider as EIP1193Provider),
+        signer: wallet.address,
+        predictedSafe: {
+          safeAccountConfig: {owners, threshold},
+          safeDeploymentConfig: {
+            saltNonce: keccak256(numberToHex(Date.now())),
+            safeVersion: "1.4.1",
+          },
+        },
+      });
+      const deployTransaction = await safeAccount.createSafeDeploymentTransaction();
+      // @ts-ignore
+      const deployTxHash = await sendTransaction(wallet.wagmi, deployTransaction);
+      const deployReceipt = await waitForTransactionReceipt(wallet.wagmi, {hash: deployTxHash});
+      const safeAddress = getSafeAddressFromDeploymentTx(deployReceipt, "1.4.1");
+
+      const transferTransaction = await writeContract(wallet.wagmi, {
+        abi: ecliptic.abi,
+        address: ecliptic.address,
+        functionName: "safeTransferFrom",
+        args: [wallet.address, safeAddress, Number(urbitID.id)],
+      });
+      const transferReceipt = await waitForTransactionReceipt(wallet.wagmi, {hash: transferTransaction});
+
+      return transferReceipt.transactionHash;
     },
     onMutate: async (variables) => {
       await queryClient.cancelQueries({ queryKey: queryKey });
@@ -367,7 +448,7 @@ export function useTokenboundAccount(urbitID: UrbitID): Loadable<TokenboundAccou
         holdings: tbHoldings,
       };
     },
-    enabled: !!wallet && !!tbClient,
+    enabled: !!wallet && !!tbClient && !!urbitID.id,
     staleTime: Infinity,
     retryOnMount: false,
     refetchOnMount: false,
@@ -471,5 +552,5 @@ export function useWalletMeta(): Nullable<WalletMeta> {
       chainID: chainID,
       address: address,
     };
-  })()), [wagmiConfig?.state?.current]);
+  })()), [wallet?.chains?.[0]?.id, wallet?.accounts?.[0]?.address]);
 }

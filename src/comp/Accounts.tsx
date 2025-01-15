@@ -31,6 +31,7 @@ export function SafeAccountInfo({
             <li>
               <span className="font-bold">vault: </span>
               {/* TODO: Should probably link to safe.global portal instead */}
+              {/* TODO: There should be a link to the PDO TBA as well */}
               <AddressFrame address={(safeAccount.address as Address)} />
             </li>
             <li>
@@ -113,9 +114,9 @@ export function TokenboundAccountInfo({
           {(tbCreateStatus === "pending") ? (
             <TinyLoadingIcon />
           ) : (tbCreateStatus === "error") ? (
-            "error"
+            "Error!"
           ) : (
-            "deploy"
+            "Deploy"
           )}
         </button>
       )}
@@ -134,8 +135,9 @@ export function TokenboundAccountInfo({
               </li>
             ))}
           </ul>
+          {/* FIXME: Re-add 'required' to all fields here. */}
           <div className="flex flex-col gap-2">
-            <input type="text" name="recipient" required
+            <input type="text" name="recipient"
               placeholder="urbit id"
               autoComplete="off"
               autoCorrect="off"
@@ -144,12 +146,12 @@ export function TokenboundAccountInfo({
               pattern={REGEX.AZIMUTH.POINT}
               className="input-lg"
             />
-            <select required name="token" className="invalid:text-[#969da8] input-lg">
+            <select name="token" className="invalid:text-[#969da8] input-lg">
               <option value="">currency</option>
               <option value="ETH">ethereum</option>
               <option value="USDC">usdc</option>
             </select>
-            <input type="number" name="amount" required
+            <input type="number" name="amount"
               min="0" max="100000000" step="0.0001"
               placeholder="amount"
               className="input-lg"
@@ -162,9 +164,9 @@ export function TokenboundAccountInfo({
               {(tbSendStatus === "pending") ? (
                 <TinyLoadingIcon />
               ) : (tbSendStatus === "error") ? (
-                "error"
+                "Error!"
               ) : (
-                "send"
+                "Send"
               )}
             </button>
           </div>
@@ -189,6 +191,7 @@ export function PDOAccountInfo({
   const onSend = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     const sendData = new FormData((event.target as HTMLButtonElement).form ?? undefined);
+    // FIXME: Restore the real logic here
     pdoSendMutate({
       // token: String(sendData.get("token") ?? "ETH"),
       // recipient: String(sendData.get("recipient") ?? urbitID.patp),
@@ -218,7 +221,7 @@ export function PDOAccountInfo({
               ))}
             </ul>
             <div className="flex flex-col gap-2">
-              <input type="text" name="recipient"
+              <input type="text" name="recipient" required
                 placeholder="urbit id"
                 autoComplete="off"
                 autoCorrect="off"
@@ -227,12 +230,12 @@ export function PDOAccountInfo({
                 pattern={REGEX.AZIMUTH.POINT}
                 className="input-lg"
               />
-              <select name="token" className="invalid:text-[#969da8] input-lg">
+              <select required name="token" className="invalid:text-[#969da8] input-lg">
                 <option value="">currency</option>
                 <option value="ETH">ethereum</option>
                 <option value="USDC">usdc</option>
               </select>
-              <input type="number" name="amount"
+              <input type="number" name="amount" required
                 min="0" max="100000000" step="0.0001"
                 placeholder="amount"
                 className="input-lg"
@@ -245,9 +248,9 @@ export function PDOAccountInfo({
                 {(pdoSendStatus === "pending") ? (
                   <TinyLoadingIcon />
                 ) : (pdoSendStatus === "error") ? (
-                  "error"
+                  "Error!"
                 ) : (
-                  "propose"
+                  "Propose"
                 )}
               </button>
             </div>

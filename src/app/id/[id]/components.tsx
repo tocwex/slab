@@ -62,7 +62,6 @@ export function IDRouteWrapper({
       <h4 className="font-medium">
         <span>Web3 wallet </span>
         <AddressFrame address={wallet?.accounts?.[0]?.address ?? "0x0"} />
-        <code className="font-bold">{address}</code>
         <span> doesn't hold Urbit ID </span>
         <UrbitIDFrame urbitID={routeID} />
         <span>.</span>
