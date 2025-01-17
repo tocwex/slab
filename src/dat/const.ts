@@ -38,7 +38,7 @@ export const CONTRACT = Object.freeze({
   TKB: Object.freeze({ // Tokenbound
     ADDRESS: (Object.freeze({
       ETHEREUM: "0x0", // TODO: Add the address once contract is deployed
-      SEPOLIA: "0xC4072296Bc4F5d9458522Eab7809e66935656d40",
+      SEPOLIA: "0x5Ee3b4196a20aec5EECDdf57d5AB24dF3cEAdFBe",
     }) as {[network: string]: `0x${string}`;}),
     ABI: TOKENBOUND_CONTRACT,
   }),

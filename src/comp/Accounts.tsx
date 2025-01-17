@@ -7,7 +7,7 @@ import {
   useTokenboundAccount, useSafeAccount, useSafeProposals,
   useTokenboundCreateMutation, useTokenboundSendMutation, usePDOSendMutation,
 } from '@/hook/web3';
-import { AddressFrame, UrbitIDFrame } from '@/comp/Frames';
+import { AddressFrame, SafeFrame, UrbitIDFrame } from '@/comp/Frames';
 import { TinyLoadingIcon, TextLoadingIcon } from '@/comp/Icons';
 import { trimAddress } from '@/lib/util';
 import { formatUnits } from 'viem';
@@ -19,20 +19,23 @@ export function SafeAccountInfo({
   urbitID: UrbitID;
 }): React.ReactNode {
   const safeAccount = useSafeAccount(urbitID);
+  const pdoAccount = useTokenboundAccount(urbitID);
 
   return (
     <div className="main">
-      {!!safeAccount && (
+      {(!!safeAccount && !!pdoAccount) && (
         <form className="flex flex-col gap-2">
           <h2 className="text-2xl">
             PDO Information
           </h2>
           <ul className="list-disc">
             <li>
-              <span className="font-bold">vault: </span>
-              {/* TODO: Should probably link to safe.global portal instead */}
-              {/* TODO: There should be a link to the PDO TBA as well */}
-              <AddressFrame address={(safeAccount.address as Address)} />
+              <span className="font-bold">tba: </span>
+              <AddressFrame address={(pdoAccount.address as Address)} />
+            </li>
+            <li>
+              <span className="font-bold">multisig: </span>
+              <SafeFrame address={(safeAccount.address as Address)} />
             </li>
             <li>
               <span className="font-bold">threshold: </span>
@@ -266,11 +269,20 @@ export function PDOAccountInfo({
             ) : (pdoProposals.length === 0) ? (
               <div>(no proposals found)</div>
             ) : (
-              <ul>
-                {pdoProposals.map(({safe, to, proposer, submissionDate}) => (
-                  <li key={safe}>
-                    <span className="font-bold">{to}: </span>
-                    <AddressFrame address={(proposer as Address)} />
+              <ul className="list-disc">
+                {pdoProposals.map(({safeTxHash, to, data, confirmationsRequired, confirmations}) => (
+                  <li key={safeTxHash}>
+                    <AddressFrame address={(safeTxHash as Address)} type="signature" />
+                    <span> ({(confirmations ?? []).length} / {confirmationsRequired} signatures)</span>
+                    <ul className="list-disc pl-4">
+                      {(confirmations ?? []).map(({owner, signature}) => (
+                        <li key={owner}>
+                          <AddressFrame address={(owner as Address)} />
+                          <span>: </span>
+                          <AddressFrame address={(signature as Address)} type="signature" />
+                        </li>
+                      ))}
+                    </ul>
                   </li>
                 ))}
               </ul>

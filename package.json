@@ -27,7 +27,13 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "sqlite3": "^5.1.7",
-    "urbit-ob": "^5.0.1"
+    "urbit-ob": "^5.0.1",
+    "usehooks-ts": "^3.1.0"
+  },
+  "overrides": {
+    "usehooks-ts": {
+      "react": "^19"
+    }
   },
   "devDependencies": {
     "@types/node": "^20",
