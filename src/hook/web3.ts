@@ -27,6 +27,113 @@ import {
 import { formContract, formToken, formUrbitID } from '@/lib/util';
 import { APP, ACCOUNT, CONTRACT } from '@/dat/const';
 
+export function usePDOExecMutation(
+  urbitPDO: UrbitID,
+  options?: UseMutationOptions<Address, unknown, any, unknown>,
+) {
+  const wallet = useWalletMeta();
+  const pdoSafe = useSafeAccount(urbitPDO);
+  // TODO: Need the query key of the PDO TBA as well
+  const queryKey: QueryKey = useMemo(() => [
+    APP.TAG, "safe", "proposals", wallet?.chainID?.toString(), urbitPDO.id,
+  ], [wallet?.chainID, urbitPDO.id]);
+  // const queryKey: QueryKey = useMemo(() => [
+  //   APP.TAG, "tokenbound", "account", wallet?.stateID, urbitID.id,
+  // ], [wallet?.stateID, urbitPDO.id]);
+
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({txHash}: {txHash: Address}) => {
+      if (!wallet) throw Error("Invalid wallet");
+      if (!pdoSafe) throw Error("SAFEAccount for PDO unavailable");
+
+      // NOTE: Formula for extracting "provider" from Wagmi taken from:
+      // https://github.com/wevm/wagmi/discussions/639#discussioncomment-9588515
+      const { connector } = await getAccount(wallet.wagmi);
+      const provider = await connector?.getProvider();
+      if (!provider) throw Error("EIP1193Provider unavailable");
+      const safeAccount: Safe = await Safe.init({
+        // @ts-ignore
+        provider: (provider as EIP1193Provider),
+        signer: wallet.address,
+        safeAddress: pdoSafe.address,
+      });
+      const safeClient = new SafeApiKit({chainId: wallet.chainID});
+
+      const safeTransaction = await safeClient.getTransaction(txHash);
+      const executeTxResponse = await safeAccount.executeTransaction(safeTransaction);
+      const executeReceipt = await waitForTransactionReceipt(wallet.wagmi, {
+        hash: (executeTxResponse.hash as Address),
+      });
+
+      return executeReceipt.transactionHash;
+    },
+    onMutate: async (variables) => {
+      await queryClient.cancelQueries({ queryKey: queryKey });
+      return await queryClient.getQueryData(queryKey);
+    },
+    onError: (err, variables, oldData) => {
+      queryClient.setQueryData(queryKey, oldData)
+    },
+    onSettled: (_data, _error, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKey })
+    },
+    ...options,
+  });
+}
+
+export function usePDOSignMutation(
+  urbitID: UrbitID,
+  urbitPDO: UrbitID,
+  options?: UseMutationOptions<Address, unknown, any, unknown>,
+) {
+  const wallet = useWalletMeta();
+  const idAccount = useTokenboundAccount(urbitID);
+  // TODO: Need the query key of the PDO TBA as well
+  const queryKey: QueryKey = useMemo(() => [
+    APP.TAG, "safe", "proposals", wallet?.chainID?.toString(), urbitPDO.id,
+  ], [wallet?.chainID, urbitPDO.id]);
+  // const queryKey: QueryKey = useMemo(() => [
+  //   APP.TAG, "tokenbound", "account", wallet?.stateID, urbitID.id,
+  // ], [wallet?.stateID, urbitPDO.id]);
+
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({txHash}: {txHash: Address}) => {
+      if (!wallet) throw Error("Invalid wallet");
+      if (!idAccount) throw Error("TokenboundAccount for ID unavailable");
+
+      // NOTE: We can't use `Safe.signHash` because we need the TBA's signature
+      // (see EIP-1271: https://eips.ethereum.org/EIPS/eip-1271)
+      // const safeTransactionSig = await safeAccount.signHash(safeTransactionHash);
+      const walletTransactionSig = await signMessage(wallet.wagmi, {
+        account: wallet.address,
+        message: { raw: txHash },
+      });
+      const safeTransactionSig = encodePacked(
+        ["bytes32", "uint256", "uint8", "uint256", "bytes"],
+        [pad(idAccount.address), BigInt(65), 0, BigInt((walletTransactionSig.length - 2) / 2), walletTransactionSig],
+      );
+
+      const safeClient = new SafeApiKit({chainId: wallet.chainID});
+      await safeClient.confirmTransaction(txHash, safeTransactionSig);
+
+      return ("0x0" as Address);
+    },
+    onMutate: async (variables) => {
+      await queryClient.cancelQueries({ queryKey: queryKey });
+      return await queryClient.getQueryData(queryKey);
+    },
+    onError: (err, variables, oldData) => {
+      queryClient.setQueryData(queryKey, oldData)
+    },
+    onSettled: (_data, _error, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKey })
+    },
+    ...options,
+  });
+}
+
 export function usePDOSendMutation(
   urbitID: UrbitID,
   urbitPDO: UrbitID,
@@ -42,7 +149,7 @@ export function usePDOSendMutation(
     APP.TAG, "safe", "proposals", wallet?.chainID?.toString(), urbitPDO.id,
   ], [wallet?.chainID, urbitPDO.id]);
   // const queryKey: QueryKey = useMemo(() => [
-  //   APP.TAG, "tokenbound", "account", wallet?.stateID, urbitID.id,
+  //   APP.TAG, "tokenbound", "account", wallet?.stateID, urbitPDO.id,
   // ], [wallet?.stateID, urbitPDO.id]);
 
   const queryClient = useQueryClient();
@@ -57,10 +164,16 @@ export function usePDOSendMutation(
       if (!idAccount) throw Error("TokenboundAccount for ID unavailable");
       if (!pdoAccount) throw Error("TokenboundAccount for PDO unavailable");
       if (!pdoSafe) throw Error("SAFEAccount for PDO unavailable");
-      const token = formToken(wallet.chainID, symbol);
+      const ecliptic: Token = formToken(wallet.chainID, "ECL");
+      const recipientAddress: Address = await tbClient.getAccount({
+        tokenContract: ecliptic.address,
+        tokenId: formUrbitID(recipient).id,
+      });
+
+      const token: Token = formToken(wallet.chainID, symbol);
       const tbTransferTransaction = await ((symbol === "ETH") ? tbClient.prepareExecution({
         account: pdoAccount.address,
-        to: ACCOUNT.NULL.ETHEREUM,
+        to: recipientAddress,
         value: parseEther(amount),
         data: "0x",
       }) : tbClient.prepareExecution({
@@ -70,13 +183,9 @@ export function usePDOSendMutation(
         data: encodeFunctionData({
           abi: token.abi,
           functionName: "transfer",
-          args: [recipient, parseUnits(amount, token.decimals)],
+          args: [recipientAddress, parseUnits(amount, token.decimals)],
         }),
       }));
-      const tbApproveTransaction = await tbClient.prepareExecution({
-        account: idAccount.address,
-        ...tbTransferTransaction,
-      });
 
       // NOTE: Formula for extracting "provider" from Wagmi taken from:
       // https://github.com/wevm/wagmi/discussions/639#discussioncomment-9588515
@@ -92,9 +201,9 @@ export function usePDOSendMutation(
       const safeTransaction = await safeAccount.createTransaction({
         transactions: [{
           operation: OperationType.Call,
-          to: tbApproveTransaction.to,
-          data: tbApproveTransaction.data,
-          value: tbApproveTransaction.value.toString(),
+          to: tbTransferTransaction.to,
+          data: tbTransferTransaction.data,
+          value: tbTransferTransaction.value.toString(),
         }],
       });
       const safeTransactionHash = await safeAccount.getTransactionHash(safeTransaction);
@@ -187,7 +296,9 @@ export function usePDOCreateMutation(
       const deployTransaction = await safeAccount.createSafeDeploymentTransaction();
       // @ts-ignore
       const deployTxHash = await sendTransaction(wallet.wagmi, deployTransaction);
-      const deployReceipt = await waitForTransactionReceipt(wallet.wagmi, {hash: deployTxHash});
+      const deployReceipt = await waitForTransactionReceipt(wallet.wagmi, {
+        hash: deployTxHash,
+      });
       const safeAddress = getSafeAddressFromDeploymentTx(deployReceipt, "1.4.1");
 
       const transferTransaction = await writeContract(wallet.wagmi, {
@@ -196,7 +307,9 @@ export function usePDOCreateMutation(
         functionName: "safeTransferFrom",
         args: [wallet.address, safeAddress, Number(urbitID.id)],
       });
-      const transferReceipt = await waitForTransactionReceipt(wallet.wagmi, {hash: transferTransaction});
+      const transferReceipt = await waitForTransactionReceipt(wallet.wagmi, {
+        hash: transferTransaction,
+      });
 
       return transferReceipt.transactionHash;
     },

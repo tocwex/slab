@@ -5,10 +5,14 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   useTokenboundAccount, useSafeAccount, useSafeProposals,
-  useTokenboundCreateMutation, useTokenboundSendMutation, usePDOSendMutation,
+  useTokenboundCreateMutation, useTokenboundSendMutation,
+  usePDOSendMutation, usePDOSignMutation, usePDOExecMutation,
 } from '@/hook/web3';
 import { AddressFrame, SafeFrame, UrbitIDFrame } from '@/comp/Frames';
-import { TinyLoadingIcon, TextLoadingIcon } from '@/comp/Icons';
+import {
+  TinyLoadingIcon, TextLoadingIcon,
+  ErrorIcon, SendIcon, SignIcon,
+} from '@/comp/Icons';
 import { trimAddress } from '@/lib/util';
 import { formatUnits } from 'viem';
 import { REGEX } from '@/dat/const';
@@ -72,11 +76,15 @@ export function TokenboundAccountInfo({
 
   const onSend = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
-    const sendData = new FormData((event.target as HTMLButtonElement).form ?? undefined);
+    const sendData = new FormData((event.currentTarget as HTMLButtonElement).form ?? undefined);
     tbSendMutate({
       token: String(sendData.get("token") ?? "ETH"),
       recipient: String(sendData.get("recipient") ?? urbitID.patp),
       amount: String(sendData.get("amount") ?? "0"),
+      // TODO: Remove this after testing is complete
+      // token: "ETH",
+      // recipient: "~sordeg",
+      // amount: "0.0001",
     });
   }, [tbSendMutate]);
 
@@ -187,27 +195,38 @@ export function PDOAccountInfo({
   urbitPDO: UrbitID;
 }): React.ReactNode {
   const router = useRouter();
+  const idAccount = useTokenboundAccount(urbitID);
   const pdoAccount = useTokenboundAccount(urbitPDO);
   const pdoProposals = useSafeProposals(urbitPDO);
   const { mutate: pdoSendMutate, status: pdoSendStatus } = usePDOSendMutation(urbitID, urbitPDO);
+  const { mutate: pdoSignMutate, status: pdoSignStatus } = usePDOSignMutation(urbitID, urbitPDO);
+  const { mutate: pdoExecMutate, status: pdoExecStatus } = usePDOExecMutation(urbitPDO);
 
   const onSend = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
-    const sendData = new FormData((event.target as HTMLButtonElement).form ?? undefined);
-    // FIXME: Restore the real logic here
+    const sendData = new FormData((event.currentTarget as HTMLButtonElement).form ?? undefined);
     pdoSendMutate({
-      // token: String(sendData.get("token") ?? "ETH"),
-      // recipient: String(sendData.get("recipient") ?? urbitID.patp),
-      // amount: String(sendData.get("amount") ?? "0"),
-      token: "ETH",
-      recipient: "~sordeg",
-      amount: "0.0001",
+      token: String(sendData.get("token") ?? "ETH"),
+      recipient: String(sendData.get("recipient") ?? urbitID.patp),
+      amount: String(sendData.get("amount") ?? "0"),
     });
   }, [pdoSendMutate]);
 
+  const onSign = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    const signHash = (event.currentTarget as HTMLButtonElement).dataset.hash;
+    pdoSignMutate({txHash: (signHash as Address)});
+  }, [pdoSignMutate]);
+
+  const onExec = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    const execHash = (event.currentTarget as HTMLButtonElement).dataset.hash;
+    pdoExecMutate({txHash: (execHash as Address)});
+  }, [pdoExecMutate]);
+
   return (
     <div>
-      {(!!pdoAccount && pdoAccount.deployed) && (
+      {(!!idAccount && !!pdoAccount && pdoAccount.deployed) && (
         <div className="main">
           <form className="flex flex-col gap-2">
             <h2 className="text-2xl">
@@ -270,21 +289,45 @@ export function PDOAccountInfo({
               <div>(no proposals found)</div>
             ) : (
               <ul className="list-disc">
-                {pdoProposals.map(({safeTxHash, to, data, confirmationsRequired, confirmations}) => (
-                  <li key={safeTxHash}>
-                    <AddressFrame address={(safeTxHash as Address)} type="signature" />
-                    <span> ({(confirmations ?? []).length} / {confirmationsRequired} signatures)</span>
-                    <ul className="list-disc pl-4">
-                      {(confirmations ?? []).map(({owner, signature}) => (
-                        <li key={owner}>
-                          <AddressFrame address={(owner as Address)} />
-                          <span>: </span>
-                          <AddressFrame address={(signature as Address)} type="signature" />
-                        </li>
-                      ))}
-                    </ul>
-                  </li>
-                ))}
+                {pdoProposals.map(({safeTxHash, to, data, confirmations, confirmationsRequired}) => {
+                  const confirms = (confirmations ?? []);
+                  return (
+                    <li key={safeTxHash}>
+                      <AddressFrame address={(safeTxHash as Address)} type="signature" />
+                      <span> ({confirms.length} / {confirmationsRequired} signatures) </span>
+                      {(confirms.length >= confirmationsRequired) ? (
+                        <button type="button" data-hash={safeTxHash} onClick={onExec} className="w-4 h-4">
+                          {(pdoExecStatus === "pending") ? (
+                            <TextLoadingIcon />
+                          ) : (pdoExecStatus === "error") ? (
+                            <ErrorIcon />
+                          ) : (
+                            <SendIcon />
+                          )}
+                        </button>
+                      ) : !confirms.some(({owner}) => owner === idAccount?.address) ? (
+                        <button type="button" data-hash={safeTxHash} onClick={onSign} className="w-4 h-4">
+                          {(pdoSignStatus === "pending") ? (
+                            <TextLoadingIcon />
+                          ) : (pdoSignStatus === "error") ? (
+                            <ErrorIcon />
+                          ) : (
+                            <SignIcon />
+                          )}
+                        </button>
+                      ) : null}
+                      <ul className="list-disc pl-4">
+                        {confirms.map(({owner, signature}) => (
+                          <li key={owner}>
+                            <AddressFrame address={(owner as Address)} />
+                            <span>: </span>
+                            <AddressFrame address={(signature as Address)} type="signature" />
+                          </li>
+                        ))}
+                      </ul>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>

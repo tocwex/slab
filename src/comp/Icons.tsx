@@ -8,9 +8,57 @@ interface IconProps extends SVGProps<SVGSVGElement> {
 // FIXME: Basically none of the primary/secondary color stuff in this
 // module is working properly
 
+export function SignIcon({
+  primary="fill-white",
+  secondary="fill-black",
+  className
+}: IconProps): ReactNode {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125"
+      />
+    </svg>
+  );
+}
+
+export function SendIcon({
+  primary="fill-white",
+  secondary="fill-black",
+  className
+}: IconProps): ReactNode {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5"
+      />
+    </svg>
+  );
+}
+
+export function ErrorIcon({
+  primary="fill-white",
+  secondary="fill-black",
+  className
+}: IconProps): ReactNode {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
+      />
+    </svg>
+  );
+}
+
 export function CopyIcon({
-  primary = "fill-white",
-  secondary = "fill-black",
+  primary="fill-white",
+  secondary="fill-black",
   className
 }: IconProps): ReactNode {
   return (
@@ -25,8 +73,8 @@ export function CopyIcon({
 }
 
 export function CopiedIcon({
-  primary = "fill-white",
-  secondary = "fill-black",
+  primary="fill-white",
+  secondary="fill-black",
   className
 }: IconProps): ReactNode {
   return (

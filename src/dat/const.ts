@@ -67,6 +67,8 @@ export const CONTRACT = Object.freeze({
     NAME: "USD Coin",
     SYMBOL: "USDC",
     DECIMALS: 6,
+    // NOTE: This ABI is a generic ERC20 ABI and not the actual USDC ABI
+    // (which is difficult to construct/use due to it being a proxy)
     ABI: USDC_CONTRACT,
   }),
 });
