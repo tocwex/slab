@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import {
   useTokenboundAccount, useSafeAccount, useSafeProposals,
   useTokenboundCreateMutation, useTokenboundSendMutation,
-  usePDOSendMutation, usePDOSignMutation, usePDOExecMutation,
+  usePDOSendMutation, usePDOSignMutation, usePDOExecMutation, usePDOLaunchMutation,
 } from '@/hook/web3';
 import { AddressFrame, SafeFrame, UrbitIDFrame } from '@/comp/Frames';
 import {
@@ -201,15 +201,19 @@ export function PDOAccountInfo({
   const { mutate: pdoSendMutate, status: pdoSendStatus } = usePDOSendMutation(urbitID, urbitPDO);
   const { mutate: pdoSignMutate, status: pdoSignStatus } = usePDOSignMutation(urbitID, urbitPDO);
   const { mutate: pdoExecMutate, status: pdoExecStatus } = usePDOExecMutation(urbitPDO);
+  const { mutate: pdoLaunchMutate, status: pdoLaunchStatus } = usePDOLaunchMutation(urbitID, urbitPDO);
 
   const onSend = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
-    const sendData = new FormData((event.currentTarget as HTMLButtonElement).form ?? undefined);
-    pdoSendMutate({
-      token: String(sendData.get("token") ?? "ETH"),
-      recipient: String(sendData.get("recipient") ?? urbitID.patp),
-      amount: String(sendData.get("amount") ?? "0"),
-    });
+    const form = (event.currentTarget as HTMLButtonElement).form ?? undefined;
+    if (form?.reportValidity()) {
+      const sendData = new FormData(form);
+      pdoSendMutate({
+        token: String(sendData.get("token") ?? "ETH"),
+        recipient: String(sendData.get("recipient") ?? urbitID.patp),
+        amount: String(sendData.get("amount") ?? "0"),
+      });
+    }
   }, [pdoSendMutate]);
 
   const onSign = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -223,6 +227,20 @@ export function PDOAccountInfo({
     const execHash = (event.currentTarget as HTMLButtonElement).dataset.hash;
     pdoExecMutate({txHash: (execHash as Address)});
   }, [pdoExecMutate]);
+
+  const onLaunch = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    const form = (event.currentTarget as HTMLButtonElement).form ?? undefined;
+    if (form?.reportValidity()) {
+      const launchData = new FormData(form);
+      pdoLaunchMutate({
+        name: String(launchData.get("name") ?? ""),
+        symbol: String(launchData.get("symbol") ?? ""),
+        init_supply: String(launchData.get("init_supply") ?? "0"),
+        max_supply: String(launchData.get("max_supply") ?? "0"),
+      });
+    }
+  }, [pdoLaunchMutate]);
 
   return (
     <div>
@@ -276,6 +294,60 @@ export function PDOAccountInfo({
                 )}
               </button>
             </div>
+          </form>
+          <form className="flex flex-col gap-2">
+            <h2 className="text-2xl">
+              PDO Token
+            </h2>
+            {(pdoAccount === undefined) ? (
+              <TinyLoadingIcon />
+            ) : (pdoAccount === null) ? (
+              <div>error</div>
+            ) : (pdoAccount.token !== undefined) ? (
+              <div>(TODO: Implement token visualization here!)</div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                <input type="text" name="name" required
+                  placeholder="name (e.g. Tocwex Token)"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck="false"
+                  className="input-lg"
+                />
+                <input type="text" name="symbol" required
+                  placeholder="symbol (e.g. $TOCWEX)"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck="false"
+                  className="input-lg"
+                />
+                <input type="number" name="init_supply" required
+                  min="0.0001" max="100000000" step="0.0001"
+                  placeholder="initial supply"
+                  className="input-lg"
+                />
+                <input type="number" name="max_supply" required
+                  min="0.0001" max="100000000" step="0.0001"
+                  placeholder="max supply"
+                  className="input-lg"
+                />
+                <button
+                  disabled={(pdoLaunchStatus === "pending")}
+                  onClick={onLaunch}
+                  className="w-full button-lg"
+                >
+                  {(pdoLaunchStatus === "pending") ? (
+                    <TinyLoadingIcon />
+                  ) : (pdoLaunchStatus === "error") ? (
+                    "Error!"
+                  ) : (
+                    "Launch"
+                  )}
+                </button>
+              </div>
+            )}
           </form>
           <div className="flex flex-col items-center gap-2">
             <h2 className="text-2xl">

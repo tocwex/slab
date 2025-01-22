@@ -44,6 +44,7 @@ export interface TokenboundAccount {
   address: Address;
   deployed: boolean;
   holdings: TokenHoldings;
+  token?: Token;
 }
 
 export interface SafeAccount extends SafeInfoResponse {

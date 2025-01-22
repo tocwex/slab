@@ -82,6 +82,109 @@ export function usePDOExecMutation(
   });
 }
 
+export function usePDOLaunchMutation(
+  urbitID: UrbitID,
+  urbitPDO: UrbitID,
+  options?: UseMutationOptions<Address, unknown, any, unknown>,
+) {
+  const wallet = useWalletMeta();
+  const tbClient = useTokenboundClient();
+  const idAccount = useTokenboundAccount(urbitID);
+  const pdoAccount = useTokenboundAccount(urbitPDO);
+  const pdoSafe = useSafeAccount(urbitPDO);
+  // TODO: Need the query key of the PDO TBA as well
+  const queryKey: QueryKey = useMemo(() => [
+    APP.TAG, "safe", "proposals", wallet?.chainID?.toString(), urbitPDO.id,
+  ], [wallet?.chainID, urbitPDO.id]);
+  // const queryKey: QueryKey = useMemo(() => [
+  //   APP.TAG, "tokenbound", "account", wallet?.stateID, urbitPDO.id,
+  // ], [wallet?.stateID, urbitPDO.id]);
+
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({name, symbol, init_supply, max_supply}: {
+      name: string,
+      symbol: string,
+      init_supply: string,
+      max_supply: string,
+    }) => {
+      if (!wallet) throw Error("Invalid wallet");
+      if (!tbClient) throw Error("TokenboundClient unavailable");
+      if (!idAccount) throw Error("TokenboundAccount for ID unavailable");
+      if (!pdoAccount) throw Error("TokenboundAccount for PDO unavailable");
+      if (!pdoSafe) throw Error("SAFEAccount for PDO unavailable");
+      const initSupply = parseUnits(init_supply, 18);
+      const maxSupply = parseUnits(max_supply, 18);
+
+      const deployer: Contract = formContract(wallet.chainID, "DEPLOYER_V1");
+      const tbLaunchTransaction = await tbClient.prepareExecution({
+        account: pdoAccount.address,
+        to: deployer.address,
+        value: BigInt(0),
+        data: encodeFunctionData({
+          abi: deployer.abi,
+          functionName: "deploySyndicate",
+          args: [initSupply, maxSupply, urbitPDO.id, name, symbol],
+        }),
+      });
+
+      // NOTE: Formula for extracting "provider" from Wagmi taken from:
+      // https://github.com/wevm/wagmi/discussions/639#discussioncomment-9588515
+      const { connector } = await getAccount(wallet.wagmi);
+      const provider = await connector?.getProvider();
+      if (!provider) throw Error("EIP1193Provider unavailable");
+      const safeAccount: Safe = await Safe.init({
+        // @ts-ignore
+        provider: (provider as EIP1193Provider),
+        signer: wallet.address,
+        safeAddress: pdoSafe.address,
+      });
+      const safeTransaction = await safeAccount.createTransaction({
+        transactions: [{
+          operation: OperationType.Call,
+          to: tbLaunchTransaction.to,
+          data: tbLaunchTransaction.data,
+          value: tbLaunchTransaction.value.toString(),
+        }],
+      });
+      const safeTransactionHash = await safeAccount.getTransactionHash(safeTransaction);
+      // NOTE: We can't use `Safe.signHash` because we need the TBA's signature
+      // (see EIP-1271: https://eips.ethereum.org/EIPS/eip-1271)
+      // const safeTransactionSig = await safeAccount.signHash(safeTransactionHash);
+      const walletTransactionSig = await signMessage(wallet.wagmi, {
+        account: wallet.address,
+        message: { raw: (safeTransactionHash as Address) },
+      });
+      const safeTransactionSig = encodePacked(
+        ["bytes32", "uint256", "uint8", "uint256", "bytes"],
+        [pad(idAccount.address), BigInt(65), 0, BigInt((walletTransactionSig.length - 2) / 2), walletTransactionSig],
+      );
+
+      const safeClient = new SafeApiKit({chainId: wallet.chainID});
+      await safeClient.proposeTransaction({
+        safeAddress: pdoSafe.address,
+        safeTransactionData: safeTransaction.data,
+        safeTxHash: safeTransactionHash,
+        senderAddress: idAccount.address,
+        senderSignature: safeTransactionSig,
+      });
+
+      return ("0x0" as Address);
+    },
+    onMutate: async (variables) => {
+      await queryClient.cancelQueries({ queryKey: queryKey });
+      return await queryClient.getQueryData(queryKey);
+    },
+    onError: (err, variables, oldData) => {
+      queryClient.setQueryData(queryKey, oldData)
+    },
+    onSettled: (_data, _error, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKey })
+    },
+    ...options,
+  });
+}
+
 export function usePDOSignMutation(
   urbitID: UrbitID,
   urbitPDO: UrbitID,
@@ -555,10 +658,24 @@ export function useTokenboundAccount(urbitID: UrbitID): Loadable<TokenboundAccou
           token: holdToken,
         };
       }
+      const deployer: Contract = formContract(wallet.chainID, "DEPLOYER_V1");
+      const tbToken: Token | undefined = undefined;
+      // const tbHasToken = ((await readContract(wallet.wagmi, {
+      //   abi: deployer.abi,
+      //   address: deployer.address,
+      //   functionName: "isValidSyndicate",
+      //   args: [tbAddress, urbitID.id],
+      // })) as boolean);
+      // if (tbHasToken) {
+      //   // TODO: Implement logic to show token information once the address
+      //   // can be queried
+      //   console.log("token found!");
+      // }
       return {
         address: tbAddress,
         deployed: tbIsDeployed,
         holdings: tbHoldings,
+        token: tbToken,
       };
     },
     enabled: !!wallet && !!tbClient && !!urbitID.id,
@@ -638,7 +755,7 @@ export function useTokenboundClient(): Loadable<TokenboundClient> {
       return new TokenboundClient({
         walletClient: walletClient,
         chainId: Number(wallet.chainID),
-        implementationAddress: formContract(wallet.chainID, "TKB").address,
+        implementationAddress: formContract(wallet.chainID, "TOKENBOUND").address,
       });
     },
     enabled: !!wallet,

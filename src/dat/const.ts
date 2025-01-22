@@ -1,6 +1,7 @@
 import AZIMUTH_CONTRACT from "./contract/azimuth.json";
 import ECLIPTIC_CONTRACT from "./contract/ecliptic.json";
 import TOKENBOUND_CONTRACT from "./contract/tokenbound.json";
+import DEPLOYERV1_CONTRACT from "./contract/deployer_v1.json";
 import USDC_CONTRACT from "./contract/usdc.json";
 
 export const APP = Object.freeze({
@@ -35,12 +36,19 @@ export const ACCOUNT = Object.freeze({
 });
 
 export const CONTRACT = Object.freeze({
-  TKB: Object.freeze({ // Tokenbound
+  TOKENBOUND: Object.freeze({ // Tokenbound
     ADDRESS: (Object.freeze({
       ETHEREUM: "0x0", // TODO: Add the address once contract is deployed
       SEPOLIA: "0x5Ee3b4196a20aec5EECDdf57d5AB24dF3cEAdFBe",
     }) as {[network: string]: `0x${string}`;}),
     ABI: TOKENBOUND_CONTRACT,
+  }),
+  DEPLOYER_V1: Object.freeze({ // ~tocwex.syndiate token deployer (v1)
+    ADDRESS: (Object.freeze({
+      ETHEREUM: "0x0", // TODO: Add the address once contract is deployed
+      SEPOLIA: "0x33266449147311442e0Deb3393f7a060eEff2d89",
+    }) as {[network: string]: `0x${string}`;}),
+    ABI: DEPLOYERV1_CONTRACT,
   }),
   AZP: Object.freeze({ // Azimuth
     ADDRESS: (Object.freeze({

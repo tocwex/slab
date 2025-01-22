@@ -19,7 +19,6 @@ export default function PDOPage(): React.ReactNode {
       </h1>
       <SafeAccountInfo urbitID={routePDO} />
       <PDOAccountInfo urbitID={routeID} urbitPDO={routePDO} />
-      {/* TODO: Launch a token form */}
     </div>
   );
 }
