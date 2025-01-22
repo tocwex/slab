@@ -1,0 +1,577 @@
+[
+    {
+        "inputs": [],
+        "stateMutability": "nonpayable",
+        "type": "constructor"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "syndicateDeployer",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "bool",
+                "name": "isActive",
+                "type": "bool"
+            }
+        ],
+        "name": "DeployerDeactivated",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "syndicateDeployer",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "bool",
+                "name": "isActive",
+                "type": "bool"
+            }
+        ],
+        "name": "DeployerReactivated",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "syndicateDeployer",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint64",
+                "name": "deployerVersion",
+                "type": "uint64"
+            },
+            {
+                "indexed": false,
+                "internalType": "bool",
+                "name": "isActive",
+                "type": "bool"
+            }
+        ],
+        "name": "DeployerRegistered",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": false,
+                "internalType": "address",
+                "name": "pendingOwner",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "address",
+                "name": "registryOwner",
+                "type": "address"
+            }
+        ],
+        "name": "OwnerProposed",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": false,
+                "internalType": "address",
+                "name": "previousOwner",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "address",
+                "name": "newOwner",
+                "type": "address"
+            }
+        ],
+        "name": "OwnerUpdated",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": false,
+                "internalType": "address",
+                "name": "proposedOwner",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "address",
+                "name": "retainedOwner",
+                "type": "address"
+            }
+        ],
+        "name": "OwnershipRejected",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": false,
+                "internalType": "address",
+                "name": "previousOwner",
+                "type": "address"
+            }
+        ],
+        "name": "OwnershipRenounced",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": false,
+                "internalType": "address",
+                "name": "registryOwner",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "address",
+                "name": "proposedOwner",
+                "type": "address"
+            }
+        ],
+        "name": "ProposalNullified",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "deployerAddress",
+                "type": "address"
+            },
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "syndicateToken",
+                "type": "address"
+            },
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "owner",
+                "type": "address"
+            }
+        ],
+        "name": "SyndicateOwnerUpdated",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "deployerAddress",
+                "type": "address"
+            },
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "syndicateToken",
+                "type": "address"
+            },
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "owner",
+                "type": "address"
+            }
+        ],
+        "name": "SyndicateRegistered",
+        "type": "event"
+    },
+    {
+        "stateMutability": "payable",
+        "type": "fallback"
+    },
+    {
+        "inputs": [],
+        "name": "acceptOwnership",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "success",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "components": [
+                    {
+                        "internalType": "address",
+                        "name": "deployerAddress",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint64",
+                        "name": "deployerVersion",
+                        "type": "uint64"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "isActive",
+                        "type": "bool"
+                    }
+                ],
+                "internalType": "struct ISyndicateRegistry.SyndicateDeployerData",
+                "name": "syndicateDeployerData",
+                "type": "tuple"
+            }
+        ],
+        "name": "deactivateDeployer",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "success",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "deployerAddress",
+                "type": "address"
+            }
+        ],
+        "name": "getDeployerData",
+        "outputs": [
+            {
+                "components": [
+                    {
+                        "internalType": "address",
+                        "name": "deployerAddress",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint64",
+                        "name": "deployerVersion",
+                        "type": "uint64"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "isActive",
+                        "type": "bool"
+                    }
+                ],
+                "internalType": "struct ISyndicateRegistry.SyndicateDeployerData",
+                "name": "syndicateDeployerData",
+                "type": "tuple"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "getDeployers",
+        "outputs": [
+            {
+                "internalType": "address[]",
+                "name": "syndicateDeployers",
+                "type": "address[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "getOwner",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "owner",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "getPendingOwner",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "pendingOwner",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "checkAddress",
+                "type": "address"
+            }
+        ],
+        "name": "isRegisteredDeployer",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "isRegistered",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "nullifyProposal",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "success",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "proposedOwner",
+                "type": "address"
+            }
+        ],
+        "name": "proposeNewOwner",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "success",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "components": [
+                    {
+                        "internalType": "address",
+                        "name": "deployerAddress",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint64",
+                        "name": "deployerVersion",
+                        "type": "uint64"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "isActive",
+                        "type": "bool"
+                    }
+                ],
+                "internalType": "struct ISyndicateRegistry.SyndicateDeployerData",
+                "name": "syndicateDeployerData",
+                "type": "tuple"
+            }
+        ],
+        "name": "reactivateDeployer",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "success",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "components": [
+                    {
+                        "internalType": "address",
+                        "name": "deployerAddress",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint64",
+                        "name": "deployerVersion",
+                        "type": "uint64"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "isActive",
+                        "type": "bool"
+                    }
+                ],
+                "internalType": "struct ISyndicateRegistry.SyndicateDeployerData",
+                "name": "syndicateDeployerData",
+                "type": "tuple"
+            }
+        ],
+        "name": "registerDeployer",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "success",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "components": [
+                    {
+                        "internalType": "address",
+                        "name": "syndicateOwner",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "address",
+                        "name": "syndicateContract",
+                        "type": "address"
+                    },
+                    {
+                        "components": [
+                            {
+                                "internalType": "address",
+                                "name": "deployerAddress",
+                                "type": "address"
+                            },
+                            {
+                                "internalType": "uint64",
+                                "name": "deployerVersion",
+                                "type": "uint64"
+                            },
+                            {
+                                "internalType": "bool",
+                                "name": "isActive",
+                                "type": "bool"
+                            }
+                        ],
+                        "internalType": "struct ISyndicateRegistry.SyndicateDeployerData",
+                        "name": "syndicateDeploymentData",
+                        "type": "tuple"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "syndicateLaunchTime",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "azimuthPoint",
+                        "type": "uint256"
+                    }
+                ],
+                "internalType": "struct ISyndicateRegistry.Syndicate",
+                "name": "syndicate",
+                "type": "tuple"
+            }
+        ],
+        "name": "registerSyndicate",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "success",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "rejectOwnership",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "success",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "renounceOwnership",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "success",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "syndicateToken",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "newOwner",
+                "type": "address"
+            }
+        ],
+        "name": "updateSyndicateOwnerRegistration",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "success",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "stateMutability": "payable",
+        "type": "receive"
+    }
+]

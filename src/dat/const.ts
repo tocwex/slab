@@ -1,7 +1,8 @@
 import AZIMUTH_CONTRACT from "./contract/azimuth.json";
 import ECLIPTIC_CONTRACT from "./contract/ecliptic.json";
 import TOKENBOUND_CONTRACT from "./contract/tokenbound.json";
-import DEPLOYERV1_CONTRACT from "./contract/deployer_v1.json";
+import TOCWEX_REGISTRY_CONTRACT from "./contract/tocwex_registry.json";
+import TOCWEX_DEPLOYERV1_CONTRACT from "./contract/tocwex_deployer_v1.json";
 import USDC_CONTRACT from "./contract/usdc.json";
 
 export const APP = Object.freeze({
@@ -36,19 +37,26 @@ export const ACCOUNT = Object.freeze({
 });
 
 export const CONTRACT = Object.freeze({
-  TOKENBOUND: Object.freeze({ // Tokenbound
+  REGISTRY: Object.freeze({ // ~tocwex.syndiate token registry
     ADDRESS: (Object.freeze({
       ETHEREUM: "0x0", // TODO: Add the address once contract is deployed
-      SEPOLIA: "0x5Ee3b4196a20aec5EECDdf57d5AB24dF3cEAdFBe",
+      SEPOLIA: "0x83D0cE36BEA6ABd6a0B2121eaF7C6D35f55bEf03",
     }) as {[network: string]: `0x${string}`;}),
-    ABI: TOKENBOUND_CONTRACT,
+    ABI: TOCWEX_REGISTRY_CONTRACT,
   }),
   DEPLOYER_V1: Object.freeze({ // ~tocwex.syndiate token deployer (v1)
     ADDRESS: (Object.freeze({
       ETHEREUM: "0x0", // TODO: Add the address once contract is deployed
       SEPOLIA: "0x33266449147311442e0Deb3393f7a060eEff2d89",
     }) as {[network: string]: `0x${string}`;}),
-    ABI: DEPLOYERV1_CONTRACT,
+    ABI: TOCWEX_DEPLOYERV1_CONTRACT,
+  }),
+  TOKENBOUND: Object.freeze({ // Tokenbound
+    ADDRESS: (Object.freeze({
+      ETHEREUM: "0x0", // TODO: Add the address once contract is deployed
+      SEPOLIA: "0x5Ee3b4196a20aec5EECDdf57d5AB24dF3cEAdFBe",
+    }) as {[network: string]: `0x${string}`;}),
+    ABI: TOKENBOUND_CONTRACT,
   }),
   AZP: Object.freeze({ // Azimuth
     ADDRESS: (Object.freeze({

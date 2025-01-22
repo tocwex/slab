@@ -659,18 +659,24 @@ export function useTokenboundAccount(urbitID: UrbitID): Loadable<TokenboundAccou
         };
       }
       const deployer: Contract = formContract(wallet.chainID, "DEPLOYER_V1");
-      const tbToken: Token | undefined = undefined;
-      // const tbHasToken = ((await readContract(wallet.wagmi, {
-      //   abi: deployer.abi,
-      //   address: deployer.address,
-      //   functionName: "isValidSyndicate",
-      //   args: [tbAddress, urbitID.id],
-      // })) as boolean);
-      // if (tbHasToken) {
-      //   // TODO: Implement logic to show token information once the address
-      //   // can be queried
-      //   console.log("token found!");
-      // }
+      const tbHasToken = ((await readContract(wallet.wagmi, {
+        abi: deployer.abi,
+        address: deployer.address,
+        functionName: "isValidSyndicate",
+        args: [tbAddress, urbitID.id],
+      })) as boolean);
+      let tbToken: Token | undefined = undefined;
+      if (tbHasToken) {
+        // TODO: Implement logic to show token information once the address
+        // can be queried
+        tbToken = {
+          address: "0x0",
+          abi: [],
+          name: "",
+          symbol: "",
+          decimals: 18,
+        };
+      }
       return {
         address: tbAddress,
         deployed: tbIsDeployed,
