@@ -8,7 +8,7 @@ import {
   useTokenboundCreateMutation, useTokenboundSendMutation,
   usePDOSendMutation, usePDOSignMutation, usePDOExecMutation, usePDOLaunchMutation,
 } from '@/hook/web3';
-import { AddressFrame, SafeFrame, UrbitIDFrame } from '@/comp/Frames';
+import { AddressFrame, UrbitIDFrame, TBAFrame, SafeFrame } from '@/comp/Frames';
 import {
   TinyLoadingIcon, TextLoadingIcon,
   ErrorIcon, SendIcon, SignIcon,
@@ -48,11 +48,9 @@ export function SafeAccountInfo({
             <li>
               <span className="font-bold">managers: </span>
               <ul className="list-disc pl-4">
-                {safeAccount.owners.map((owner: string, index: number) => (
+                {safeAccount.owners.map((owner: string) => (
                   <li key={owner}>
-                    <UrbitIDFrame urbitID={safeAccount.ownurs[index]} />
-                    <span>: </span>
-                    <AddressFrame address={(owner as Address)} />
+                    <TBAFrame address={(owner as Address)} />
                   </li>
                 ))}
               </ul>
@@ -361,11 +359,29 @@ export function PDOAccountInfo({
               <div>(no proposals found)</div>
             ) : (
               <ul className="list-disc">
-                {pdoProposals.map(({safeTxHash, to, data, confirmations, confirmationsRequired}) => {
+                {pdoProposals.map(({safeTxHash, transaction, confirmations, confirmationsRequired}) => {
                   const confirms = (confirmations ?? []);
                   return (
                     <li key={safeTxHash}>
-                      <AddressFrame address={(safeTxHash as Address)} type="signature" />
+                      {(transaction.type === "transfer") ? (
+                        <>
+                          <span>
+                            Send {
+                              formatUnits(transaction.amount, transaction.token.decimals)
+                            } ${
+                              transaction.token.symbol
+                            } to
+                          </span>
+                          <span> </span>
+                          <TBAFrame address={transaction.to} />
+                        </>
+                      ) : (transaction.type === "launch") ? (
+                        <span>
+                          Launch token ${transaction.token.symbol} for PDO
+                        </span>
+                      ) : (
+                        <AddressFrame address={(safeTxHash as Address)} type="signature" />
+                      )}
                       <span> ({confirms.length} / {confirmationsRequired} signatures) </span>
                       {(confirms.length >= confirmationsRequired) ? (
                         <button type="button" data-hash={safeTxHash} onClick={onExec} className="w-4 h-4">
@@ -389,11 +405,9 @@ export function PDOAccountInfo({
                         </button>
                       ) : null}
                       <ul className="list-disc pl-4">
-                        {confirms.map(({owner, signature}) => (
+                        {confirms.map(({owner}) => (
                           <li key={owner}>
-                            <AddressFrame address={(owner as Address)} />
-                            <span>: </span>
-                            <AddressFrame address={(signature as Address)} type="signature" />
+                            <TBAFrame address={(owner as Address)} />
                           </li>
                         ))}
                       </ul>

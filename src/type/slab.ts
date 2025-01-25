@@ -1,4 +1,5 @@
 import type { SafeInfoResponse } from '@safe-global/api-kit';
+import type { SafeMultisigTransactionResponse } from '@safe-global/types-kit';
 import type { WagmiConfig } from '@web3-onboard/core';
 import { Abi } from 'abitype';
 
@@ -21,6 +22,23 @@ export interface UrbitID {
   patp: string;
   clan: UrbitClan;
 }
+
+export type TransactionType = 'transfer' | 'launch' | 'other';
+export interface TransferTransaction {
+  type: 'transfer';
+  to: Address;
+  amount: bigint;
+  token: Token;
+}
+export interface LaunchTransaction {
+  type: 'launch';
+  amount: bigint;
+  token: Token;
+}
+export interface OtherTransaction {
+  type: 'other';
+}
+export type Transaction = TransferTransaction | LaunchTransaction | OtherTransaction;
 
 export interface Contract {
   address: Address;
@@ -45,6 +63,10 @@ export interface TokenboundAccount {
   deployed: boolean;
   holdings: TokenHoldings;
   token?: Token;
+}
+
+export interface SafeResponse extends SafeMultisigTransactionResponse {
+  transaction: Transaction;
 }
 
 export interface SafeAccount extends SafeInfoResponse {

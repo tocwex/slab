@@ -1,11 +1,10 @@
 import type { QueryKey, UseMutationOptions } from '@tanstack/react-query';
-import type { SafeMultisigTransactionResponse } from '@safe-global/types-kit';
 import type { Config as WagmiConfig } from '@wagmi/core';
 import type { EIP1193Provider } from 'viem';
 import type {
   Loadable, Nullable, Address, UrbitID, WalletMeta,
   Contract, Token, TokenHolding, TokenHoldings,
-  TokenboundAccount, SafeAccount,
+  TokenboundAccount, SafeAccount, SafeResponse,
 } from '@/type/slab';
 import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -24,7 +23,7 @@ import {
   formatUnits, hexToNumber, hexToBigInt, numberToHex, keccak256, pad,
   parseEther, parseUnits, encodePacked, encodeFunctionData,
 } from 'viem';
-import { formContract, formToken, formUrbitID } from '@/lib/util';
+import { formContract, formToken, formUrbitID, decodePDOProposal } from '@/lib/util';
 import { APP, ACCOUNT, CONTRACT } from '@/dat/const';
 
 export function usePDOExecMutation(
@@ -430,7 +429,7 @@ export function usePDOCreateMutation(
   });
 }
 
-export function useSafeProposals(urbitPDO: UrbitID): Loadable<SafeMultisigTransactionResponse[]> {
+export function useSafeProposals(urbitPDO: UrbitID): Loadable<SafeResponse[]> {
   const wallet = useWalletMeta();
   const tbClient = useTokenboundClient();
   const queryKey: QueryKey = useMemo(() => [
@@ -452,7 +451,15 @@ export function useSafeProposals(urbitPDO: UrbitID): Loadable<SafeMultisigTransa
 
       const safeClient = new SafeApiKit({chainId: wallet.chainID});
       const safeProposals = await safeClient.getPendingTransactions(safeAddress);
-      return safeProposals.results;
+      const safeTransactions: SafeResponse[] = safeProposals.results.map((proposal) => ({
+        ...proposal,
+        // TODO: Our custom ERC-6551 implementation calls are too exotic to be
+        // decoded by Safe's in-house solution
+        // dataDecoded: await safeClient.decodeData(safeProposal.data),
+        transaction: decodePDOProposal(wallet.chainID, ((proposal.data ?? "0x0") as Address)),
+      }));
+
+      return safeTransactions;
     },
     enabled: !!wallet && !!tbClient,
     staleTime: Infinity,
@@ -462,7 +469,7 @@ export function useSafeProposals(urbitPDO: UrbitID): Loadable<SafeMultisigTransa
 
   return isLoading ? undefined
     : isError ? null
-    : (data as SafeMultisigTransactionResponse[]);
+    : (data as SafeResponse[]);
 }
 
 export function useSafePDOs(urbitID: UrbitID): Loadable<UrbitID[]> {
@@ -693,6 +700,35 @@ export function useTokenboundAccount(urbitID: UrbitID): Loadable<TokenboundAccou
   return isLoading ? undefined
     : isError ? null
     : (data as TokenboundAccount);
+}
+
+export function useTokenboundUrbitID(address: Address): Loadable<UrbitID> {
+  const wallet = useWalletMeta();
+  const tbClient = useTokenboundClient();
+  const queryKey: QueryKey = useMemo(() => [
+    APP.TAG, "tokenbound", "urbit", wallet?.stateID, address,
+  ], [wallet?.stateID, address]);
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: queryKey,
+    queryFn: async () => {
+      if (!wallet) throw Error("Invalid wallet");
+      if (!tbClient) throw Error("TokenboundClient unavailable");
+
+      const { tokenContract, tokenId } = await tbClient.getNFT({
+        accountAddress: address,
+      });
+      return formUrbitID(tokenId);
+    },
+    enabled: !!wallet && !!tbClient,
+    staleTime: Infinity,
+    retryOnMount: false,
+    refetchOnMount: false,
+  });
+
+  return isLoading ? undefined
+    : isError ? null
+    : (data as UrbitID);
 }
 
 export function useSafeAccount(urbitID: UrbitID): Loadable<SafeAccount> {

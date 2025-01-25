@@ -1,11 +1,11 @@
 import type {
-  Nullable, Address, Contract,
+  Nullable, Address, Contract, Transaction,
   UrbitID, UrbitClan, Token,
 } from '@/type/slab';
 import type { WalletState } from '@web3-onboard/core';
-import { ACCOUNT, BLOCKCHAIN, CONTRACT } from '@/dat/const';
+import { ABI, ACCOUNT, BLOCKCHAIN, CONTRACT } from '@/dat/const';
 import * as ob from "urbit-ob";
-import { hexToNumber } from 'viem';
+import { decodeFunctionData, hexToNumber, hexToBigInt } from 'viem';
 
 export function delay(milliseconds: number): Promise<void> {
   return new Promise(res => setTimeout(res, milliseconds));
@@ -54,7 +54,9 @@ export function formContract(chainBid: bigint, symbol: string): Contract {
   const chainTag: string = BLOCKCHAIN?.TAG[chainId] ?? BLOCKCHAIN.TAG[BLOCKCHAIN.ID.ETHEREUM];
   return {
     abi: (CONTRACT as any)?.[symbol]?.ABI ?? [],
-    address: (CONTRACT as any)?.[symbol]?.ADDRESS?.[chainTag] ?? ACCOUNT.NULL.ETHEREUM,
+    address: (CONTRACT as any)?.[symbol]?.ADDRESS?.[chainTag]
+      ?? ACCOUNT.NULL?.[chainTag]
+      ?? ACCOUNT.NULL?.ETHEREUM,
   };
 }
 
@@ -70,7 +72,9 @@ export function formToken(chainBid: bigint, symbol: string): Token {
       decimals: 18,
     } : {
       abi: (CONTRACT as any)?.[symbol]?.ABI ?? [],
-      address: (CONTRACT as any)?.[symbol]?.ADDRESS?.[chainTag] ?? ACCOUNT.NULL.ETHEREUM,
+      address: (CONTRACT as any)?.[symbol]?.ADDRESS?.[chainTag]
+        ?? ACCOUNT.NULL?.[chainTag]
+        ?? ACCOUNT.NULL.ETHEREUM,
       name: (CONTRACT as any)?.[symbol]?.NAME ?? "<unknown>",
       symbol: (CONTRACT as any)?.[symbol]?.SYMBOL ?? "---",
       decimals: (CONTRACT as any)?.[symbol]?.DECIMALS ?? 18,
@@ -89,4 +93,78 @@ export function formUrbitID(value: number | string): UrbitID {
     clan = ob.clan(patp);
   }
   return ({id, patp, clan});
+}
+
+export function decodePDOProposal(chainBid: bigint, data: Address): Transaction {
+  const chainId: number = Number(chainBid);
+  const chainTag: string = BLOCKCHAIN?.TAG[chainId] ?? BLOCKCHAIN.TAG[BLOCKCHAIN.ID.ETHEREUM];
+
+  let transaction: Transaction = { type: "other" };
+
+  try {
+    const { functionName: tbFunc, args: tbArgs } = decodeFunctionData({
+      abi: ABI.TOKENBOUND,
+      data: data,
+    });
+    if (tbFunc === "execute") {
+      const [tbTo, tbValue, tbData, tbOp] = (tbArgs as [Address, bigint, Address, number]);
+      if (tbData === "0x") {
+        transaction = {
+          type: "transfer",
+          to: tbTo,
+          amount: tbValue,
+          token: formToken(chainBid, "ETH"),
+        };
+      } else {
+        try {
+          const { functionName: inFunc, args: inArgs } = decodeFunctionData({
+            abi: ABI.ERC20,
+            data: tbData,
+          });
+          if (inFunc === "transfer") {
+            const [e2To, e2Value] = (inArgs as [Address, bigint]);
+            // TODO: Generalize symbol finding to calling "symbol() => string"
+            // on the source contract
+            const e2Contract: string[] | undefined = Object.values(CONTRACT)
+              .map((contract: any) => [contract?.ADDRESS?.[chainTag], contract?.SYMBOL])
+              .find(([address, symbol]) => (address === tbTo));
+            const e2Symbol: string | undefined = e2Contract?.[1];
+            if (e2Symbol !== undefined) {
+              transaction = {
+                type: "transfer",
+                to: e2To,
+                amount: e2Value,
+                token: formToken(chainBid, e2Symbol),
+              };
+            }
+          }
+        } catch (error) {
+          const { functionName: inFunc, args: inArgs } = decodeFunctionData({
+            abi: ABI.TOCWEX_DEPLOYER_V1,
+            data: tbData,
+          });
+          if (inFunc === "deploySyndicate") {
+            const [tkSupply, _, __, tkName, tkSymbol] =
+              (inArgs as [bigint, bigint, number, string, string]);
+            transaction = {
+              type: "launch",
+              amount: tkSupply,
+              token: {
+                address: ACCOUNT.NULL?.[chainTag] ?? ACCOUNT.NULL.ETHEREUM,
+                // @ts-ignore
+                abi: ABI.ERC20,
+                name: tkName,
+                symbol: tkSymbol,
+                decimals: 18,
+              },
+            };
+          }
+        }
+      }
+    }
+  } catch (error) {
+    // no-op
+  }
+
+  return transaction;
 }

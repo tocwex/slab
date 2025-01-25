@@ -1,9 +1,6 @@
-import AZIMUTH_CONTRACT from "./contract/azimuth.json";
-import ECLIPTIC_CONTRACT from "./contract/ecliptic.json";
-import TOKENBOUND_CONTRACT from "./contract/tokenbound.json";
-import TOCWEX_REGISTRY_CONTRACT from "./contract/tocwex_registry.json";
-import TOCWEX_DEPLOYERV1_CONTRACT from "./contract/tocwex_deployer_v1.json";
-import USDC_CONTRACT from "./contract/usdc.json";
+import * as _ABI from "./abis";
+
+export const ABI = _ABI;
 
 export const APP = Object.freeze({
   TAG: "%slab",
@@ -42,28 +39,28 @@ export const CONTRACT = Object.freeze({
       ETHEREUM: "0x0", // TODO: Add the address once contract is deployed
       SEPOLIA: "0x83D0cE36BEA6ABd6a0B2121eaF7C6D35f55bEf03",
     }) as {[network: string]: `0x${string}`;}),
-    ABI: TOCWEX_REGISTRY_CONTRACT,
+    ABI: ABI.TOCWEX_REGISTRY,
   }),
   DEPLOYER_V1: Object.freeze({ // ~tocwex.syndiate token deployer (v1)
     ADDRESS: (Object.freeze({
       ETHEREUM: "0x0", // TODO: Add the address once contract is deployed
       SEPOLIA: "0x33266449147311442e0Deb3393f7a060eEff2d89",
     }) as {[network: string]: `0x${string}`;}),
-    ABI: TOCWEX_DEPLOYERV1_CONTRACT,
+    ABI: ABI.TOCWEX_DEPLOYER_V1,
   }),
   TOKENBOUND: Object.freeze({ // Tokenbound
     ADDRESS: (Object.freeze({
       ETHEREUM: "0x0", // TODO: Add the address once contract is deployed
       SEPOLIA: "0x5Ee3b4196a20aec5EECDdf57d5AB24dF3cEAdFBe",
     }) as {[network: string]: `0x${string}`;}),
-    ABI: TOKENBOUND_CONTRACT,
+    ABI: ABI.TOKENBOUND,
   }),
   AZP: Object.freeze({ // Azimuth
     ADDRESS: (Object.freeze({
       ETHEREUM: "0x223c067f8cf28ae173ee5cafea60ca44c335fecb",
       SEPOLIA: "0x6EB93da65d19a3e4501210C1B289A0734487ed84",
     }) as {[network: string]: `0x${string}`;}),
-    ABI: AZIMUTH_CONTRACT.abi,
+    ABI: ABI.AZIMUTH,
   }),
   ECL: Object.freeze({ // Ecliptic
     ADDRESS: (Object.freeze({
@@ -73,7 +70,7 @@ export const CONTRACT = Object.freeze({
     NAME: "Azimuth Points",
     SYMBOL: "AZP",
     DECIMALS: 0,
-    ABI: ECLIPTIC_CONTRACT.abi,
+    ABI: ABI.ECLIPTIC,
   }),
   USDC: Object.freeze({
     ADDRESS: (Object.freeze({
@@ -85,7 +82,7 @@ export const CONTRACT = Object.freeze({
     DECIMALS: 6,
     // NOTE: This ABI is a generic ERC20 ABI and not the actual USDC ABI
     // (which is difficult to construct/use due to it being a proxy)
-    ABI: USDC_CONTRACT,
+    ABI: ABI.USDC,
   }),
 });
 

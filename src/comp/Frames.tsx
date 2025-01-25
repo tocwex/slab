@@ -3,9 +3,9 @@ import type { Address, AddressType, UrbitID } from "@/type/slab";
 import { useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { CopyIcon, CopiedIcon } from '@/comp/Icons';
-import { useWalletMeta } from '@/hook/web3';
+import { useWalletMeta, useTokenboundUrbitID } from '@/hook/web3';
 import { useCopy } from '@/hook/util';
-import { trimAddress } from '@/lib/util';
+import { trimAddress, formUrbitID } from '@/lib/util';
 import { BLOCKCHAIN } from '@/dat/const';
 
 export function UrbitIDFrame({
@@ -80,6 +80,31 @@ export function AddressFrame({
       <button type="button" onClick={copy} className="w-4 h-4">
         {!copied ? (<CopyIcon />) : (<CopiedIcon />)}
       </button>
+    </div>
+  );
+}
+
+export function TBAFrame({
+  address,
+  link=true,
+  short=true,
+  className=undefined,
+}: {
+  address: Address;
+  link?: boolean;
+  short?: boolean;
+  className?: string;
+}): React.ReactNode {
+  const urbitID = useTokenboundUrbitID(address);
+  return (
+    <div className="inline-flex flex-row gap-1 items-center">
+      {(!!urbitID) && (
+        <>
+          <UrbitIDFrame urbitID={urbitID} link={link} className={className} />
+          <span>: </span>
+        </>
+      )}
+      <AddressFrame address={address} short={short} className={className} />
     </div>
   );
 }
