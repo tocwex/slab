@@ -96,3 +96,7 @@ export const REGEX = Object.freeze({
     POINT: "~(([a-z]{3})|([a-z]{6}(-[a-z]{6}){0,3})|([a-z]{6}(-[a-z]{6}){3})--([a-z]{6}(-[a-z]{6}){3}))",
   }) as {[point: string]: string;}),
 });
+
+export const ERROR = Object.freeze({
+  INVALID_QUERY: "Query was invoked without proper preconditions.",
+});

@@ -1,6 +1,6 @@
 "use client";
 import type { UrbitID, TokenHolding, Address } from "@/type/slab";
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -69,8 +69,12 @@ export function TokenboundAccountInfo({
 }): React.ReactNode {
   const router = useRouter();
   const tbAccount = useTokenboundAccount(urbitID);
+  const sendFormRef = useRef<HTMLFormElement>(null);
   const { mutate: tbCreateMutate, status: tbCreateStatus } = useTokenboundCreateMutation(urbitID);
-  const { mutate: tbSendMutate, status: tbSendStatus } = useTokenboundSendMutation(urbitID);
+  const { mutate: tbSendMutate, status: tbSendStatus } = useTokenboundSendMutation(
+    urbitID,
+    { onSuccess: () => sendFormRef.current?.reset() },
+  );
 
   const onSend = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -79,10 +83,6 @@ export function TokenboundAccountInfo({
       token: String(sendData.get("token") ?? "ETH"),
       recipient: String(sendData.get("recipient") ?? urbitID.patp),
       amount: String(sendData.get("amount") ?? "0"),
-      // TODO: Remove this after testing is complete
-      // token: "ETH",
-      // recipient: "~sordeg",
-      // amount: "0.0001",
     });
   }, [tbSendMutate]);
 
@@ -130,7 +130,7 @@ export function TokenboundAccountInfo({
         </button>
       )}
       {(!!tbAccount && tbAccount.deployed) && (
-        <form className="flex flex-col gap-2">
+        <form ref={sendFormRef} className="flex flex-col gap-2">
           <h2 className="text-2xl">
             Tokenbound Account
           </h2>
@@ -193,13 +193,34 @@ export function PDOAccountInfo({
   urbitPDO: UrbitID;
 }): React.ReactNode {
   const router = useRouter();
+  const sendFormRef = useRef<HTMLFormElement>(null);
+  const launchFormRef = useRef<HTMLFormElement>(null);
   const idAccount = useTokenboundAccount(urbitID);
   const pdoAccount = useTokenboundAccount(urbitPDO);
   const pdoProposals = useSafeProposals(urbitPDO);
-  const { mutate: pdoSendMutate, status: pdoSendStatus } = usePDOSendMutation(urbitID, urbitPDO);
+
   const { mutate: pdoSignMutate, status: pdoSignStatus } = usePDOSignMutation(urbitID, urbitPDO);
   const { mutate: pdoExecMutate, status: pdoExecStatus } = usePDOExecMutation(urbitPDO);
-  const { mutate: pdoLaunchMutate, status: pdoLaunchStatus } = usePDOLaunchMutation(urbitID, urbitPDO);
+  const { mutate: pdoSendMutate, status: pdoSendStatus } = usePDOSendMutation(
+    urbitID, urbitPDO,
+    { onSuccess: () => sendFormRef.current?.reset() },
+  );
+  const { mutate: pdoLaunchMutate, status: pdoLaunchStatus } = usePDOLaunchMutation(
+    urbitID, urbitPDO,
+    { onSuccess: () => launchFormRef.current?.reset() },
+  );
+
+  const onSign = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    const signHash = (event.currentTarget as HTMLButtonElement).dataset.hash;
+    pdoSignMutate({txHash: (signHash as Address)});
+  }, [pdoSignMutate]);
+
+  const onExec = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    const execHash = (event.currentTarget as HTMLButtonElement).dataset.hash;
+    pdoExecMutate({txHash: (execHash as Address)});
+  }, [pdoExecMutate]);
 
   const onSend = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -213,18 +234,6 @@ export function PDOAccountInfo({
       });
     }
   }, [pdoSendMutate]);
-
-  const onSign = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    const signHash = (event.currentTarget as HTMLButtonElement).dataset.hash;
-    pdoSignMutate({txHash: (signHash as Address)});
-  }, [pdoSignMutate]);
-
-  const onExec = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    const execHash = (event.currentTarget as HTMLButtonElement).dataset.hash;
-    pdoExecMutate({txHash: (execHash as Address)});
-  }, [pdoExecMutate]);
 
   const onLaunch = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -244,7 +253,7 @@ export function PDOAccountInfo({
     <div>
       {(!!idAccount && !!pdoAccount && pdoAccount.deployed) && (
         <div className="main">
-          <form className="flex flex-col gap-2">
+          <form ref={sendFormRef} className="flex flex-col gap-2">
             <h2 className="text-2xl">
               PDO Account
             </h2>
@@ -293,7 +302,7 @@ export function PDOAccountInfo({
               </button>
             </div>
           </form>
-          <form className="flex flex-col gap-2">
+          <form ref={launchFormRef} className="flex flex-col gap-2">
             <h2 className="text-2xl">
               PDO Token
             </h2>

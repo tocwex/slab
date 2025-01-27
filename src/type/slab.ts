@@ -70,5 +70,4 @@ export interface SafeResponse extends SafeMultisigTransactionResponse {
 }
 
 export interface SafeAccount extends SafeInfoResponse {
-  ownurs: UrbitID[]; // parallel to `safe.owners`
 }

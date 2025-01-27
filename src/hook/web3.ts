@@ -24,7 +24,7 @@ import {
   parseEther, parseUnits, encodePacked, encodeFunctionData,
 } from 'viem';
 import { formContract, formToken, formUrbitID, decodePDOProposal } from '@/lib/util';
-import { APP, ACCOUNT, CONTRACT } from '@/dat/const';
+import { APP, ACCOUNT, CONTRACT, ERROR } from '@/dat/const';
 
 export function usePDOExecMutation(
   urbitPDO: UrbitID,
@@ -43,9 +43,7 @@ export function usePDOExecMutation(
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({txHash}: {txHash: Address}) => {
-      if (!wallet) throw Error("Invalid wallet");
-      if (!pdoSafe) throw Error("SAFEAccount for PDO unavailable");
-
+      if (!wallet || !pdoSafe) throw Error(ERROR.INVALID_QUERY);
       // NOTE: Formula for extracting "provider" from Wagmi taken from:
       // https://github.com/wevm/wagmi/discussions/639#discussioncomment-9588515
       const { connector } = await getAccount(wallet.wagmi);
@@ -107,11 +105,8 @@ export function usePDOLaunchMutation(
       init_supply: string,
       max_supply: string,
     }) => {
-      if (!wallet) throw Error("Invalid wallet");
-      if (!tbClient) throw Error("TokenboundClient unavailable");
-      if (!idAccount) throw Error("TokenboundAccount for ID unavailable");
-      if (!pdoAccount) throw Error("TokenboundAccount for PDO unavailable");
-      if (!pdoSafe) throw Error("SAFEAccount for PDO unavailable");
+      if (!wallet || !tbClient || !idAccount || !pdoAccount || !pdoSafe)
+        throw Error(ERROR.INVALID_QUERY);
       const initSupply = parseUnits(init_supply, 18);
       const maxSupply = parseUnits(max_supply, 18);
 
@@ -202,9 +197,7 @@ export function usePDOSignMutation(
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({txHash}: {txHash: Address}) => {
-      if (!wallet) throw Error("Invalid wallet");
-      if (!idAccount) throw Error("TokenboundAccount for ID unavailable");
-
+      if (!wallet || !idAccount) throw Error(ERROR.INVALID_QUERY);
       // NOTE: We can't use `Safe.signHash` because we need the TBA's signature
       // (see EIP-1271: https://eips.ethereum.org/EIPS/eip-1271)
       // const safeTransactionSig = await safeAccount.signHash(safeTransactionHash);
@@ -261,11 +254,8 @@ export function usePDOSendMutation(
       recipient: string,
       amount: string,
     }) => {
-      if (!wallet) throw Error("Invalid wallet");
-      if (!tbClient) throw Error("TokenboundClient unavailable");
-      if (!idAccount) throw Error("TokenboundAccount for ID unavailable");
-      if (!pdoAccount) throw Error("TokenboundAccount for PDO unavailable");
-      if (!pdoSafe) throw Error("SAFEAccount for PDO unavailable");
+      if (!wallet || !tbClient || !idAccount || !pdoAccount || !pdoSafe)
+        throw Error(ERROR.INVALID_QUERY);
       const ecliptic: Token = formToken(wallet.chainID, "ECL");
       const recipientAddress: Address = await tbClient.getAccount({
         tokenContract: ecliptic.address,
@@ -363,10 +353,7 @@ export function usePDOCreateMutation(
       managers: string[],
       threshold: number,
     }) => {
-      if (!wallet) throw Error("Invalid wallet");
-      if (!tbClient) throw Error("TokenboundClient unavailable");
-      if (!tbAccount) throw Error("TokenboundAccount unavailable");
-
+      if (!wallet || !tbClient || !tbAccount) throw Error(ERROR.INVALID_QUERY);
       const ecliptic: Token = formToken(wallet.chainID, "ECL");
       const owners: Address[] = [];
       for (const managerID of managers.map(formUrbitID)) {
@@ -439,8 +426,7 @@ export function useSafeProposals(urbitPDO: UrbitID): Loadable<SafeResponse[]> {
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKey,
     queryFn: async () => {
-      if (!wallet) throw Error("Invalid wallet");
-      if (!tbClient) throw Error("TokenboundClient unavailable");
+      if (!wallet || !tbClient) throw Error(ERROR.INVALID_QUERY);
       const ecliptic: Token = formToken(wallet.chainID, "ECL");
       const safeAddress = ((await readContract(wallet.wagmi, {
         abi: ecliptic.abi,
@@ -482,8 +468,7 @@ export function useSafePDOs(urbitID: UrbitID): Loadable<UrbitID[]> {
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKey,
     queryFn: async () => {
-      if (!wallet) throw Error("Invalid wallet");
-      if (!tbClient) throw Error("TokenboundClient unavailable");
+      if (!wallet || !tbClient) throw Error(ERROR.INVALID_QUERY);
       const azimuth: Contract = formContract(wallet.chainID, "AZP");
       const ecliptic: Token = formToken(wallet.chainID, "ECL");
       const safeClient = new SafeApiKit({chainId: wallet.chainID});
@@ -536,7 +521,6 @@ export function useSafePDOs(urbitID: UrbitID): Loadable<UrbitID[]> {
 
 export function useTokenboundSendMutation(
   urbitID: UrbitID,
-  urbitPDO?: UrbitID,
   options?: UseMutationOptions<Address, unknown, any, unknown>,
 ) {
   const wallet = useWalletMeta();
@@ -553,9 +537,7 @@ export function useTokenboundSendMutation(
       recipient: string,
       amount: string,
     }) => {
-      if (!wallet) throw Error("Invalid wallet");
-      if (!tbClient) throw Error("TokenboundClient unavailable");
-      if (!tbAccount) throw Error("TokenboundAccount unavailable");
+      if (!wallet || !tbClient || !tbAccount) throw Error(ERROR.INVALID_QUERY);
       const ecliptic: Token = formToken(wallet.chainID, "ECL");
       const address: Address = await tbClient.getAccount({
         tokenContract: ecliptic.address,
@@ -605,8 +587,7 @@ export function useTokenboundCreateMutation(
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async () => {
-      if (!wallet) throw Error("Invalid wallet");
-      if (!tbClient) throw Error("TokenboundClient unavailable");
+      if (!wallet || !tbClient) throw Error(ERROR.INVALID_QUERY);
       const ecliptic: Token = formToken(wallet.chainID, "ECL");
       const { txHash } = await tbClient.createAccount({
         tokenContract: ecliptic.address,
@@ -641,8 +622,7 @@ export function useTokenboundAccount(urbitID: UrbitID): Loadable<TokenboundAccou
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKey,
     queryFn: async () => {
-      if (!wallet) throw Error("Invalid wallet");
-      if (!tbClient) throw Error("TokenboundClient unavailable");
+      if (!wallet || !tbClient) throw Error(ERROR.INVALID_QUERY);
       const ecliptic: Token = formToken(wallet.chainID, "ECL");
       const tbAddress: Address = await tbClient.getAccount({
         tokenContract: ecliptic.address,
@@ -702,22 +682,57 @@ export function useTokenboundAccount(urbitID: UrbitID): Loadable<TokenboundAccou
     : (data as TokenboundAccount);
 }
 
-export function useTokenboundUrbitID(address: Address): Loadable<UrbitID> {
+export function useSafeAccount(urbitID: UrbitID): Loadable<SafeAccount> {
   const wallet = useWalletMeta();
-  const tbClient = useTokenboundClient();
   const queryKey: QueryKey = useMemo(() => [
-    APP.TAG, "tokenbound", "urbit", wallet?.stateID, address,
-  ], [wallet?.stateID, address]);
+    APP.TAG, "safe", "account", String(wallet?.chainID), urbitID.id,
+  ], [String(wallet?.chainID), urbitID.id]);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKey,
     queryFn: async () => {
-      if (!wallet) throw Error("Invalid wallet");
-      if (!tbClient) throw Error("TokenboundClient unavailable");
+      if (!wallet) throw Error(ERROR.INVALID_QUERY);
+      const ecliptic: Token = formToken(wallet.chainID, "ECL");
+      const safeAddress = ((await readContract(wallet.wagmi, {
+        abi: ecliptic.abi,
+        address: ecliptic.address,
+        functionName: "ownerOf",
+        args: [urbitID.id],
+      })) as Address);
 
+      const safeClient = new SafeApiKit({chainId: wallet.chainID});
+      const safeInfo = await safeClient.getSafeInfo(safeAddress);
+
+      return safeInfo;
+    },
+    enabled: !!wallet,
+    staleTime: Infinity,
+    retryOnMount: false,
+    refetchOnMount: false,
+  });
+
+  return isLoading ? undefined
+    : isError ? null
+    : (data as SafeAccount);
+}
+
+export function useTokenboundUrbitID(address: Address): Loadable<UrbitID> {
+  const wallet = useWalletMeta();
+  const tbClient = useTokenboundClient();
+  const queryKey: QueryKey = useMemo(() => [
+    APP.TAG, "tokenbound", "urbit", String(wallet?.chainID), address,
+  ], [String(wallet?.chainID), address]);
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: queryKey,
+    queryFn: async () => {
+      if (!wallet || !tbClient) throw Error(ERROR.INVALID_QUERY);
+      const ecliptic: Token = formToken(wallet.chainID, "ECL");
       const { tokenContract, tokenId } = await tbClient.getNFT({
         accountAddress: address,
       });
+      if (ecliptic.address !== tokenContract)
+        throw Error(`Address ${address} is not a ERC-6551 contract`)
       return formUrbitID(tokenId);
     },
     enabled: !!wallet && !!tbClient,
@@ -731,68 +746,16 @@ export function useTokenboundUrbitID(address: Address): Loadable<UrbitID> {
     : (data as UrbitID);
 }
 
-export function useSafeAccount(urbitID: UrbitID): Loadable<SafeAccount> {
-  const wallet = useWalletMeta();
-  const tbClient = useTokenboundClient();
-  const queryKey: QueryKey = useMemo(() => [
-    APP.TAG, "safe", "account", wallet?.stateID, urbitID.id,
-  ], [wallet?.stateID, urbitID.id]);
-
-  const { data, isLoading, isError } = useQuery({
-    queryKey: queryKey,
-    queryFn: async () => {
-      if (!wallet) throw Error("Invalid wallet");
-      if (!tbClient) throw Error("TokenboundClient unavailable");
-      const ecliptic: Token = formToken(wallet.chainID, "ECL");
-      const safeAddress = ((await readContract(wallet.wagmi, {
-        abi: ecliptic.abi,
-        address: ecliptic.address,
-        functionName: "ownerOf",
-        args: [urbitID.id],
-      })) as Address);
-
-      const safeClient = new SafeApiKit({chainId: wallet.chainID});
-      const safeInfo = await safeClient.getSafeInfo(safeAddress);
-      const safeOwnurs: UrbitID[] = [];
-      for (const owner of safeInfo.owners) {
-        // TODO: Assert that 'tokenContract' is the Ecliptic contract address
-        try {
-          const { tokenContract, tokenId } = await tbClient.getNFT({
-            accountAddress: (owner as Address),
-          });
-          const ownur: UrbitID = formUrbitID(tokenId);
-          safeOwnurs.push(ownur);
-        } catch (error) {
-          safeOwnurs.push(formUrbitID(0));
-        }
-      }
-
-      return {
-        ownurs: safeOwnurs,
-        ...safeInfo,
-      };
-    },
-    enabled: !!wallet && !!tbClient,
-    staleTime: Infinity,
-    retryOnMount: false,
-    refetchOnMount: false,
-  });
-
-  return isLoading ? undefined
-    : isError ? null
-    : (data as SafeAccount);
-}
-
 export function useTokenboundClient(): Loadable<TokenboundClient> {
   const wallet = useWalletMeta();
   const queryKey: QueryKey = useMemo(() => [
-    APP.TAG, "tokenbound", "client", wallet?.stateID,
-  ], [wallet?.stateID]);
+    APP.TAG, "tokenbound", "client", String(wallet?.chainID),
+  ], [String(wallet?.chainID)]);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKey,
     queryFn: async () => {
-      if (!wallet) throw Error("Invalid wallet");
+      if (!wallet) throw Error(ERROR.INVALID_QUERY);
       const walletClient = await getWalletClient(wallet.wagmi);
       return new TokenboundClient({
         walletClient: walletClient,
@@ -819,7 +782,7 @@ export function useWalletMeta(): Nullable<WalletMeta> {
     const chainID: bigint = hexToBigInt(((wallet?.chains?.[0]?.id ?? "0x0") as Address));
     const address: Address = wallet?.accounts?.[0]?.address ?? ACCOUNT.NULL.ETHEREUM;
     return {
-      stateID: `${chainID}:${address}`, // FIXME: `wagmiConfig.state.current`
+      stateID: `${chainID}:${address}`,
       wagmi: (wagmiConfig as WagmiConfig),
       chainID: chainID,
       address: address,

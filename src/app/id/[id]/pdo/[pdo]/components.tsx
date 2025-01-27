@@ -2,7 +2,7 @@
 import type { UrbitID } from "@/type/slab";
 import { useMemo, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useSafeAccount } from '@/hook/web3';
+import { useSafeAccount, useTokenboundAccount } from '@/hook/web3';
 import { useUrbitIDs } from '@/hook/wallet';
 import { UrbitIDFrame } from '@/comp/Frames';
 import { HugeLoadingIcon } from '@/comp/Icons';
@@ -19,10 +19,11 @@ export function PDORouteWrapper({
   const routeID: UrbitID = useMemo(() => formUrbitID(params?.id ?? ""), [params?.id]);
   const routePDO: UrbitID = useMemo(() => formUrbitID(params?.pdo ?? ""), [params?.pdo]);
 
+  const tbAccount = useTokenboundAccount(routeID);
   const safeAccount = useSafeAccount(routePDO);
   const isRoutePDOHolder: boolean = useMemo(() => (
-    (safeAccount?.ownurs ?? []).map(({id}) => id).includes(routeID.id)
-  ), [safeAccount, routeID]);
+    (safeAccount?.owners ?? []).includes(String(tbAccount?.address))
+  ), [tbAccount, safeAccount]);
 
   const gotoHome = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -58,9 +59,9 @@ export function PDORouteWrapper({
       <h1 className="text-4xl font-bold underline">
         %slab
       </h1>
-      {(safeAccount === undefined) ? (
+      {(safeAccount === undefined || tbAccount === undefined) ? (
         <HugeLoadingIcon />
-      ) : (safeAccount === null) ? (
+      ) : (safeAccount === null || tbAccount === null) ? (
         <div className="flex flex-col gap-2 text-center">
           <h4 className="font-medium">
             <span>Unable to load PDO for </span>
