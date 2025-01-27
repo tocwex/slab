@@ -49,8 +49,8 @@ export function hasClanBoon(urbit: UrbitID, clan: UrbitClan): boolean {
   return CLAN_INDEX[urbit.clan] <= CLAN_INDEX[clan];
 }
 
-export function formContract(chainBid: bigint, symbol: string): Contract {
-  const chainId: number = Number(chainBid);
+export function formContract(chain: bigint, symbol: string): Contract {
+  const chainId: number = Number(chain);
   const chainTag: string = BLOCKCHAIN?.TAG[chainId] ?? BLOCKCHAIN.TAG[BLOCKCHAIN.ID.ETHEREUM];
   return {
     abi: (CONTRACT as any)?.[symbol]?.ABI ?? [],
@@ -60,8 +60,8 @@ export function formContract(chainBid: bigint, symbol: string): Contract {
   };
 }
 
-export function formToken(chainBid: bigint, symbol: string): Token {
-  const chainId: number = Number(chainBid);
+export function formToken(chain: bigint, symbol: string): Token {
+  const chainId: number = Number(chain);
   const chainTag: string = BLOCKCHAIN?.TAG[chainId] ?? BLOCKCHAIN.TAG[BLOCKCHAIN.ID.ETHEREUM];
   return (symbol === "ETH")
     ? {
@@ -95,8 +95,8 @@ export function formUrbitID(value: number | string): UrbitID {
   return ({id, patp, clan});
 }
 
-export function decodePDOProposal(chainBid: bigint, data: Address): Transaction {
-  const chainId: number = Number(chainBid);
+export function decodePDOProposal(chain: bigint, data: Address): Transaction {
+  const chainId: number = Number(chain);
   const chainTag: string = BLOCKCHAIN?.TAG[chainId] ?? BLOCKCHAIN.TAG[BLOCKCHAIN.ID.ETHEREUM];
 
   let transaction: Transaction = { type: "other" };
@@ -113,7 +113,7 @@ export function decodePDOProposal(chainBid: bigint, data: Address): Transaction 
           type: "transfer",
           to: tbTo,
           amount: tbValue,
-          token: formToken(chainBid, "ETH"),
+          token: formToken(chain, "ETH"),
         };
       } else {
         try {
@@ -134,7 +134,7 @@ export function decodePDOProposal(chainBid: bigint, data: Address): Transaction 
                 type: "transfer",
                 to: e2To,
                 amount: e2Value,
-                token: formToken(chainBid, e2Symbol),
+                token: formToken(chain, e2Symbol),
               };
             }
           }

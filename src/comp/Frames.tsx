@@ -54,8 +54,8 @@ export function AddressFrame({
   ), [address, short]);
   const href: string = useMemo(() => (`
     https://${
-      (wallet?.chainID === BigInt(BLOCKCHAIN.ID.SEPOLIA)) ? "sepolia."
-      : (wallet?.chainID === BigInt(BLOCKCHAIN.ID.ETHEREUM)) ? ""
+      (wallet?.chain === BigInt(BLOCKCHAIN.ID.SEPOLIA)) ? "sepolia."
+      : (wallet?.chain === BigInt(BLOCKCHAIN.ID.ETHEREUM)) ? ""
       : ""
     }etherscan.io/${
       (type === "account") ? "address"
@@ -121,8 +121,8 @@ export function SafeFrame({
 
   const href: string = useMemo(() => (`
     https://app.safe.global/home?safe=${
-      (wallet?.chainID === BigInt(BLOCKCHAIN.ID.SEPOLIA)) ? "sep:"
-      : (wallet?.chainID === BigInt(BLOCKCHAIN.ID.ETHEREUM)) ? ""
+      (wallet?.chain === BigInt(BLOCKCHAIN.ID.SEPOLIA)) ? "sep:"
+      : (wallet?.chain === BigInt(BLOCKCHAIN.ID.ETHEREUM)) ? ""
       : ""
     }${
       address

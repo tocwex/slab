@@ -144,9 +144,8 @@ export function TokenboundAccountInfo({
               </li>
             ))}
           </ul>
-          {/* FIXME: Re-add 'required' to all fields here. */}
           <div className="flex flex-col gap-2">
-            <input type="text" name="recipient"
+            <input type="text" name="recipient" required
               placeholder="urbit id"
               autoComplete="off"
               autoCorrect="off"
@@ -155,12 +154,12 @@ export function TokenboundAccountInfo({
               pattern={REGEX.AZIMUTH.POINT}
               className="input-lg"
             />
-            <select name="token" className="invalid:text-[#969da8] input-lg">
+            <select required name="token" className="invalid:text-[#969da8] input-lg">
               <option value="">currency</option>
               <option value="ETH">ethereum</option>
               <option value="USDC">usdc</option>
             </select>
-            <input type="number" name="amount"
+            <input type="number" name="amount" required
               min="0" max="100000000" step="0.0001"
               placeholder="amount"
               className="input-lg"
