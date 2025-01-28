@@ -3,7 +3,7 @@ import type { Config as WagmiConfig } from '@wagmi/core';
 import type { EIP1193Provider } from 'viem';
 import type {
   Loadable, Nullable, Address, UrbitID, WalletMeta,
-  Contract, Token, TokenHolding, TokenHoldings,
+  Contract, Token, Transaction, TokenHolding, TokenHoldings,
   TokenboundAccount, SafeAccount, SafeResponse,
 } from '@/type/slab';
 import { useMemo } from 'react';
@@ -23,8 +23,11 @@ import {
   formatUnits, hexToNumber, hexToBigInt, numberToHex, pad,
   parseEther, parseUnits, encodePacked, encodeFunctionData,
 } from 'viem';
-import { signTBSafeTx, fetchSafeAccount, fetchTBAddress, fetchUrbitID } from '@/lib/web3';
-import { formContract, formToken, formUrbitID, decodePDOProposal } from '@/lib/util';
+import {
+  signTBSafeTx, fetchSafeAccount, fetchTBAddress,
+  fetchToken, fetchUrbitID, decodeProposal,
+} from '@/lib/web3';
+import { formContract, formToken, formUrbitID } from '@/lib/util';
 import { APP, ABI, ACCOUNT, CONTRACT, ERROR } from '@/dat/const';
 
 // TODO: Secondary query invalidations don't seem to be working for tokenbound
@@ -73,7 +76,7 @@ export function usePDOExecMutation(
         const safeClient = new SafeApiKit({chainId: wallet.chain});
         const safeRawTx = await safeClient.getTransaction(txHash);
         const safeRawData = ((safeRawTx?.data || "0x0") as Address);
-        const safeTx = decodePDOProposal(wallet.chain, safeRawData);
+        const safeTx = await decodeProposal(wallet, safeRawData);
         if (safeTx.type === "transfer") {
           const urbitID = await fetchUrbitID(wallet, tbClient, safeTx.to);
           queryClient.invalidateQueries({queryKey: [
@@ -226,7 +229,7 @@ export function usePDOSendMutation(
     }) => {
       if (!wallet || !tbClient || !idAccount || !pdoAccount || !pdoSafe)
         throw Error(ERROR.INVALID_QUERY);
-      const TOKEN: Token = formToken(wallet.chain, symbol);
+      const TOKEN: Token = await fetchToken(wallet, symbol);
       const recipientAddress = await fetchTBAddress(wallet, tbClient, urbitID);
       const tbTransferTransaction = await ((symbol === "ETH") ? tbClient.prepareExecution({
         account: pdoAccount.address,
@@ -368,13 +371,15 @@ export function useSafeProposals(urbitPDO: UrbitID): Loadable<SafeResponse[]> {
 
       const safeClient = new SafeApiKit({chainId: wallet.chain});
       const safeProposals = await safeClient.getPendingTransactions(safeAddress);
-      const safeTransactions: SafeResponse[] = safeProposals.results.map((proposal) => ({
-        ...proposal,
+
+      const safeTransactions: SafeResponse[] = [];
+      for (const proposal of safeProposals.results) {
+        const proposalData: Address = ((proposal.data ?? "0x0") as Address)
         // TODO: Our custom ERC-6551 implementation calls are too exotic to be
         // decoded by Safe's in-house solution
-        // dataDecoded: await safeClient.decodeData(safeProposal.data),
-        transaction: decodePDOProposal(wallet.chain, ((proposal.data ?? "0x0") as Address)),
-      }));
+        const safeTransaction: Transaction = await decodeProposal(wallet, proposalData);
+        safeTransactions.push({...proposal, transaction: safeTransaction});
+      }
 
       return safeTransactions;
     },
@@ -461,8 +466,8 @@ export function useTokenboundSendMutation(
       amount: string,
     }) => {
       if (!wallet || !tbClient || !tbAccount) throw Error(ERROR.INVALID_QUERY);
+      const TOKEN = await fetchToken(wallet, symbol);
       const tbAddress = await fetchTBAddress(wallet, tbClient, recipient);
-      const sendToken = formToken(wallet.chain, symbol);
       const txHash = await ((symbol === "ETH") ? tbClient.transferETH({
         account: tbAccount.address,
         amount: Number(amount),
@@ -471,8 +476,8 @@ export function useTokenboundSendMutation(
         account: tbAccount.address,
         amount: Number(amount),
         recipientAddress: tbAddress,
-        erc20tokenAddress: sendToken.address,
-        erc20tokenDecimals: sendToken.decimals,
+        erc20tokenAddress: TOKEN.address,
+        erc20tokenDecimals: TOKEN.decimals,
       }));
       const txReceipt = await waitForTransactionReceipt(wallet.wagmi, {hash: txHash});
       return txReceipt.transactionHash;
@@ -545,20 +550,6 @@ export function useTokenboundAccount(urbitID: UrbitID): Loadable<TokenboundAccou
       const tbIsDeployed: boolean = await tbClient.checkAccountDeployment({
         accountAddress: tbAddress,
       });
-      const tbHoldings: TokenHoldings = {};
-      for (const symbol of ["ETH", "USDC"]) {
-        const holdToken = formToken(wallet.chain, symbol);
-        const holding = await getBalance(wallet.wagmi, {
-          address: tbAddress,
-          token: (symbol === "ETH")
-            ? undefined
-            : holdToken.address,
-        });
-        tbHoldings[symbol] = {
-          balance: holding.value,
-          token: holdToken,
-        };
-      }
 
       const NULL: Contract = formContract(wallet.chain, "NULL");
       const REGISTRY: Contract = formContract(wallet.chain, "REGISTRY");
@@ -571,24 +562,24 @@ export function useTokenboundAccount(urbitID: UrbitID): Loadable<TokenboundAccou
 
       let tbToken: Token | undefined = undefined;
       if (tbTokenAddress !== NULL.address) {
-        const tbTokenName = ((await readContract(wallet.wagmi, {
-          abi: ABI.ERC20,
-          address: tbTokenAddress,
-          functionName: "name",
-        })) as string);
-        const tbTokenSymbol = ((await readContract(wallet.wagmi, {
-          abi: ABI.ERC20,
-          address: tbTokenAddress,
-          functionName: "symbol",
-        })) as string);
+        tbToken = await fetchToken(wallet, tbTokenAddress);
+      }
 
-        tbToken = {
-          address: tbTokenAddress,
-          // @ts-ignore
-          abi: ABI.ERC20,
-          name: tbTokenName,
-          symbol: tbTokenSymbol,
-          decimals: 18,
+      const tbHoldings: TokenHoldings = {};
+      for (const token of [
+          formToken(wallet.chain, "ETH"),
+          formToken(wallet.chain, "USDC"),
+          ...(!tbToken ? [] : [tbToken]),
+      ]) {
+        const holding = await getBalance(wallet.wagmi, {
+          address: tbAddress,
+          token: (token.address === NULL.address)
+            ? undefined
+            : token.address,
+        });
+        tbHoldings[token.symbol] = {
+          balance: holding.value,
+          token: token,
         };
       }
 

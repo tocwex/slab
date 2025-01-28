@@ -280,6 +280,11 @@ export function PDOAccountInfo({
                 <option value="">currency</option>
                 <option value="ETH">ethereum</option>
                 <option value="USDC">usdc</option>
+                {(!!pdoAccount.token) && (
+                  <option value={pdoAccount.token.address}>
+                    {pdoAccount.token.name}
+                  </option>
+                )}
               </select>
               <input type="number" name="amount" required
                 min="0" max="100000000" step="0.0001"
