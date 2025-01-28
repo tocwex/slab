@@ -20,12 +20,12 @@ import SafeApiKit from '@safe-global/api-kit';
 import { OperationType } from '@safe-global/types-kit';
 import {
   recoverAddress, recoverMessageAddress, verifyMessage,
-  formatUnits, hexToNumber, hexToBigInt, numberToHex,
+  formatUnits, hexToNumber, hexToBigInt, numberToHex, pad,
   parseEther, parseUnits, encodePacked, encodeFunctionData,
 } from 'viem';
 import { signTBSafeTx, fetchSafeAccount, fetchTBAddress, fetchUrbitID } from '@/lib/web3';
 import { formContract, formToken, formUrbitID, decodePDOProposal } from '@/lib/util';
-import { APP, ACCOUNT, CONTRACT, ERROR } from '@/dat/const';
+import { APP, ABI, ACCOUNT, CONTRACT, ERROR } from '@/dat/const';
 
 // TODO: Secondary query invalidations don't seem to be working for tokenbound
 // accounts (e.g. in `useTokenboundSendMutation`)
@@ -116,16 +116,18 @@ export function usePDOLaunchMutation(
         throw Error(ERROR.INVALID_QUERY);
       const initSupply = parseUnits(init_supply, 18);
       const maxSupply = parseUnits(max_supply, 18);
+      const salt = pad("0x0"); // TODO: Customize or randomize salt?
 
-      const deployer: Contract = formContract(wallet.chain, "DEPLOYER_V1");
+      const DEPLOY_V1: Contract = formContract(wallet.chain, "DEPLOYER_V1");
+      const TOKENBOUND: Contract = formContract(wallet.chain, "TOKENBOUND");
       const tbLaunchTransaction = await tbClient.prepareExecution({
         account: pdoAccount.address,
-        to: deployer.address,
+        to: DEPLOY_V1.address,
         value: BigInt(0),
         data: encodeFunctionData({
-          abi: deployer.abi,
+          abi: DEPLOY_V1.abi,
           functionName: "deploySyndicate",
-          args: [initSupply, maxSupply, urbitPDO.id, name, symbol],
+          args: [TOKENBOUND.address, salt, initSupply, maxSupply, urbitPDO.id, name, symbol],
         }),
       });
 
@@ -224,8 +226,8 @@ export function usePDOSendMutation(
     }) => {
       if (!wallet || !tbClient || !idAccount || !pdoAccount || !pdoSafe)
         throw Error(ERROR.INVALID_QUERY);
+      const TOKEN: Token = formToken(wallet.chain, symbol);
       const recipientAddress = await fetchTBAddress(wallet, tbClient, urbitID);
-      const token: Token = formToken(wallet.chain, symbol);
       const tbTransferTransaction = await ((symbol === "ETH") ? tbClient.prepareExecution({
         account: pdoAccount.address,
         to: recipientAddress,
@@ -233,12 +235,12 @@ export function usePDOSendMutation(
         data: "0x",
       }) : tbClient.prepareExecution({
         account: pdoAccount.address,
-        to: token.address,
+        to: TOKEN.address,
         value: BigInt(0),
         data: encodeFunctionData({
-          abi: token.abi,
+          abi: TOKEN.abi,
           functionName: "transfer",
-          args: [recipientAddress, parseUnits(amount, token.decimals)],
+          args: [recipientAddress, parseUnits(amount, TOKEN.decimals)],
         }),
       }));
 
@@ -557,25 +559,39 @@ export function useTokenboundAccount(urbitID: UrbitID): Loadable<TokenboundAccou
           token: holdToken,
         };
       }
-      const deployer: Contract = formContract(wallet.chain, "DEPLOYER_V1");
-      const tbHasToken = ((await readContract(wallet.wagmi, {
-        abi: deployer.abi,
-        address: deployer.address,
-        functionName: "isValidSyndicate",
-        args: [tbAddress, urbitID.id],
-      })) as boolean);
+
+      const NULL: Contract = formContract(wallet.chain, "NULL");
+      const REGISTRY: Contract = formContract(wallet.chain, "REGISTRY");
+      const tbTokenAddress: Address = ((await readContract(wallet.wagmi, {
+        abi: REGISTRY.abi,
+        address: REGISTRY.address,
+        functionName: "getSyndicateTokenAddressUsingAzimuthPoint",
+        args: [urbitID.id],
+      })) as Address);
+
       let tbToken: Token | undefined = undefined;
-      if (tbHasToken) {
-        // TODO: Implement logic to show token information once the address
-        // can be queried
+      if (tbTokenAddress !== NULL.address) {
+        const tbTokenName = ((await readContract(wallet.wagmi, {
+          abi: ABI.ERC20,
+          address: tbTokenAddress,
+          functionName: "name",
+        })) as string);
+        const tbTokenSymbol = ((await readContract(wallet.wagmi, {
+          abi: ABI.ERC20,
+          address: tbTokenAddress,
+          functionName: "symbol",
+        })) as string);
+
         tbToken = {
-          address: "0x0",
-          abi: [],
-          name: "",
-          symbol: "",
+          address: tbTokenAddress,
+          // @ts-ignore
+          abi: ABI.ERC20,
+          name: tbTokenName,
+          symbol: tbTokenSymbol,
           decimals: 18,
         };
       }
+
       return {
         address: tbAddress,
         deployed: tbIsDeployed,

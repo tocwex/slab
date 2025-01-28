@@ -342,6 +342,272 @@
                 "type": "address"
             }
         ],
+        "name": "getSyndicateAzimuthPointUsingAddress",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "syndicateAddress",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "azimuthPoint",
+                "type": "uint256"
+            }
+        ],
+        "name": "getSyndicateTokenAddressUsingAzimuthPoint",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "syndicateAddress",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "checkAddress",
+                "type": "address"
+            }
+        ],
+        "name": "getSyndicateTokenDeployerAddressUsingAddress",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "syndicateDeployerAddress",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "azimuthPoint",
+                "type": "uint256"
+            }
+        ],
+        "name": "getSyndicateTokenDeployerAddressUsingAzimuthPoint",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "syndicateDeployerAddress",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "checkAddress",
+                "type": "address"
+            }
+        ],
+        "name": "getSyndicateTokenDeployerIsActiveUsingAddress",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "syndicateDeployerIsActive",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "azimuthPoint",
+                "type": "uint256"
+            }
+        ],
+        "name": "getSyndicateTokenDeployerIsActiveUsingAzimuthPoint",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "syndicateDeployerIsActive",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "checkAddress",
+                "type": "address"
+            }
+        ],
+        "name": "getSyndicateTokenDeployerVersionUsingAddress",
+        "outputs": [
+            {
+                "internalType": "uint64",
+                "name": "syndicateDeployerVersion",
+                "type": "uint64"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "azimuthPoint",
+                "type": "uint256"
+            }
+        ],
+        "name": "getSyndicateTokenDeployerVersionUsingAzimuthPoint",
+        "outputs": [
+            {
+                "internalType": "uint64",
+                "name": "syndicateDeployerVersion",
+                "type": "uint64"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "checkAddress",
+                "type": "address"
+            }
+        ],
+        "name": "getSyndicateTokenExistsUsingAddress",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "syndicateExists",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "azimuthPoint",
+                "type": "uint256"
+            }
+        ],
+        "name": "getSyndicateTokenExistsUsingAzimuthPoint",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "syndicateExists",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "checkAddress",
+                "type": "address"
+            }
+        ],
+        "name": "getSyndicateTokenLaunchTimeUsingAddress",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "syndicateLaunchTime",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "azimuthPoint",
+                "type": "uint256"
+            }
+        ],
+        "name": "getSyndicateTokenLaunchTimeUsingAzimuthPoint",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "syndicateLaunchTime",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "checkAddress",
+                "type": "address"
+            }
+        ],
+        "name": "getSyndicateTokenOwnerAddressUsingAddress",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "syndicateOwner",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "azimuthPoint",
+                "type": "uint256"
+            }
+        ],
+        "name": "getSyndicateTokenOwnerAddressUsingAzimuthPoint",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "syndicateOwner",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "checkAddress",
+                "type": "address"
+            }
+        ],
         "name": "isRegisteredDeployer",
         "outputs": [
             {
@@ -472,26 +738,9 @@
                         "type": "address"
                     },
                     {
-                        "components": [
-                            {
-                                "internalType": "address",
-                                "name": "deployerAddress",
-                                "type": "address"
-                            },
-                            {
-                                "internalType": "uint64",
-                                "name": "deployerVersion",
-                                "type": "uint64"
-                            },
-                            {
-                                "internalType": "bool",
-                                "name": "isActive",
-                                "type": "bool"
-                            }
-                        ],
-                        "internalType": "struct ISyndicateRegistry.SyndicateDeployerData",
-                        "name": "syndicateDeploymentData",
-                        "type": "tuple"
+                        "internalType": "address",
+                        "name": "syndicateDeployer",
+                        "type": "address"
                     },
                     {
                         "internalType": "uint256",

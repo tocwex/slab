@@ -310,7 +310,20 @@ export function PDOAccountInfo({
             ) : (pdoAccount === null) ? (
               <div>error</div>
             ) : (pdoAccount.token !== undefined) ? (
-              <div>(TODO: Implement token visualization here!)</div>
+              <ul className="list-disc">
+                <li>
+                  <span className="font-bold">name: </span>
+                  <span>{pdoAccount.token.name}</span>
+                </li>
+                <li>
+                  <span className="font-bold">symbol: </span>
+                  <span>${pdoAccount.token.symbol}</span>
+                </li>
+                <li>
+                  <span className="font-bold">contract: </span>
+                  <AddressFrame address={pdoAccount.token.address} />
+                </li>
+              </ul>
             ) : (
               <div className="flex flex-col gap-2">
                 <input type="text" name="name" required

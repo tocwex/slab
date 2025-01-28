@@ -6,7 +6,8 @@ import { useSafeAccount, useTokenboundAccount } from '@/hook/web3';
 import { useUrbitIDs } from '@/hook/wallet';
 import { UrbitIDFrame } from '@/comp/Frames';
 import { HugeLoadingIcon } from '@/comp/Icons';
-import { formUrbitID } from '@/lib/util';
+import { formUrbitID, hasClanBoon } from '@/lib/util';
+import { APP } from '@/dat/const';
 
 export function PDORouteWrapper({
   children,
@@ -34,7 +35,7 @@ export function PDORouteWrapper({
     router.push(`/id/${routeID.patp}`);
   }, [router, routeID]);
 
-  return !routePDO.id ? (
+  return (!routePDO.id || (!APP.DEBUG && !hasClanBoon(routePDO, "star"))) ? (
     <div className="h-lvh main">
       <h1 className="text-4xl font-bold underline">
         %slab
@@ -42,10 +43,14 @@ export function PDORouteWrapper({
       <h4 className="font-medium">
         <span>Attempting to access the PDO for </span>
         <span className="font-bold">{params?.pdo}</span>
-        <span>, which isn't a valid Urbit ID.</span>
+        {!routePDO.id ? (
+          <span>, which isn't a valid Urbit ID.</span>
+        ) : (
+          <span>, which isn't a valid Urbit PDO.</span>
+        )}
       </h4>
       <h4 className="font-medium">
-        <span>Please retry with a valid Urbit ID.</span>
+        <span>Please retry with a valid Urbit PDO.</span>
       </h4>
       <button
         onClick={gotoUrbitID}

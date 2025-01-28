@@ -11,7 +11,7 @@ import {
 import { TokenboundAccountInfo } from '@/comp/Accounts';
 import { TinyLoadingIcon } from '@/comp/Icons';
 import { formUrbitID, hasClanBoon } from '@/lib/util';
-import { REGEX } from '@/dat/const';
+import { APP, REGEX } from '@/dat/const';
 import * as ob from "urbit-ob";
 
 export default function IDPage(): React.ReactNode {
@@ -112,8 +112,7 @@ export default function IDPage(): React.ReactNode {
         )}
       </form>
       <TokenboundAccountInfo urbitID={routeID} />
-      {/* TODO: Re-add star requirement for production */}
-      {/*!hasClanBoon(routeID, "star")*/false ? (
+      {(!APP.DEBUG && !hasClanBoon(routeID, "star")) ? (
         <Fragment />
       ) : (
         <form className="flex flex-col items-center gap-2">

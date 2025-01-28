@@ -7,6 +7,11 @@
                 "type": "address"
             },
             {
+                "internalType": "address",
+                "name": "azimuthContract",
+                "type": "address"
+            },
+            {
                 "internalType": "uint256",
                 "name": "fee",
                 "type": "uint256"
@@ -29,12 +34,6 @@
                 "internalType": "uint256",
                 "name": "fee",
                 "type": "uint256"
-            },
-            {
-                "indexed": true,
-                "internalType": "address",
-                "name": "owner",
-                "type": "address"
             },
             {
                 "indexed": false,
@@ -70,83 +69,6 @@
             }
         ],
         "name": "FeeUpdated",
-        "type": "event"
-    },
-    {
-        "anonymous": false,
-        "inputs": [
-            {
-                "indexed": false,
-                "internalType": "address",
-                "name": "proposedOwner",
-                "type": "address"
-            }
-        ],
-        "name": "OwnerProposed",
-        "type": "event"
-    },
-    {
-        "anonymous": false,
-        "inputs": [
-            {
-                "indexed": false,
-                "internalType": "address",
-                "name": "previousOwner",
-                "type": "address"
-            }
-        ],
-        "name": "OwnershipRenounced",
-        "type": "event"
-    },
-    {
-        "anonymous": false,
-        "inputs": [
-            {
-                "indexed": false,
-                "internalType": "address",
-                "name": "newOwner",
-                "type": "address"
-            }
-        ],
-        "name": "ProposalAccepted",
-        "type": "event"
-    },
-    {
-        "anonymous": false,
-        "inputs": [
-            {
-                "indexed": false,
-                "internalType": "address",
-                "name": "proposedOwner",
-                "type": "address"
-            },
-            {
-                "indexed": false,
-                "internalType": "address",
-                "name": "deployerOwner",
-                "type": "address"
-            }
-        ],
-        "name": "ProposalNullified",
-        "type": "event"
-    },
-    {
-        "anonymous": false,
-        "inputs": [
-            {
-                "indexed": false,
-                "internalType": "address",
-                "name": "proposedOwner",
-                "type": "address"
-            },
-            {
-                "indexed": false,
-                "internalType": "address",
-                "name": "deployerOwner",
-                "type": "address"
-            }
-        ],
-        "name": "ProposalRejected",
         "type": "event"
     },
     {
@@ -192,19 +114,6 @@
         "type": "fallback"
     },
     {
-        "inputs": [],
-        "name": "acceptOwnership",
-        "outputs": [
-            {
-                "internalType": "bool",
-                "name": "success",
-                "type": "bool"
-            }
-        ],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
         "inputs": [
             {
                 "internalType": "uint256",
@@ -238,6 +147,16 @@
     },
     {
         "inputs": [
+            {
+                "internalType": "address",
+                "name": "implementation",
+                "type": "address"
+            },
+            {
+                "internalType": "bytes32",
+                "name": "salt",
+                "type": "bytes32"
+            },
             {
                 "internalType": "uint256",
                 "name": "initialSupply",
@@ -320,7 +239,7 @@
         "outputs": [
             {
                 "internalType": "address",
-                "name": "proposedOwner",
+                "name": "pendingOwner",
                 "type": "address"
             }
         ],
@@ -344,69 +263,23 @@
         "inputs": [
             {
                 "internalType": "address",
-                "name": "user",
+                "name": "newOwner",
                 "type": "address"
             },
             {
                 "internalType": "uint256",
                 "name": "azimuthPoint",
                 "type": "uint256"
-            }
-        ],
-        "name": "isValidSyndicate",
-        "outputs": [
-            {
-                "internalType": "bool",
-                "name": "success",
-                "type": "bool"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [],
-        "name": "nullifyProposal",
-        "outputs": [
-            {
-                "internalType": "bool",
-                "name": "success",
-                "type": "bool"
-            }
-        ],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "proposedOwner",
-                "type": "address"
-            }
-        ],
-        "name": "proposeNewOwner",
-        "outputs": [
-            {
-                "internalType": "bool",
-                "name": "success",
-                "type": "bool"
-            }
-        ],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "syndicateToken",
-                "type": "address"
             },
             {
                 "internalType": "address",
-                "name": "newOwner",
+                "name": "implementation",
                 "type": "address"
+            },
+            {
+                "internalType": "bytes32",
+                "name": "salt",
+                "type": "bytes32"
             }
         ],
         "name": "registerTokenOwnerChange",
@@ -418,61 +291,6 @@
             }
         ],
         "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [],
-        "name": "rejectOwnership",
-        "outputs": [
-            {
-                "internalType": "bool",
-                "name": "success",
-                "type": "bool"
-            }
-        ],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [],
-        "name": "renounceOwnership",
-        "outputs": [
-            {
-                "internalType": "bool",
-                "name": "success",
-                "type": "bool"
-            }
-        ],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "proposedTokenOwner",
-                "type": "address"
-            },
-            {
-                "internalType": "uint256",
-                "name": "azimuthPoint",
-                "type": "uint256"
-            },
-            {
-                "internalType": "address",
-                "name": "tbaImplementation",
-                "type": "address"
-            }
-        ],
-        "name": "validateTokenOwnerChange",
-        "outputs": [
-            {
-                "internalType": "bool",
-                "name": "isValid",
-                "type": "bool"
-            }
-        ],
-        "stateMutability": "view",
         "type": "function"
     },
     {

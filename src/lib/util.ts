@@ -144,11 +144,11 @@ export function decodePDOProposal(chain: bigint, data: Address): Transaction {
             data: tbData,
           });
           if (inFunc === "deploySyndicate") {
-            const [tkSupply, _, __, tkName, tkSymbol] =
-              (inArgs as [bigint, bigint, number, string, string]);
+            const [_, __, tkInitSupply, tkMaxSupply, ___, tkName, tkSymbol] =
+              (inArgs as [Address, string, bigint, bigint, number, string, string]);
             transaction = {
               type: "launch",
-              amount: tkSupply,
+              amount: tkInitSupply,
               token: {
                 address: ACCOUNT.NULL?.[chainTag] ?? ACCOUNT.NULL.ETHEREUM,
                 // @ts-ignore
