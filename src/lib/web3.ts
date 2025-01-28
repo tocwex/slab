@@ -178,7 +178,7 @@ export async function decodeProposal(
             data: tbData,
           });
           if (inFunc === "deploySyndicate") {
-            const [_, __, tkInitSupply, tkMaxSupply, ___, tkName, tkSymbol] =
+            const [, , tkInitSupply, tkMaxSupply, , tkName, tkSymbol] =
               (inArgs as [Address, string, bigint, bigint, number, string, string]);
             transaction = {
               type: "launch",

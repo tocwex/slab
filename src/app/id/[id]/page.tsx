@@ -20,18 +20,25 @@ export default function IDPage(): React.ReactNode {
   const routePDOs = useSafePDOs(routeID);
   const tbAccount = useTokenboundAccount(routeID);
   const [managerCount, setManagerCount] = useState<number>(1);
-  const { mutate: pdoCreateMutate, status: pdoCreateStatus } = usePDOCreateMutation(routeID);
 
   const addManager = useCallback(() => (
     setManagerCount(managerCount + 1)
   ), [managerCount, setManagerCount]);
 
+  const gotoHome = useCallback(() => {
+    router.push(`/`);
+  }, [router]);
   const gotoUrbitID = useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
     const urbitPDO: string | undefined = event.target?.value;
     if (!!urbitPDO) {
       router.push(`/id/${routeID.patp}/pdo/${urbitPDO}`);
     }
   }, [router]);
+
+  const { mutate: pdoCreateMutate, status: pdoCreateStatus } = usePDOCreateMutation(
+    routeID,
+    { onSuccess: () => gotoHome() }
+  );
 
   const onCreate = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();

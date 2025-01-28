@@ -135,9 +135,9 @@ export function TokenboundAccountInfo({
             Tokenbound Account
           </h2>
           <ul>
-            {Object.entries(tbAccount.holdings).sort(([a, _], [b, __]) => (
+            {Object.entries(tbAccount.holdings).sort(([a, ], [b, ]) => (
               a.localeCompare(b)
-            )).map(([_, {token: {name, symbol, decimals}, balance}]: [string, TokenHolding]) => (
+            )).map(([, {token: {name, symbol, decimals}, balance}]: [string, TokenHolding]) => (
               <li key={symbol}>
                 <span className="font-bold">{name}: </span>
                 <code>{formatUnits(balance, decimals)}</code>
@@ -257,9 +257,9 @@ export function PDOAccountInfo({
               PDO Account
             </h2>
             <ul>
-              {Object.entries(pdoAccount.holdings).sort(([a, _], [b, __]) => (
+              {Object.entries(pdoAccount.holdings).sort(([a, ], [b, ]) => (
                 a.localeCompare(b)
-              )).map(([_, {token: {name, symbol, decimals}, balance}]: [string, TokenHolding]) => (
+              )).map(([, {token: {name, symbol, decimals}, balance}]: [string, TokenHolding]) => (
                 <li key={symbol}>
                   <span className="font-bold">{name}: </span>
                   <code>{formatUnits(balance, decimals)}</code>

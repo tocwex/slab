@@ -689,7 +689,7 @@ export function useTokenboundClient(): Loadable<TokenboundClient> {
 }
 
 export function useWalletMeta(): Nullable<WalletMeta> {
-  const [{wallet}, _, __] = useConnectWallet();
+  const [{wallet}, , ] = useConnectWallet();
   const wagmiConfig = useWagmiConfig();
 
   return useMemo(() => (!wagmiConfig?.state?.current ? null : (() => {
