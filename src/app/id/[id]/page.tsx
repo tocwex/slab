@@ -42,12 +42,13 @@ export default function IDPage(): React.ReactNode {
 
   const onCreate = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
-    const createData = new FormData((event.target as HTMLButtonElement).form ?? undefined);
+    const createData = new FormData((event.currentTarget as HTMLButtonElement).form ?? undefined);
     pdoCreateMutate({
       managers: [...Array(managerCount).keys().map((managerID: number) => (
         String(createData.get(`manager-${managerID}`) ?? "")
       ))],
       threshold: Number(createData.get("threshold") ?? "1"),
+      reset: Boolean(createData.get("reset") ?? false),
     });
   }, [managerCount]);
 
@@ -143,6 +144,10 @@ export default function IDPage(): React.ReactNode {
               className="input-sm"
             />
             <span>of {managerCount} signers</span>
+          </div>
+          <div className="flex flex-row items-center gap-2">
+            <input type="checkbox" name="reset" required />
+            <span>reset on creation?</span>
           </div>
           {/* TODO: Add notice that TBA must be deployed first */}
           <button

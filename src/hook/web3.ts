@@ -297,9 +297,10 @@ export function usePDOCreateMutation(
 
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({managers, threshold}: {
+    mutationFn: async ({managers, threshold, reset}: {
       managers: string[],
       threshold: number,
+      reset: boolean,
     }) => {
       if (!wallet || !tbClient || !tbAccount) throw Error(ERROR.INVALID_QUERY);
       const owners: Address[] = [];
@@ -322,8 +323,8 @@ export function usePDOCreateMutation(
       const transferTransaction = await writeContract(wallet.wagmi, {
         abi: ECLIPTIC.abi,
         address: ECLIPTIC.address,
-        functionName: "safeTransferFrom",
-        args: [wallet.address, safeAddress, Number(urbitID.id)],
+        functionName: "transferPoint",
+        args: [Number(urbitID.id), safeAddress, reset],
       });
       const transferReceipt = await waitForTransactionReceipt(wallet.wagmi, {
         hash: transferTransaction,
