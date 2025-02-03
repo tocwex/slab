@@ -2,11 +2,71 @@
 import type { Address, AddressType, UrbitID } from "@/type/slab";
 import { useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { CopyIcon, CopiedIcon } from '@/comp/Icons';
-import { useWalletMeta, useTokenboundUrbitID } from '@/hook/web3';
+import { useRouter } from 'next/navigation';
+import { CopyIcon, CopiedIcon, HugeLoadingIcon } from '@/comp/Icons';
+import { useGoBack } from '@/hook/app';
+import { useTokenboundUrbitID } from '@/hook/web3';
+import { useWalletMeta } from '@/hook/wallet';
 import { useCopy } from '@/hook/util';
 import { trimAddress, formUrbitID } from '@/lib/util';
 import { BLOCKCHAIN } from '@/dat/const';
+
+export function LoadingFrame({
+  status,
+  title = "%slab",
+  error,
+  action,
+  children,
+}: {
+  status: any;
+  title?: string;
+  error?: React.ReactNode;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}): React.ReactNode {
+  const goBack = useGoBack();
+
+  return !!status ? children : (
+    <HeroFrame title={title}>
+      {(status === undefined) ? (
+        <HugeLoadingIcon />
+      ) : (!error) ? (
+        <>
+          <h4 className="font-medium">
+            There was an error fetching the data for this page.
+          </h4>
+          <h4 className="font-medium">
+            Either the input data was invalid or there were network errors.
+          </h4>
+        </>
+      ) : (
+        error
+      )}
+      {!!action ? action : (
+        <button type="button" onClick={goBack} className="button-lg">
+          ← Back
+        </button>
+      )}
+    </HeroFrame>
+  );
+}
+
+export function HeroFrame({
+  title = "%slab",
+  children,
+}: {
+  title?: string;
+  children: React.ReactNode;
+}): React.ReactNode {
+  return (
+    <div className="h-lvh main">
+      {!!title && (
+        <h1 className="text-4xl font-bold underline">{title}</h1>
+      )}
+      {children}
+    </div>
+  );
+}
 
 export function UrbitIDFrame({
   urbitID,
@@ -16,7 +76,7 @@ export function UrbitIDFrame({
   urbitID: UrbitID;
   link?: boolean;
   className?: string;
-}) {
+}): React.ReactNode {
   const href: string = useMemo(() => (`
     https://network.urbit.org/${urbitID.patp}
   `.trim()), [urbitID]);

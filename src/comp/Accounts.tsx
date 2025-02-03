@@ -8,7 +8,10 @@ import {
   useTokenboundCreateMutation, useTokenboundSendMutation,
   usePDOSendMutation, usePDOSignMutation, usePDOExecMutation, usePDOLaunchMutation,
 } from '@/hook/web3';
-import { AddressFrame, UrbitIDFrame, TBAFrame, SafeFrame } from '@/comp/Frames';
+import {
+  HeroFrame, LoadingFrame, SafeFrame,
+  AddressFrame, UrbitIDFrame, TBAFrame,
+} from '@/comp/Frames';
 import {
   TinyLoadingIcon, TextLoadingIcon,
   ErrorIcon, SendIcon, SignIcon,
@@ -26,39 +29,41 @@ export function SafeAccountInfo({
   const pdoAccount = useTokenboundAccount(urbitID);
 
   return (
-    <div className="main">
-      {(!!safeAccount && !!pdoAccount) && (
-        <form className="flex flex-col gap-2">
-          <h2 className="text-2xl">
-            PDO Information
-          </h2>
-          <ul className="list-disc">
-            <li>
-              <span className="font-bold">tba: </span>
-              <AddressFrame address={(pdoAccount.address as Address)} />
-            </li>
-            <li>
-              <span className="font-bold">multisig: </span>
-              <SafeFrame address={(safeAccount.address as Address)} />
-            </li>
-            <li>
-              <span className="font-bold">threshold: </span>
-              <span>{safeAccount.threshold} / {safeAccount.owners.length}</span>
-            </li>
-            <li>
-              <span className="font-bold">managers: </span>
-              <ul className="list-disc pl-4">
-                {safeAccount.owners.map((owner: string) => (
-                  <li key={owner}>
-                    <TBAFrame address={(owner as Address)} />
-                  </li>
-                ))}
-              </ul>
-            </li>
-          </ul>
-        </form>
-      )}
-    </div>
+    <LoadingFrame title={""} status={safeAccount && pdoAccount}>
+      <div className="main">
+        {(!!safeAccount && !!pdoAccount) && (
+          <form className="flex flex-col gap-2">
+            <h2 className="text-2xl">
+              PDO Information
+            </h2>
+            <ul className="list-disc">
+              <li>
+                <span className="font-bold">tba: </span>
+                <AddressFrame address={(pdoAccount.address as Address)} />
+              </li>
+              <li>
+                <span className="font-bold">multisig: </span>
+                <SafeFrame address={(safeAccount.address as Address)} />
+              </li>
+              <li>
+                <span className="font-bold">threshold: </span>
+                <span>{safeAccount.threshold} / {safeAccount.owners.length}</span>
+              </li>
+              <li>
+                <span className="font-bold">managers: </span>
+                <ul className="list-disc pl-4">
+                  {safeAccount.owners.map((owner: string) => (
+                    <li key={owner}>
+                      <TBAFrame address={(owner as Address)} />
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            </ul>
+          </form>
+        )}
+      </div>
+    </LoadingFrame>
   );
 }
 
@@ -249,7 +254,7 @@ export function PDOAccountInfo({
   }, [pdoLaunchMutate]);
 
   return (
-    <div>
+    <LoadingFrame title={""} status={idAccount && pdoAccount}>
       {(!!idAccount && !!pdoAccount && pdoAccount.deployed) && (
         <div className="main">
           <form ref={sendFormRef} className="flex flex-col gap-2">
@@ -445,6 +450,6 @@ export function PDOAccountInfo({
           </div>
         </div>
       )}
-    </div>
+    </LoadingFrame>
   );
 }

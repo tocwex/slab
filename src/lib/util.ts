@@ -7,6 +7,14 @@ import { ABI, ACCOUNT, BLOCKCHAIN, CONTRACT } from '@/dat/const';
 import * as ob from "urbit-ob";
 import { hexToNumber, hexToBigInt } from 'viem';
 
+const CLAN_INDEX = Object.freeze({
+  galaxy: 0,
+  star: 1,
+  planet: 2,
+  moon: 3,
+  comet: 4,
+});
+
 export function delay(milliseconds: number): Promise<void> {
   return new Promise(res => setTimeout(res, milliseconds));
 }
@@ -38,14 +46,20 @@ export function trimAddress(address: string): string {
   return `${address.slice(0, 5)}…${address.slice(-4)}`;
 }
 
+export function compareUrbitIDs(a: UrbitID, b: UrbitID): number {
+  const clanCmp: number = CLAN_INDEX[a.clan] - CLAN_INDEX[b.clan];
+  const patpCmp: number = a.patp.localeCompare(b.patp);
+  return [clanCmp, patpCmp].find((n) => (n !== 0)) ?? 0;
+}
+
+export function toTitleCase(text: string): string {
+  return text.replace(
+    /\w\S*/g,
+    (t) => t.charAt(0).toUpperCase() + t.substring(1).toLowerCase(),
+  );
+}
+
 export function hasClanBoon(urbit: UrbitID, clan: UrbitClan): boolean {
-  const CLAN_INDEX = Object.freeze({
-    galaxy: 0,
-    star: 1,
-    planet: 2,
-    moon: 3,
-    comet: 4,
-  });
   return CLAN_INDEX[urbit.clan] <= CLAN_INDEX[clan];
 }
 

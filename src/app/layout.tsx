@@ -25,7 +25,7 @@ export default function RootLayout({
             HOME
           </Link>
         </div>
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-3xl mx-auto flex flex-col justify-center items-center">
           <AppWrapper>
             {children}
           </AppWrapper>

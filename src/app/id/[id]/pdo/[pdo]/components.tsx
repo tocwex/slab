@@ -1,11 +1,10 @@
 "use client";
 import type { UrbitID } from "@/type/slab";
-import { useMemo, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useMemo } from 'react';
+import { useParams } from 'next/navigation';
 import { useSafeAccount, useTokenboundAccount } from '@/hook/web3';
-import { useUrbitIDs } from '@/hook/wallet';
-import { UrbitIDFrame } from '@/comp/Frames';
-import { HugeLoadingIcon } from '@/comp/Icons';
+import { RouteUIDValidGuard } from '@/comp/Guards';
+import { LoadingFrame, UrbitIDFrame } from '@/comp/Frames';
 import { formUrbitID, hasClanBoon } from '@/lib/util';
 import { APP } from '@/dat/const';
 
@@ -14,90 +13,60 @@ export function PDORouteWrapper({
 }: Readonly<{
   children: React.ReactNode;
 }>): React.ReactNode {
-  const router = useRouter();
   const params = useParams<{id: string; pdo: string;}>();
-
   const routeID: UrbitID = useMemo(() => formUrbitID(params?.id ?? ""), [params?.id]);
   const routePDO: UrbitID = useMemo(() => formUrbitID(params?.pdo ?? ""), [params?.pdo]);
 
   const tbAccount = useTokenboundAccount(routeID);
-  const safeAccount = useSafeAccount(routePDO);
+  const pdoMultisig = useSafeAccount(routePDO);
   const isRoutePDOHolder: boolean = useMemo(() => (
-    (safeAccount?.owners ?? []).includes(String(tbAccount?.address))
-  ), [tbAccount, safeAccount]);
+    (pdoMultisig?.owners ?? []).includes(String(tbAccount?.address))
+  ), [tbAccount, pdoMultisig]);
 
-  const gotoHome = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    router.push(`/`);
-  }, [router]);
-  const gotoUrbitID = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    router.push(`/id/${routeID.patp}`);
-  }, [router, routeID]);
-
-  return (!routePDO.id || (!APP.DEBUG && !hasClanBoon(routePDO, "star"))) ? (
-    <div className="h-lvh main">
-      <h1 className="text-4xl font-bold underline">
-        %slab
-      </h1>
-      <h4 className="font-medium">
-        <span>Attempting to access the PDO for </span>
-        <span className="font-bold">{params?.pdo}</span>
-        {!routePDO.id ? (
-          <span>, which isn't a valid Urbit ID.</span>
-        ) : (
-          <span>, which isn't a valid Urbit PDO.</span>
-        )}
-      </h4>
-      <h4 className="font-medium">
-        <span>Please retry with a valid Urbit PDO.</span>
-      </h4>
-      <button
-        onClick={gotoUrbitID}
-        className="mt-4 button-lg"
-      >
-        Retry
-      </button>
-    </div>
-  ) : !isRoutePDOHolder ? (
-    <div className="h-lvh main">
-      <h1 className="text-4xl font-bold underline">
-        %slab
-      </h1>
-      {(safeAccount === undefined || tbAccount === undefined) ? (
-        <HugeLoadingIcon />
-      ) : (safeAccount === null || tbAccount === null) ? (
-        <div className="flex flex-col gap-2 text-center">
+  return (
+    <RouteUIDValidGuard param="pdo">
+      <LoadingFrame status={APP.DEBUG || hasClanBoon(routePDO, "star")} error={
+        <div className="flex flex-col gap-2 items-center text-center">
           <h4 className="font-medium">
-            <span>Unable to load PDO for </span>
-            <UrbitIDFrame urbitID={routePDO} />
-            <span>.</span>
+            <span>Attempting to access the PDO for </span>
+            <span className="font-bold">{params?.pdo}</span>
+            <span>, which isn't a valid Urbit PDO.</span>
           </h4>
           <h4 className="font-medium">
-            <span>Either the Urbit ID isn't a PDO or there were network errors.</span>
+            <span>Please retry with a valid Urbit PDO.</span>
           </h4>
         </div>
-      ) : (
-        <div className="flex flex-col gap-2">
-          <h4 className="font-medium">
-            <span>Urbit ID </span>
-            <UrbitIDFrame urbitID={routeID} />
-            <span> is not a signer for PDO </span>
-            <UrbitIDFrame urbitID={routePDO} />
-            <span>.</span>
-          </h4>
-          <h4 className="font-medium">
-            <span>Please select a valid Urbit ID to continue.</span>
-          </h4>
-        </div>
-      )}
-      <button
-        disabled={(safeAccount === undefined)}
-        onClick={gotoHome}
-        className="mt-4 button-lg"
-      >
-        Retry
-      </button>
-    </div>
-  ) : children;
+      }>
+        <LoadingFrame status={tbAccount && pdoMultisig} error={
+          <div className="flex flex-col gap-2 items-center text-center">
+            <h4 className="font-medium">
+              <span>Unable to load PDO for </span>
+              <UrbitIDFrame urbitID={routePDO} />
+              <span>.</span>
+            </h4>
+            <h4 className="font-medium">
+              <span>Either the Urbit ID isn't a PDO or there were network errors.</span>
+            </h4>
+          </div>
+        }>
+          <LoadingFrame status={isRoutePDOHolder} error={
+            <div className="flex flex-col gap-2 items-center text-center">
+              <h4 className="font-medium">
+                <span>Urbit ID </span>
+                <UrbitIDFrame urbitID={routeID} />
+                <span> is not a signer for PDO </span>
+                <UrbitIDFrame urbitID={routePDO} />
+                <span>.</span>
+              </h4>
+              <h4 className="font-medium">
+                <span>Please select a valid Urbit ID to continue.</span>
+              </h4>
+            </div>
+          }>
+            {children}
+          </LoadingFrame>
+        </LoadingFrame>
+      </LoadingFrame>
+    </RouteUIDValidGuard>
+  );
 }

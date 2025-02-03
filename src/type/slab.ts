@@ -55,9 +55,7 @@ export interface TokenHolding {
   token: Token;
   balance: bigint;
 }
-export type TokenHoldings = {
-  [symbol: string]: TokenHolding;
-};
+export type TokenHoldings = Record<string, TokenHolding>;
 
 export interface TokenboundAccount {
   address: Address;

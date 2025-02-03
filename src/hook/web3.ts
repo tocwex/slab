@@ -1,8 +1,6 @@
 import type { QueryKey, UseMutationOptions } from '@tanstack/react-query';
-import type { Config as WagmiConfig } from '@wagmi/core';
-import type { EIP1193Provider } from 'viem';
 import type {
-  Loadable, Nullable, Address, UrbitID, WalletMeta,
+  Loadable, Nullable, Address, UrbitID,
   Contract, Token, Transaction, TokenHolding, TokenHoldings,
   TokenboundAccount, SafeAccount, SafeResponse,
 } from '@/type/slab';
@@ -23,11 +21,12 @@ import {
   formatUnits, hexToNumber, hexToBigInt, numberToHex, pad,
   parseEther, parseUnits, encodePacked, encodeFunctionData,
 } from 'viem';
+import { useWalletMeta, useTokenboundClient } from '@/hook/wallet';
 import {
   signTBSafeTx, fetchSafeAccount, fetchTBAddress,
   fetchToken, fetchUrbitID, decodeProposal,
 } from '@/lib/web3';
-import { formContract, formToken, formUrbitID } from '@/lib/util';
+import { formContract, formToken, formUrbitID, compareUrbitIDs } from '@/lib/util';
 import { APP, ABI, ACCOUNT, CONTRACT, ERROR } from '@/dat/const';
 
 // TODO: Secondary query invalidations don't seem to be working for tokenbound
@@ -84,7 +83,6 @@ export function usePDOExecMutation(
           ]});
         }
       }
-
     },
     ...options,
   });
@@ -429,13 +427,14 @@ export function useSafePDOs(urbitID: UrbitID): Loadable<UrbitID[]> {
           const safePointIsDeployed: boolean = await tbClient.checkAccountDeployment({
             accountAddress: safeAddress,
           });
+          // TODO: Restrict to only stars also
           if (safePointIsDeployed) {
             urbitPDOs.push(safeUrbitID);
           }
         }
       }
 
-      return urbitPDOs;
+      return urbitPDOs.sort(compareUrbitIDs);
     },
     enabled: !!wallet && !!tbClient,
     staleTime: Infinity,
@@ -659,49 +658,4 @@ export function useTokenboundUrbitID(address: Address): Loadable<UrbitID> {
   return isLoading ? undefined
     : isError ? null
     : (data as UrbitID);
-}
-
-export function useTokenboundClient(): Loadable<TokenboundClient> {
-  const wallet = useWalletMeta();
-  const queryKey: QueryKey = useMemo(() => [
-    APP.TAG, "tokenbound", "client", wallet?.chainID,
-  ], [wallet?.chainID]);
-
-  const { data, isLoading, isError } = useQuery({
-    queryKey: queryKey,
-    queryFn: async () => {
-      if (!wallet) throw Error(ERROR.INVALID_QUERY);
-      const walletClient = await getWalletClient(wallet.wagmi);
-      return new TokenboundClient({
-        walletClient: walletClient,
-        chainId: Number(wallet.chain),
-        implementationAddress: formContract(wallet.chain, "TOKENBOUND").address,
-      });
-    },
-    enabled: !!wallet,
-    staleTime: Infinity,
-    retryOnMount: false,
-    refetchOnMount: false,
-  });
-
-  return isLoading ? undefined
-    : isError ? null
-    : (data as TokenboundClient);
-}
-
-export function useWalletMeta(): Nullable<WalletMeta> {
-  const [{wallet}, , ] = useConnectWallet();
-  const wagmiConfig = useWagmiConfig();
-
-  return useMemo(() => (!wagmiConfig?.state?.current ? null : (() => {
-    const chain: bigint = hexToBigInt(((wallet?.chains?.[0]?.id ?? "0x0") as Address));
-    const address: Address = wallet?.accounts?.[0]?.address ?? ACCOUNT.NULL.ETHEREUM;
-    return {
-      wagmi: (wagmiConfig as WagmiConfig),
-      chain: chain,
-      address: address,
-      stateID: `${chain}:${address}`,
-      chainID: `${chain}`,
-    };
-  })()), [wallet?.chains?.[0]?.id, wallet?.accounts?.[0]?.address]);
 }

@@ -20,14 +20,19 @@ export default function IDPage(): React.ReactNode {
   const routePDOs = useSafePDOs(routeID);
   const tbAccount = useTokenboundAccount(routeID);
   const [managerCount, setManagerCount] = useState<number>(1);
+  const [isAdvancedShown, setIsAdvancedShown] = useState<boolean>(false);
 
   const addManager = useCallback(() => (
     setManagerCount(managerCount + 1)
   ), [managerCount, setManagerCount]);
 
-  const gotoHome = useCallback(() => {
-    router.push(`/`);
-  }, [router]);
+  const toggleAdvancedShown = useCallback(() => (
+    setIsAdvancedShown(!isAdvancedShown)
+  ), [isAdvancedShown, setIsAdvancedShown]);
+
+  const gotoUrbitTo = useCallback(() => {
+    router.push(`/new/${routeID.patp}`);
+  }, [router])
   const gotoUrbitID = useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
     const urbitPDO: string | undefined = event.target?.value;
     if (!!urbitPDO) {
@@ -37,7 +42,7 @@ export default function IDPage(): React.ReactNode {
 
   const { mutate: pdoCreateMutate, status: pdoCreateStatus } = usePDOCreateMutation(
     routeID,
-    { onSuccess: () => gotoHome() }
+    { onSuccess: () => gotoUrbitTo() }
   );
 
   const onCreate = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -145,10 +150,31 @@ export default function IDPage(): React.ReactNode {
             />
             <span>of {managerCount} signers</span>
           </div>
-          <div className="flex flex-row items-center gap-2">
-            <input type="checkbox" name="reset" required />
-            <span>reset on creation?</span>
-          </div>
+          <>
+            <button type="button"
+              onClick={toggleAdvancedShown}
+              className="text-xl hover:cursor-pointer"
+            >
+              {isAdvancedShown ? "- Hide" : "+ Show"} Advanced Options
+            </button>
+            <div className={`
+              flex flex-col items-center gap-2 max-w-72
+              ${isAdvancedShown ? "block" : "hidden"}
+            `}>
+              <p>
+                Checking this box will perform a 'factory reset' and breach
+                continuity of your urbit's networking. If you know what that
+                means, you'll also need to set your networking keys. If you
+                don't know what that means, turn around, because there be
+                dragons here.
+              </p>
+              <div className="flex flex-row items-center gap-2">
+                <input type="checkbox" name="reset" required />
+                <span>reset on creation?</span>
+              </div>
+            </div>
+          </>
+
           {/* TODO: Add notice that TBA must be deployed first */}
           <button
             disabled={!tbAccount?.deployed || (pdoCreateStatus === "pending")}

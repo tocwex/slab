@@ -1,20 +1,40 @@
 import type { Nullable, UrbitID } from '@/type/slab';
-import { useMemo } from 'react';
-import { useParams } from 'next/navigation';
+import { useMemo, useCallback } from 'react';
+import { useRouter, useParams } from 'next/navigation';
 import { formUrbitID } from '@/lib/util';
 
-export function useRouteUrbitID(): Nullable<UrbitID> {
-  const params = useParams<{id: string}>();
+export function useRouteUrbitParam(param: string): Nullable<UrbitID> {
+  const params = useParams();
   const routeID: UrbitID | null = useMemo(() => (
-    !(params?.id) ? null : formUrbitID(params?.id)
-  ), [params?.id]);
+    !(params?.[param]) ? null : formUrbitID(String(params?.[param]))
+  ), [params?.[param]]);
   return routeID;
 }
 
+export function useRouteUrbitID(): Nullable<UrbitID> {
+  return useRouteUrbitParam("id");
+}
+
 export function useRouteUrbitPDO(): Nullable<UrbitID> {
-  const params = useParams<{pdo: string}>();
-  const routePDO: UrbitID | null = useMemo(() => (
-    !(params?.pdo) ? null : formUrbitID(params?.pdo)
-  ), [params?.pdo]);
-  return routePDO;
+  return useRouteUrbitParam("pdo");
+}
+
+export function useRedirect(link: string): () => void {
+  const router = useRouter();
+  const redirect = useCallback(() => (
+    router.push(link)
+  ), [router]);
+  return redirect;
+}
+
+export function useGoHome(): () => void {
+  return useRedirect("/");
+}
+
+export function useGoBack(): () => void {
+  const router = useRouter();
+  const goBack = useCallback(() => (
+    router.back()
+  ), [router]);
+  return goBack;
 }

@@ -1,5 +1,5 @@
 import type { Metadata, ResolvedMetadata, ResolvingMetadata } from 'next';
-import { RouteUIDOwnerGuard } from '@/comp/Guards';
+import { RouteUIDValidGuard } from '@/comp/Guards';
 
 // https://nextjs.org/docs/app/api-reference/functions/generate-metadata#generatemetadata-function
 export async function generateMetadata(
@@ -9,19 +9,19 @@ export async function generateMetadata(
   const id: string = (await params).id;
   const meta: ResolvedMetadata = (await parent);
   return {
-    title: `%slab | ${id} user`,
+    title: `%slab | ${id} -> pdo`,
     description: meta.description,
   };
 }
 
-export default function IDLayout({
+export default function NewLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <RouteUIDOwnerGuard param="id">
+    <RouteUIDValidGuard param="id">
       {children}
-    </RouteUIDOwnerGuard>
+    </RouteUIDValidGuard>
   );
 }
