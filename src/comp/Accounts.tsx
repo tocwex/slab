@@ -1,6 +1,6 @@
 "use client";
 import type { UrbitID, TokenHolding, Address } from "@/type/slab";
-import { useCallback, useRef } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -16,7 +16,7 @@ import {
   TinyLoadingIcon, TextLoadingIcon,
   ErrorIcon, SendIcon, SignIcon,
 } from '@/comp/Icons';
-import { trimAddress } from '@/lib/util';
+import { trimAddress, hasClanBoon } from '@/lib/util';
 import { formatUnits } from 'viem';
 import { REGEX } from '@/dat/const';
 
@@ -199,6 +199,8 @@ export function PDOAccountInfo({
   const router = useRouter();
   const sendFormRef = useRef<HTMLFormElement>(null);
   const launchFormRef = useRef<HTMLFormElement>(null);
+  const [useMaxSupply, setUseMaxSupply] = useState<boolean>(false);
+
   const idAccount = useTokenboundAccount(urbitID);
   const pdoAccount = useTokenboundAccount(urbitPDO);
   const pdoProposals = useSafeProposals(urbitPDO);
@@ -213,6 +215,10 @@ export function PDOAccountInfo({
     urbitID, urbitPDO,
     { onSuccess: () => launchFormRef.current?.reset() },
   );
+
+  const toggleMaxSupply = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    setUseMaxSupply(event.target.checked);
+  }, [setUseMaxSupply]);
 
   const onSign = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -244,11 +250,12 @@ export function PDOAccountInfo({
     const form = (event.currentTarget as HTMLButtonElement).form ?? undefined;
     if (form?.reportValidity()) {
       const launchData = new FormData(form);
+      const maxSupplyVar = !!launchData.get("use_max_supply") ? "max_supply" : "init_supply";
       pdoLaunchMutate({
         name: String(launchData.get("name") ?? ""),
         symbol: String(launchData.get("symbol") ?? ""),
         init_supply: String(launchData.get("init_supply") ?? "0"),
-        max_supply: String(launchData.get("max_supply") ?? "0"),
+        max_supply: String(launchData.get(maxSupplyVar) ?? "0"),
       });
     }
   }, [pdoLaunchMutate]);
@@ -354,16 +361,30 @@ export function PDOAccountInfo({
                 />
                 <input type="number" name="init_supply" required
                   min="0.0001" max="100000000" step="0.0001"
-                  placeholder="initial supply"
+                  placeholder="supply (e.g. 1000000)"
                   className="input-lg"
                 />
-                <input type="number" name="max_supply" required
+                <div className="flex flex-row items-center gap-2">
+                  <input type="checkbox" name="use_max_supply"
+                    checked={useMaxSupply}
+                    onChange={toggleMaxSupply}
+                  />
+                  <span>set max supply?</span>
+                </div>
+                <input type="number" name="max_supply" required={useMaxSupply}
                   min="0.0001" max="100000000" step="0.0001"
                   placeholder="max supply"
-                  className="input-lg"
+                  className={useMaxSupply ? "input-lg" : "hidden"}
                 />
+                {/* NOTE: Attempting to launch a token for a planet causes
+                    problems in debug mode, so we disable the button in
+                    these cases.
+                */}
                 <button
-                  disabled={(pdoLaunchStatus === "pending")}
+                  disabled={
+                    !hasClanBoon(urbitPDO, "star")
+                    || (pdoLaunchStatus === "pending")
+                  }
                   onClick={onLaunch}
                   className="w-full button-lg"
                 >
@@ -476,7 +497,6 @@ export function PDOAccountInfo({
                             )}
                           </button>
                         )}
-                        {/* TODO: Add "cancel transaction" button here. */}
                       </div>
                     </div>
                   );

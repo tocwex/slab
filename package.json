@@ -22,6 +22,7 @@
     "@web3-onboard/injected-wallets": "^2.11.2",
     "@web3-onboard/react": "^2.10.0",
     "@web3-onboard/wagmi": "^2.0.1",
+    "idb-keyval": "^6.2.1",
     "next": "15.1.0",
     "patch-package": "^8.0.0",
     "react": "^19.0.0",

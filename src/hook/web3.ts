@@ -121,6 +121,8 @@ export function usePDOLaunchMutation(
       const initSupply = parseUnits(init_supply, 18);
       const maxSupply = parseUnits(max_supply, 18);
       const salt = pad("0x0"); // TODO: Customize or randomize salt?
+      if (maxSupply < initSupply)
+        throw Error("Maximum token supply must be at least as large as initial supply.")
 
       const DEPLOY_V1: Contract = formContract(wallet.chain, "DEPLOYER_V1");
       const TOKENBOUND: Contract = formContract(wallet.chain, "TOKENBOUND");
