@@ -4,13 +4,10 @@ import { useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useRouteUrbitID } from '@/hook/app';
-import { useSafeAccount, useTokenboundAccount } from '@/hook/web3';
+import { useSafeAccount } from '@/hook/web3';
 import { useWalletUrbitTBAs } from '@/hook/wallet';
 import { HeroFrame, LoadingFrame, UrbitIDFrame } from '@/comp/Frames';
-import { TokenboundAccountInfo } from '@/comp/Accounts';
 import { HugeLoadingIcon } from '@/comp/Icons';
-import { formUrbitID, hasClanBoon } from '@/lib/util';
-import { APP, REGEX } from '@/dat/const';
 import * as ob from "urbit-ob";
 
 export default function NewPage(): React.ReactNode {

@@ -3,7 +3,7 @@ import type {
   UrbitID, UrbitClan, Token,
 } from '@/type/slab';
 import type { WalletState } from '@web3-onboard/core';
-import { ABI, ACCOUNT, BLOCKCHAIN, CONTRACT } from '@/dat/const';
+import { APP, ABI, ACCOUNT, BLOCKCHAIN, CONTRACT } from '@/dat/const';
 import * as ob from "urbit-ob";
 import { hexToNumber, hexToBigInt } from 'viem';
 
@@ -61,6 +61,10 @@ export function toTitleCase(text: string): string {
 
 export function hasClanBoon(urbit: UrbitID, clan: UrbitClan): boolean {
   return CLAN_INDEX[urbit.clan] <= CLAN_INDEX[clan];
+}
+
+export function isValidPDO(urbit: UrbitID): boolean {
+  return APP.DEBUG || hasClanBoon(urbit, "star");
 }
 
 export function getChainMeta(chain: bigint): [number, string] {

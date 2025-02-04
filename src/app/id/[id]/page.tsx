@@ -10,7 +10,7 @@ import {
 } from '@/hook/web3';
 import { TokenboundAccountInfo } from '@/comp/Accounts';
 import { TinyLoadingIcon } from '@/comp/Icons';
-import { formUrbitID, hasClanBoon } from '@/lib/util';
+import { formUrbitID, isValidPDO } from '@/lib/util';
 import { APP, REGEX } from '@/dat/const';
 import * as ob from "urbit-ob";
 
@@ -125,7 +125,7 @@ export default function IDPage(): React.ReactNode {
         )}
       </form>
       <TokenboundAccountInfo urbitID={routeID} />
-      {(!APP.DEBUG && !hasClanBoon(routeID, "star")) ? (
+      {!isValidPDO(routeID) ? (
         <Fragment />
       ) : (
         <form className="flex flex-col items-center gap-2">

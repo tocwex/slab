@@ -345,7 +345,7 @@ export function PDOAccountInfo({
                   className="input-lg"
                 />
                 <input type="text" name="symbol" required
-                  placeholder="symbol (e.g. $TOCWEX)"
+                  placeholder="symbol (e.g. TOCWEX)"
                   autoComplete="off"
                   autoCorrect="off"
                   autoCapitalize="off"
@@ -389,63 +389,99 @@ export function PDOAccountInfo({
             ) : (pdoProposals.length === 0) ? (
               <div>(no proposals found)</div>
             ) : (
-              <ul className="list-disc">
+              <div className="w-full flex flex-col items-center gap-2">
                 {pdoProposals.map(({safeTxHash, transaction, confirmations, confirmationsRequired}) => {
                   const confirms = (confirmations ?? []);
                   return (
-                    <li key={safeTxHash}>
-                      {(transaction.type === "transfer") ? (
-                        <>
-                          <span>
-                            Send {
+                    <div
+                      key={safeTxHash}
+                      className="w-full flex flex-row border-2 border-white rounded-md gap-2 p-3"
+                    >
+                      <div className="w-1/2 flex flex-col gap-2 justify-center items-center">
+                        {(transaction.type === "transfer") ? (
+                          <span className="italic">
+                            {`${
                               formatUnits(transaction.amount, transaction.token.decimals)
-                            } ${
+                            } \$${
                               transaction.token.symbol
-                            } to
+                            }`}
                           </span>
-                          <span> </span>
-                          <TBAFrame address={transaction.to} />
-                        </>
-                      ) : (transaction.type === "launch") ? (
-                        <span>
-                          Launch token ${transaction.token.symbol} for PDO
-                        </span>
-                      ) : (
-                        <AddressFrame address={(safeTxHash as Address)} type="signature" />
-                      )}
-                      <span> ({confirms.length} / {confirmationsRequired} signatures) </span>
-                      {(confirms.length >= confirmationsRequired) ? (
-                        <button type="button" data-hash={safeTxHash} onClick={onExec} className="w-4 h-4">
-                          {(pdoExecStatus === "pending") ? (
-                            <TextLoadingIcon />
-                          ) : (pdoExecStatus === "error") ? (
-                            <ErrorIcon />
-                          ) : (
-                            <SendIcon />
-                          )}
-                        </button>
-                      ) : !confirms.some(({owner}) => owner === idAccount?.address) ? (
-                        <button type="button" data-hash={safeTxHash} onClick={onSign} className="w-4 h-4">
-                          {(pdoSignStatus === "pending") ? (
-                            <TextLoadingIcon />
-                          ) : (pdoSignStatus === "error") ? (
-                            <ErrorIcon />
-                          ) : (
-                            <SignIcon />
-                          )}
-                        </button>
-                      ) : null}
-                      <ul className="list-disc pl-4">
-                        {confirms.map(({owner}) => (
-                          <li key={owner}>
-                            <TBAFrame address={(owner as Address)} />
-                          </li>
-                        ))}
-                      </ul>
-                    </li>
+                        ) : (transaction.type === "launch") ? (
+                          <span className="italic">
+                            Launch Token
+                          </span>
+                        ) : (
+                          <span className="italic">
+                            Send Transaction
+                          </span>
+                        )}
+                        <span className="font-bold">↓</span>
+                        {(transaction.type === "transfer") ? (
+                          <TBAFrame address={transaction.to} className="italic" />
+                        ) : (transaction.type === "launch") ? (
+                          <span className="font-bold italic">
+                            {transaction.token.name} (${transaction.token.symbol})
+                          </span>
+                        ) : (
+                          <AddressFrame
+                            address={(safeTxHash as Address)}
+                            type="signature"
+                            className="italic"
+                          />
+                        )}
+                      </div>
+                      <div className="w-1/2 flex flex-col gap-2 pl-2 border-l border-white">
+                        <h4 className="font-medium">
+                          Signed by ({confirms.length} / {confirmationsRequired}):
+                        </h4>
+                        <ul>
+                          {confirms.map(({owner}) => (
+                            <li key={owner}>
+                              <TBAFrame address={(owner as Address)} className="text-sm" />
+                            </li>
+                          ))}
+                        </ul>
+                        <hr />
+                        {(confirms.length >= confirmationsRequired) ? (
+                          <button type="button"
+                            data-hash={safeTxHash}
+                            onClick={onExec}
+                            disabled={pdoExecStatus === "pending"}
+                            className="w-full button-lg"
+                          >
+                            {(pdoExecStatus === "pending") ? (
+                              <TinyLoadingIcon />
+                            ) : (pdoExecStatus === "error") ? (
+                              "Error!"
+                            ) : (
+                              "Execute"
+                            )}
+                          </button>
+                        ) : (
+                          <button type="button"
+                            data-hash={safeTxHash}
+                            onClick={onSign}
+                            disabled={
+                              confirms.some(({owner}) => owner === idAccount?.address)
+                              || (pdoSignStatus === "pending")
+                            }
+                            className="w-full button-lg"
+                          >
+                            {(pdoSignStatus === "pending") ? (
+                              <TinyLoadingIcon />
+                            ) : (pdoSignStatus === "error") ? (
+                              "Error!"
+                            ) : (
+                              "Sign"
+                            )}
+                          </button>
+                        )}
+                        {/* TODO: Add "cancel transaction" button here. */}
+                      </div>
+                    </div>
                   );
                 })}
-              </ul>
+              </div>
             )}
           </div>
         </div>

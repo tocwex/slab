@@ -127,7 +127,7 @@ export function AddressFrame({
   `.trim()), [address, type, wallet?.chainID]);
 
   return (
-    <div className="inline-flex flex-row gap-1 items-center">
+    <div className="inline-flex flex-row gap-1 items-center text-nowrap">
       {!link ? (
         <code className={className}>
           {text}
@@ -157,7 +157,7 @@ export function TBAFrame({
 }): React.ReactNode {
   const urbitID = useTokenboundUrbitID(address);
   return (
-    <div className="inline-flex flex-row gap-1 items-center">
+    <div className="inline-flex flex-row gap-1 items-center text-nowrap">
       {(!!urbitID) && (
         <>
           <UrbitIDFrame urbitID={urbitID} link={link} className={className} />
@@ -190,7 +190,7 @@ export function SafeFrame({
   `.trim()), [address, wallet?.chainID]);
 
   return (
-    <div className="inline-flex flex-row gap-1 items-center">
+    <div className="inline-flex flex-row gap-1 items-center text-nowrap">
       <Link href={href} target="_blank" className={className}>
         <code>{trimAddress(address)}</code>
       </Link>

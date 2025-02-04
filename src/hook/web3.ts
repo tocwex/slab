@@ -26,7 +26,10 @@ import {
   signTBSafeTx, fetchSafeAccount, fetchTBAddress,
   fetchToken, fetchUrbitID, decodeProposal,
 } from '@/lib/web3';
-import { formContract, formToken, formUrbitID, compareUrbitIDs } from '@/lib/util';
+import {
+  formContract, formToken, formUrbitID,
+  isValidPDO, compareUrbitIDs,
+} from '@/lib/util';
 import { APP, ABI, ACCOUNT, CONTRACT, ERROR } from '@/dat/const';
 
 // TODO: Secondary query invalidations don't seem to be working for tokenbound
@@ -422,13 +425,12 @@ export function useSafePDOs(urbitID: UrbitID): Loadable<UrbitID[]> {
           args: [safe],
         })) as number[]);
         if (safePoints.length === 1) {
-          const safeUrbitID = formUrbitID(safePoints[0]);
+          const safeUrbitID: UrbitID = formUrbitID(safePoints[0]);
           const safeAddress = await fetchTBAddress(wallet, tbClient, safeUrbitID);
           const safePointIsDeployed: boolean = await tbClient.checkAccountDeployment({
             accountAddress: safeAddress,
           });
-          // TODO: Restrict to only stars also
-          if (safePointIsDeployed) {
+          if (safePointIsDeployed && isValidPDO(safeUrbitID)) {
             urbitPDOs.push(safeUrbitID);
           }
         }

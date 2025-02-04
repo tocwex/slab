@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { useSafeAccount, useTokenboundAccount } from '@/hook/web3';
 import { RouteUIDValidGuard } from '@/comp/Guards';
 import { LoadingFrame, UrbitIDFrame } from '@/comp/Frames';
-import { formUrbitID, hasClanBoon } from '@/lib/util';
+import { formUrbitID, isValidPDO } from '@/lib/util';
 import { APP } from '@/dat/const';
 
 export function PDORouteWrapper({
@@ -25,7 +25,7 @@ export function PDORouteWrapper({
 
   return (
     <RouteUIDValidGuard param="pdo">
-      <LoadingFrame status={APP.DEBUG || hasClanBoon(routePDO, "star")} error={
+      <LoadingFrame status={isValidPDO(routePDO)} error={
         <div className="flex flex-col gap-2 items-center text-center">
           <h4 className="font-medium">
             <span>Attempting to access the PDO for </span>
