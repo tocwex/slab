@@ -42,6 +42,15 @@ export function rateLimit(maxRequests: number, perSeconds: number): (func: any) 
   };
 }
 
+export function encodeSet<U>(set: Set<U>): string {
+  return String(Array.from(set).sort());
+}
+
+export function decodeSet<U>(str: string, sip?: (s: string) => U): Set<U> {
+  const stringToU = sip ?? ((val: string): U => (val as U));
+  return new Set(str.split(",").map(stringToU));
+}
+
 export function trimAddress(address: string): string {
   return `${address.slice(0, 5)}…${address.slice(-4)}`;
 }
@@ -115,4 +124,10 @@ export function formUrbitID(value: number | string): UrbitID {
     clan = ob.clan(patp);
   }
   return ({id, patp, clan});
+}
+
+export function forceUrbitID(value: number | string): UrbitID {
+  const urbitID = formUrbitID(value);
+  if (!urbitID.id) throw Error(`Cannot derive Urbit ID from value '${value}'`);
+  return urbitID;
 }

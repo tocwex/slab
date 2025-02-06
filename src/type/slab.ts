@@ -5,9 +5,12 @@ import { Abi } from 'abitype';
 
 export type Nullable<T> = T | null;
 export type Loadable<T> = T | null | undefined;
+export type Version = `${string}.${string}.${string}`;
 
 export type Address = `0x${string}`;
 export type AddressType = 'account' | 'transaction' | 'signature';
+
+export type ChainAddress = `${string}:${Address}`;
 
 export interface WalletMeta {
   wagmi: WagmiConfig;
@@ -63,6 +66,11 @@ export interface TokenboundAccount {
   holdings: TokenHoldings;
   token?: Token;
 }
+
+// `${chain}:${Address}` => `${owners.sort().join(",")}` => Address
+//   ^-- tba contract           ^-- tba owners               ^-- safe address
+export type SafeOwners = Record<string, Address>;
+export type SafeArchive = Record<ChainAddress, SafeOwners>;
 
 export interface SafeResponse extends SafeMultisigTransactionResponse {
   transaction: Transaction;

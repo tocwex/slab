@@ -5,11 +5,37 @@ import type {
   UrbitID, WalletMeta, Token,
 } from '@/type/slab';
 import { TokenboundClient } from '@tokenbound/sdk';
-import Safe from '@safe-global/protocol-kit';
-import { getAccount, readContract, signMessage } from '@web3-onboard/wagmi';
-import { keccak256, pad, decodeFunctionData, encodePacked, numberToHex } from 'viem';
+import Safe, { getSafeAddressFromDeploymentTx } from '@safe-global/protocol-kit';
+import {
+  getAccount, readContract, signMessage,
+  sendTransaction, waitForTransactionReceipt,
+} from '@web3-onboard/wagmi';
+import {
+  keccak256, pad, decodeFunctionData,
+  encodePacked, numberToHex,
+} from 'viem';
 import { formContract, formToken, formUrbitID } from '@/lib/util';
-import { ABI } from '@/dat/const';
+import { ABI, SAFE } from '@/dat/const';
+
+export async function createSafe(
+  wallet: WalletMeta,
+  tbClient: TokenboundClient,
+  owners: Address[],
+  threshold: number,
+): Promise<Address> {
+  const safeAccount: Safe = await fetchSafeAccount(wallet, [owners, threshold]);
+
+  const deployTransaction = await safeAccount.createSafeDeploymentTransaction();
+  // @ts-ignore
+  const deployTxHash = await sendTransaction(wallet.wagmi, deployTransaction);
+  const deployReceipt = await waitForTransactionReceipt(wallet.wagmi, {
+    hash: deployTxHash,
+  });
+
+  const safeAddress = getSafeAddressFromDeploymentTx(deployReceipt, SAFE.VERSION);
+
+  return (safeAddress as Address);
+}
 
 export async function signTBSafeTx(
   wallet: WalletMeta,

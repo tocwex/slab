@@ -1,68 +1,124 @@
 "use client";
-import type { UrbitID, TokenHolding } from "@/type/slab";
-import { Fragment, useState, useMemo, useCallback } from 'react';
+import type { Address, UrbitID, TokenHolding } from "@/type/slab";
+import { Fragment, useState, useMemo, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { TokenboundAccountInfo } from '@/comp/Accounts';
+import { SafeFrame } from '@/comp/Frames';
+import { TinyLoadingIcon } from '@/comp/Icons';
 import { useRouteUrbitID } from '@/hook/app';
 import {
   useSafePDOs, useTokenboundAccount,
-  useTokenboundCreateMutation, usePDOCreateMutation,
+  useTokenboundCreateMutation, useSafeCreateMutation, usePDOCreateMutation,
 } from '@/hook/web3';
-import { TokenboundAccountInfo } from '@/comp/Accounts';
-import { TinyLoadingIcon } from '@/comp/Icons';
-import { formUrbitID, isValidPDO } from '@/lib/util';
-import { APP, REGEX } from '@/dat/const';
+import { useLocalSafes } from '@/hook/local';
+import { useWalletMeta, useTokenboundClient } from '@/hook/wallet';
+import { fetchTBAddress } from '@/lib/web3';
+import {
+  formUrbitID, forceUrbitID, isValidPDO,
+  encodeSet, decodeSet,
+} from '@/lib/util';
+import { REGEX } from '@/dat/const';
 import * as ob from "urbit-ob";
 
 export default function IDPage(): React.ReactNode {
   const router = useRouter();
   const routeID: UrbitID = (useRouteUrbitID() as UrbitID);
+  const wallet = useWalletMeta();
+  const tbClient = useTokenboundClient();
   const routePDOs = useSafePDOs(routeID);
   const tbAccount = useTokenboundAccount(routeID);
-  const [managerCount, setManagerCount] = useState<number>(1);
+  const localSafes = useLocalSafes();
+  const [managerNames, setManagerNames] = useState<string[]>([""]);
+  const [managerTBAs, setManagerTBAs] = useState<(Address | null)[]>([null]);
   const [isAdvancedShown, setIsAdvancedShown] = useState<boolean>(false);
 
+  useEffect(() => {
+    const setNewTBAs = async () => {
+      if (!!wallet && !!tbClient) {
+        const newTBAs = await Promise.all(managerNames.map((manager: string, idx: number) => {
+          const managerID = formUrbitID(manager);
+          return !managerID.id
+            ? Promise.resolve(null)
+            : !!managerTBAs?.[idx]
+              ? Promise.resolve(managerTBAs[idx])
+              : fetchTBAddress(wallet, tbClient, managerID);
+        }));
+        setManagerTBAs(newTBAs);
+      }
+    }
+    setNewTBAs();
+  }, [wallet, tbClient, managerNames, setManagerTBAs]);
+
+  const deploymentSafe: Address | undefined = useMemo(() => (
+    localSafes?.[encodeSet(new Set(managerTBAs))]
+  ), [localSafes, managerTBAs]);
+
   const addManager = useCallback(() => (
-    setManagerCount(managerCount + 1)
-  ), [managerCount, setManagerCount]);
+    setManagerNames(managerNames.concat([""]))
+  ), [managerNames, setManagerNames]);
+  const delManager = useCallback((idx: number) => (
+    setManagerNames(managerNames.toSpliced(idx, 1))
+  ), [managerNames, setManagerNames]);
 
   const toggleAdvancedShown = useCallback(() => (
     setIsAdvancedShown(!isAdvancedShown)
   ), [isAdvancedShown, setIsAdvancedShown]);
 
-  const gotoUrbitTo = useCallback(() => {
-    router.push(`/new/${routeID.patp}`);
-  }, [router])
-  const gotoUrbitID = useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
+  const goNewPDO = useCallback(() => router.push(`/new/${routeID.patp}`), [router]);
+  const goUrbitID = useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
     const urbitPDO: string | undefined = event.target?.value;
     if (!!urbitPDO) {
       router.push(`/id/${routeID.patp}/pdo/${urbitPDO}`);
     }
   }, [router]);
 
+  const { mutate: safeCreateMutate, status: safeCreateStatus } = useSafeCreateMutation();
   const { mutate: pdoCreateMutate, status: pdoCreateStatus } = usePDOCreateMutation(
     routeID,
-    { onSuccess: () => gotoUrbitTo() }
+    { onSuccess: () => goNewPDO() },
   );
 
-  const onCreate = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
+  const onCreateSafe = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     const createData = new FormData((event.currentTarget as HTMLButtonElement).form ?? undefined);
-    pdoCreateMutate({
-      managers: [...Array(managerCount).keys().map((managerID: number) => (
-        String(createData.get(`manager-${managerID}`) ?? "")
-      ))],
+    safeCreateMutate({
+      managers: managerNames.map(forceUrbitID),
       threshold: Number(createData.get("threshold") ?? "1"),
-      reset: Boolean(createData.get("reset") ?? false),
     });
-  }, [managerCount]);
+  }, [managerNames, safeCreateMutate]);
+  const onCreatePDO = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    const createData = new FormData((event.currentTarget as HTMLButtonElement).form ?? undefined);
+    if (!!deploymentSafe) {
+      pdoCreateMutate({
+        safe: deploymentSafe,
+        managers: managerNames.map(forceUrbitID),
+        reset: Boolean(createData.get("reset") ?? false),
+      });
+    }
+  }, [managerNames, deploymentSafe, pdoCreateMutate]);
 
-  const PDOManager = useCallback(({id, ...props}: React.HTMLAttributes<HTMLDivElement>) => {
-    const [managerName, setManagerName] = useState<string>("");
-    const managerUrbitID = useMemo(() => formUrbitID(managerName), [managerName]);
+  const PDOManager = useCallback(({
+    managerNames,
+    setManagerNames,
+    id,
+    ...props
+  }: {
+    managerNames: string[];
+    setManagerNames: (s: string[]) => void;
+  } & React.HTMLAttributes<HTMLDivElement>) => {
+    const realID = useMemo(() => Number(id ?? 0), [id]);
+    const managerUrbitID = useMemo(() => formUrbitID(
+      managerNames[realID]
+    ), [realID, managerNames]);
     const tbAccount = useTokenboundAccount(managerUrbitID);
     const { mutate: tbCreateMutate, status: tbCreateStatus } =
       useTokenboundCreateMutation(managerUrbitID);
+
+    const delManager = useCallback(() => (
+      setManagerNames(managerNames.toSpliced(realID, 1))
+    ), [realID, managerNames, setManagerNames]);
 
     return (
       <div {...props} className="w-full flex flex-row justify-between items-center gap-2">
@@ -74,9 +130,18 @@ export default function IDPage(): React.ReactNode {
           spellCheck="false"
           pattern={REGEX.AZIMUTH.POINT}
           className="input-sm"
-          value={managerName}
-          onChange={e => setManagerName(e.target.value)}
+          value={managerNames[realID]}
+          onChange={e => setManagerNames(managerNames.toSpliced(realID, 1, e.target.value))}
         />
+        {(realID > 0) && (
+          <button type="button"
+            disabled={(tbCreateStatus === "pending")}
+            onClick={delManager}
+            className="button-sm"
+          >
+            X
+          </button>
+        )}
         <button type="button"
           disabled={!tbAccount || !!tbAccount.deployed || (tbCreateStatus === "pending")}
           onClick={tbCreateMutate}
@@ -112,7 +177,7 @@ export default function IDPage(): React.ReactNode {
         {(routePDOs === undefined) ? (
           <TinyLoadingIcon />
         ) : (
-          <select onChange={gotoUrbitID} className="input-lg">
+          <select onChange={goUrbitID} className="input-lg">
             <option key="" value="">
               Select PDO
             </option>
@@ -132,11 +197,14 @@ export default function IDPage(): React.ReactNode {
           <h2 className="text-2xl">
             Create PDO
           </h2>
-          {[...Array(managerCount).keys().map((managerID: number) => (
-            <PDOManager key={managerID} id={String(managerID)} />
-          ))]}
+          {managerNames.map((managerName: string, managerID: number) => (
+            <PDOManager key={managerID} id={String(managerID)}
+              managerNames={managerNames}
+              setManagerNames={setManagerNames}
+            />
+          ))}
           <button type="button"
-            disabled={managerCount >= 10}
+            disabled={managerNames.length >= 10}
             onClick={addManager}
             className="button-sm"
           >
@@ -144,53 +212,78 @@ export default function IDPage(): React.ReactNode {
           </button>
           <div className="flex flex-row items-center gap-2">
             <input type="number" name="threshold" required
-              min="1" max={managerCount} step="1"
+              min="1" max={managerNames.length} step="1"
               placeholder="N"
               className="input-sm"
             />
-            <span>of {managerCount} signers</span>
+            <span>of {managerNames.length} signers</span>
           </div>
-          <>
-            <button type="button"
-              onClick={toggleAdvancedShown}
-              className="text-xl hover:cursor-pointer"
-            >
-              {isAdvancedShown ? "- Hide" : "+ Show"} Advanced Options
-            </button>
-            <div className={`
-              flex flex-col items-center gap-2 max-w-72
-              ${isAdvancedShown ? "block" : "hidden"}
-            `}>
-              <p>
-                Checking this box will perform a 'factory reset' and breach
-                continuity of your urbit's networking. If you know what that
-                means, you'll also need to set your networking keys. If you
-                don't know what that means, turn around, because there be
-                dragons here.
-              </p>
-              <div className="flex flex-row items-center gap-2">
-                <input type="checkbox" name="reset" required />
-                <span>reset on creation?</span>
+          {!!deploymentSafe && (
+            <>
+              <button type="button"
+                onClick={toggleAdvancedShown}
+                className="text-xl hover:cursor-pointer"
+              >
+                {isAdvancedShown ? "- Hide" : "+ Show"} Advanced Options
+              </button>
+              <div className={`
+                flex flex-col items-center gap-2 max-w-72
+                ${isAdvancedShown ? "block" : "hidden"}
+              `}>
+                <p>
+                  Checking this box will perform a 'factory reset' and breach
+                  continuity of your urbit's networking. If you know what that
+                  means, you'll also need to set your networking keys. If you
+                  don't know what that means, turn around, because there be
+                  dragons here.
+                </p>
+                <div className="flex flex-row items-center gap-2">
+                  <input type="checkbox" name="reset" required />
+                  <span>reset on creation?</span>
+                </div>
               </div>
-            </div>
-          </>
-
+              <div className="inline-flex flex-row gap-2 text-xl">
+                Multisig Available at:
+                <SafeFrame address={deploymentSafe ?? "0x0"} />
+              </div>
+            </>
+          )}
           {/* TODO: Add notice that TBA must be deployed first */}
-          <button
-            disabled={!tbAccount?.deployed || (pdoCreateStatus === "pending")}
-            onClick={onCreate}
-            className="mt-4 button-lg"
-          >
-            {!tbAccount ? (
-              "Connecting…"
-            ) : (pdoCreateStatus === "pending") ? (
-              <TinyLoadingIcon />
-            ) : (pdoCreateStatus === "error") ? (
-              "Error!"
+          {!!localSafes && (
+            !deploymentSafe ? (
+              <button
+                disabled={!tbAccount?.deployed || (safeCreateStatus === "pending")}
+                onClick={onCreateSafe}
+                className="mt-4 button-lg"
+              >
+                {!tbAccount ? (
+                  "Connecting…"
+                ) : (safeCreateStatus === "pending") ? (
+                  <TinyLoadingIcon />
+                ) : (safeCreateStatus === "error") ? (
+                  "Error!"
+                ) : (
+                  "Create Multisig"
+                )}
+              </button>
             ) : (
-              "Create"
-            )}
-          </button>
+              <button
+                disabled={!tbAccount?.deployed || (pdoCreateStatus === "pending")}
+                onClick={onCreatePDO}
+                className="mt-4 button-lg"
+              >
+                {!tbAccount ? (
+                  "Connecting…"
+                ) : (pdoCreateStatus === "pending") ? (
+                  <TinyLoadingIcon />
+                ) : (pdoCreateStatus === "error") ? (
+                  "Error!"
+                ) : (
+                  "Transfer to Multisig"
+                )}
+              </button>
+            )
+          )}
         </form>
       )}
     </div>

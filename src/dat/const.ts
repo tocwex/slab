@@ -4,6 +4,7 @@ export const ABI = _ABI;
 
 export const APP = Object.freeze({
   TAG: "%slab",
+  VERSION: process.env.npm_package_version,
   DEBUG: process.env.NODE_ENV !== "production",
 });
 
@@ -84,6 +85,10 @@ export const CONTRACT = Object.freeze({
     // (which is difficult to construct/use due to it being a proxy)
     ABI: ABI.USDC,
   }),
+});
+
+export const SAFE = Object.freeze({
+  VERSION: "1.4.1",
 });
 
 // FIXME: These expressions need a lot of work; see more information here:
