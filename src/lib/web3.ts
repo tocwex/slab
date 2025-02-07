@@ -64,6 +64,7 @@ export async function fetchToken(
 
   let token: Token | undefined = undefined;
   token = formToken(wallet.chain, identifier);
+  // NOTE: Do a remote lookup for tokens not cached locally
   if (token.address === NULL.address && identifier.startsWith("0x")) {
     const tokenName = ((await readContract(wallet.wagmi, {
       abi: ABI.ERC20,
@@ -81,6 +82,15 @@ export async function fetchToken(
       functionName: "decimals",
     })) as number);
 
+    const REGISTRY: Contract = formContract(wallet.chain, "REGISTRY");
+    const DEPLOYER: Contract = formContract(wallet.chain, "DEPLOYER_V1");
+    const isSyndicateToken = ((await readContract(wallet.wagmi, {
+      abi: REGISTRY.abi,
+      address: REGISTRY.address,
+      functionName: "getSyndicateTokenExistsUsingAddress",
+      args: [identifier],
+    })) as boolean);
+
     token = {
       address: (identifier as Address),
       // @ts-ignore
@@ -88,6 +98,7 @@ export async function fetchToken(
       name: tokenName,
       symbol: tokenSymbol,
       decimals: tokenDecimals,
+      deployer: !isSyndicateToken ? undefined : DEPLOYER.address,
     };
   }
 

@@ -56,6 +56,7 @@ export interface Token extends Contract {
   name: string;
   symbol: string;
   decimals: number;
+  deployer?: Address;
 }
 
 export interface TokenHolding {
@@ -71,6 +72,10 @@ export interface TokenboundAccount {
   token?: Token;
 }
 
+// `${chain}`           =>       Address                => Token
+//  ^-- chain id                ^-- token address           ^-- token type
+export type TokenMap = Record<Address, Token>;
+export type TokenArchive = Record<string, TokenMap>;
 // `${chain}:${Address}` => `${owners.sort().join(",")}` => Address
 //   ^-- tba contract           ^-- tba owners               ^-- safe address
 export type SafeOwners = Record<string, Address>;

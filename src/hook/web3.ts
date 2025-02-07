@@ -23,6 +23,7 @@ import {
   parseEther, parseUnits, encodePacked, encodeFunctionData,
 } from 'viem';
 import { useWalletMeta, useTokenboundClient } from '@/hook/wallet';
+import { useLocalTokens, useTokensAddMutation } from '@/hook/local';
 import {
   createSafe, signTBSafeTx, fetchSafeAccount, fetchTBAddress,
   fetchToken, fetchUrbitID, decodeProposal,
@@ -598,6 +599,7 @@ export function useTokenboundCreateMutation(
 export function useTokenboundAccount(urbitID: UrbitID): Loadable<TokenboundAccount> {
   const wallet = useWalletMeta();
   const tbClient = useTokenboundClient();
+  const localTokens = useLocalTokens();
   const queryKey: QueryKey = useMemo(() => [
     APP.TAG, "tokenbound", "account", wallet?.chainID, urbitID.id,
   ], [wallet?.chainID, urbitID.id]);
@@ -605,7 +607,7 @@ export function useTokenboundAccount(urbitID: UrbitID): Loadable<TokenboundAccou
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKey,
     queryFn: async () => {
-      if (!wallet || !tbClient) throw Error(ERROR.INVALID_QUERY);
+      if (!wallet || !tbClient || !localTokens) throw Error(ERROR.INVALID_QUERY);
       const tbAddress = await fetchTBAddress(wallet, tbClient, urbitID);
       const tbIsDeployed: boolean = await tbClient.checkAccountDeployment({
         accountAddress: tbAddress,
@@ -630,6 +632,7 @@ export function useTokenboundAccount(urbitID: UrbitID): Loadable<TokenboundAccou
         formToken(wallet.chain, "ETH"),
         formToken(wallet.chain, "USDC"),
         ...(!tbToken ? [] : [tbToken]),
+        ...(Object.values(localTokens)),
       ]) {
         const holding = await getBalance(wallet.wagmi, {
           address: tbAddress,
@@ -650,7 +653,7 @@ export function useTokenboundAccount(urbitID: UrbitID): Loadable<TokenboundAccou
         token: tbToken,
       };
     },
-    enabled: !!wallet && !!tbClient && !!urbitID.id,
+    enabled: !!wallet && !!tbClient && !!localTokens && !!urbitID.id,
     staleTime: Infinity,
     retryOnMount: false,
     refetchOnMount: false,

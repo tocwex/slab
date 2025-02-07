@@ -14,12 +14,14 @@ import { BLOCKCHAIN } from '@/dat/const';
 export function LoadingFrame({
   status,
   title = "%slab",
+  size = "lg",
   error,
   action,
   children,
 }: {
   status: any;
   title?: string;
+  size?: "sm" | "md" | "lg";
   error?: React.ReactNode;
   action?: React.ReactNode;
   children: React.ReactNode;
@@ -27,7 +29,7 @@ export function LoadingFrame({
   const goBack = useGoBack();
 
   return !!status ? children : (
-    <HeroFrame title={title}>
+    <HeroFrame size={size} title={title}>
       {(status === undefined) ? (
         <HugeLoadingIcon />
       ) : (!error) ? (
@@ -53,15 +55,22 @@ export function LoadingFrame({
 
 export function HeroFrame({
   title = "%slab",
+  size = "lg",
   children,
 }: {
   title?: string;
+  size?: "sm" | "md" | "lg";
   children: React.ReactNode;
 }): React.ReactNode {
+  const blockHeight: string = (size !== "lg") ? "" : "h-lvh";
+  const textSize: string =
+    (size === "sm") ? ("text-base")
+    : (size === "md") ? ("text-2xl")
+    : "text-4xl";
   return (
-    <div className="h-lvh main">
+    <div className={`main ${blockHeight}`}>
       {!!title && (
-        <h1 className="text-4xl font-bold underline">{title}</h1>
+        <h1 className={`font-bold underline ${textSize}`}>{title}</h1>
       )}
       {children}
     </div>

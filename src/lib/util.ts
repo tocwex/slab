@@ -90,6 +90,26 @@ export function getChainMeta(chain: bigint): [number, string] {
   return [chainId, chainTag];
 }
 
+export function parseForm<
+  U extends Record<string, any>,
+  V extends { [key in keyof U]: any },
+>(
+  event: React.MouseEvent<HTMLButtonElement>,
+  defaults: U,
+): Nullable<V> {
+  const form = (event.currentTarget as HTMLButtonElement)?.form;
+
+  let formEntries = null;
+  if (form?.reportValidity()) {
+    const formData = new FormData(form);
+    formEntries = Object.fromEntries(Object.entries(defaults).map(
+      ([key, val]: [string, any]) => ([key, formData.get(key) ?? val])
+    ));
+  }
+
+  return (formEntries as Nullable<V>);
+}
+
 export function formContract(chain: bigint, symbol: string): Contract {
   const [chainId, chainTag] = getChainMeta(chain);
   return {

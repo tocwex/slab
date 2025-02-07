@@ -1,5 +1,5 @@
 "use client";
-import type { UrbitID, TokenHolding, Address } from "@/type/slab";
+import type { UrbitID, Address, Token, TokenHolding } from "@/type/slab";
 import { useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -16,7 +16,8 @@ import {
   useTokenboundCreateMutation, useTokenboundSendMutation,
   usePDOSendMutation, usePDOSignMutation, usePDOExecMutation, usePDOLaunchMutation,
 } from '@/hook/web3';
-import { trimAddress, formatToken, hasClanBoon } from '@/lib/util';
+import { useLocalTokens, useTokensAddMutation } from '@/hook/local';
+import { trimAddress, formatToken, hasClanBoon, parseForm } from '@/lib/util';
 import { formatUnits } from 'viem';
 import { MATH, REGEX } from '@/dat/const';
 
@@ -29,12 +30,12 @@ export function SafeAccountInfo({
   const pdoAccount = useTokenboundAccount(urbitID);
 
   return (
-    <LoadingFrame title={""} status={safeAccount && pdoAccount}>
+    <LoadingFrame title={"Multisig Information"} size="md" status={safeAccount && pdoAccount}>
       <div className="main">
         {(!!safeAccount && !!pdoAccount) && (
           <form className="flex flex-col gap-2">
             <h2 className="text-2xl">
-              PDO Information
+              Multisig Information
             </h2>
             <ul className="list-disc">
               <li>
@@ -74,7 +75,9 @@ export function TokenboundAccountInfo({
 }): React.ReactNode {
   const router = useRouter();
   const tbAccount = useTokenboundAccount(urbitID);
+  const localTokens = useLocalTokens();
   const sendFormRef = useRef<HTMLFormElement>(null);
+
   const { mutate: tbCreateMutate, status: tbCreateStatus } = useTokenboundCreateMutation(urbitID);
   const { mutate: tbSendMutate, status: tbSendStatus } = useTokenboundSendMutation(
     urbitID,
@@ -82,13 +85,12 @@ export function TokenboundAccountInfo({
   );
 
   const onSend = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    const sendData = new FormData((event.currentTarget as HTMLButtonElement).form ?? undefined);
-    tbSendMutate({
-      token: String(sendData.get("token") ?? "ETH"),
-      recipient: String(sendData.get("recipient") ?? urbitID.patp),
-      amount: String(sendData.get("amount") ?? "0"),
+    const fields = parseForm(event, {
+      token: "ETH",
+      recipient: urbitID.patp,
+      amount: "0",
     });
+    fields && tbSendMutate(fields);
   }, [tbSendMutate]);
 
   return (
@@ -120,7 +122,7 @@ export function TokenboundAccountInfo({
         </li>
       </ul>
       {(!!tbAccount && !tbAccount.deployed) && (
-        <button
+        <button type="button"
           disabled={(tbCreateStatus === "pending")}
           onClick={tbCreateMutate}
           className="w-full button-lg"
@@ -134,56 +136,62 @@ export function TokenboundAccountInfo({
           )}
         </button>
       )}
-      {(!!tbAccount && tbAccount.deployed) && (
-        <form ref={sendFormRef} className="flex flex-col gap-2">
-          <h2 className="text-2xl">
-            Tokenbound Account
-          </h2>
-          <ul>
-            {Object.entries(tbAccount.holdings).sort(([a, ], [b, ]) => (
-              a.localeCompare(b)
-            )).map(([, {token: {name, symbol, decimals}, balance}]: [string, TokenHolding]) => (
-              <li key={symbol}>
-                <span className="font-bold">{name}: </span>
-                <code>{formatUnits(balance, decimals)}</code>
-              </li>
-            ))}
-          </ul>
-          <div className="flex flex-col gap-2">
-            <input type="text" name="recipient" required
-              placeholder="urbit id"
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck="false"
-              pattern={REGEX.AZIMUTH.POINT}
-              className="input-lg"
-            />
-            <select required name="token" className="invalid:text-[#969da8] input-lg">
-              <option value="">currency</option>
-              <option value="ETH">ethereum</option>
-              <option value="USDC">usdc</option>
-            </select>
-            <input type="number" name="amount" required
-              min="0" max="100000000" step="0.0001"
-              placeholder="amount"
-              className="input-lg"
-            />
-            <button
-              disabled={(tbSendStatus === "pending")}
-              onClick={onSend}
-              className="w-full button-lg"
-            >
-              {(tbSendStatus === "pending") ? (
-                <TinyLoadingIcon />
-              ) : (tbSendStatus === "error") ? (
-                "Error!"
-              ) : (
-                "Send"
-              )}
-            </button>
-          </div>
-        </form>
+      {(!!tbAccount && !!localTokens && tbAccount.deployed) && (
+        <>
+          <form ref={sendFormRef} className="flex flex-col gap-2">
+            <h2 className="text-2xl">
+              Tokenbound Account
+            </h2>
+            <ul>
+              {Object.entries(tbAccount.holdings).sort(([a, ], [b, ]) => (
+                a.localeCompare(b)
+              )).map(([, {token: {name, symbol, decimals}, balance}]: [string, TokenHolding]) => (
+                <li key={symbol}>
+                  <span className="font-bold">{name}: </span>
+                  <code>{formatUnits(balance, decimals)}</code>
+                </li>
+              ))}
+            </ul>
+            <div className="flex flex-col gap-2">
+              <input type="text" name="recipient" required
+                placeholder="urbit id"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
+                pattern={REGEX.AZIMUTH.POINT}
+                className="input-lg"
+              />
+              <select required name="token" className="invalid:text-[#969da8] input-lg">
+                <option value="">currency</option>
+                <option value="ETH">ethereum</option>
+                <option value="USDC">usdc</option>
+                {Object.entries(localTokens).map(([addr, token]: [string, Token]) => (
+                  <option key={addr} value={addr}>{token.name}</option>
+                ))}
+              </select>
+              <input type="number" name="amount" required
+                min="0" max="100000000" step="0.0001"
+                placeholder="amount"
+                className="input-lg"
+              />
+              <button type="button"
+                disabled={(tbSendStatus === "pending")}
+                onClick={onSend}
+                className="w-full button-lg"
+              >
+                {(tbSendStatus === "pending") ? (
+                  <TinyLoadingIcon />
+                ) : (tbSendStatus === "error") ? (
+                  "Error!"
+                ) : (
+                  "Send"
+                )}
+              </button>
+            </div>
+          </form>
+          <AddTokenModule />
+        </>
       )}
     </div>
   );
@@ -201,6 +209,7 @@ export function PDOAccountInfo({
   const launchFormRef = useRef<HTMLFormElement>(null);
   const [useMaxSupply, setUseMaxSupply] = useState<boolean>(false);
 
+  const localTokens = useLocalTokens();
   const idAccount = useTokenboundAccount(urbitID);
   const pdoAccount = useTokenboundAccount(urbitPDO);
   const pdoProposals = useSafeProposals(urbitPDO);
@@ -237,51 +246,41 @@ export function PDOAccountInfo({
   }, [setUseMaxSupply]);
 
   const onSign = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
     const signHash = (event.currentTarget as HTMLButtonElement).dataset.hash;
     pdoSignMutate({txHash: (signHash as Address)});
   }, [pdoSignMutate]);
 
   const onExec = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
     const execHash = (event.currentTarget as HTMLButtonElement).dataset.hash;
     pdoExecMutate({txHash: (execHash as Address)});
   }, [pdoExecMutate]);
 
   const onSend = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    const form = (event.currentTarget as HTMLButtonElement).form ?? undefined;
-    if (form?.reportValidity()) {
-      const sendData = new FormData(form);
-      pdoSendMutate({
-        token: String(sendData.get("token") ?? "ETH"),
-        recipient: String(sendData.get("recipient") ?? urbitID.patp),
-        amount: String(sendData.get("amount") ?? "0"),
-      });
-    }
+    const fields = parseForm(event, {
+      token: "ETH",
+      recipient: urbitID.patp,
+      amount: "0",
+    });
+    fields && pdoSendMutate(fields);
   }, [pdoSendMutate]);
 
   const onLaunch = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    const form = (event.currentTarget as HTMLButtonElement).form ?? undefined;
-    if (form?.reportValidity()) {
-      const launchData = new FormData(form);
-      pdoLaunchMutate({
-        name: String(launchData.get("name") ?? ""),
-        symbol: String(launchData.get("symbol") ?? ""),
-        init_supply: String(launchData.get("init_supply") ?? "0"),
-        max_supply: String(launchData.get("max_supply") ?? MATH.MAX_UINT256),
-      });
-    }
+    const fields = parseForm(event, {
+      name: "",
+      symbol: "",
+      init_supply: "0",
+      max_supply: String(MATH.MAX_UINT256),
+    });
+    fields && pdoLaunchMutate(fields);
   }, [pdoLaunchMutate]);
 
   return (
-    <LoadingFrame title={""} status={idAccount && pdoAccount}>
-      {(!!idAccount && !!pdoAccount && pdoAccount.deployed) && (
+    <LoadingFrame title={"Tokenbound Account"} size="md" status={idAccount && pdoAccount}>
+      {(!!idAccount && !!pdoAccount && !!localTokens && pdoAccount.deployed) && (
         <div className="main">
           <form ref={sendFormRef} className="flex flex-col gap-2">
             <h2 className="text-2xl">
-              PDO Account
+              Tokenbound Account
             </h2>
             <ul>
               {Object.entries(pdoAccount.holdings).sort(([a, ], [b, ]) => (
@@ -312,13 +311,16 @@ export function PDOAccountInfo({
                     {pdoAccount.token.name}
                   </option>
                 )}
+                {Object.entries(localTokens).map(([addr, token]: [string, Token]) => (
+                  <option key={addr} value={addr}>{token.name}</option>
+                ))}
               </select>
               <input type="number" name="amount" required
                 min="0" max="100000000" step="0.0001"
                 placeholder="amount"
                 className="input-lg"
               />
-              <button
+              <button type="button"
                 disabled={(pdoSendStatus === "pending")}
                 onClick={onSend}
                 className="w-full button-lg"
@@ -333,6 +335,7 @@ export function PDOAccountInfo({
               </button>
             </div>
           </form>
+          <AddTokenModule />
           <form ref={launchFormRef} className="flex flex-col gap-2">
             <h2 className="text-2xl">
               PDO Token
@@ -395,7 +398,7 @@ export function PDOAccountInfo({
                     problems in debug mode, so we disable the button in
                     these cases.
                 */}
-                <button
+                <button type="button"
                   disabled={
                     !hasClanBoon(urbitPDO, "star")
                     || (pdoLaunchStatus === "pending")
@@ -532,5 +535,55 @@ export function PDOAccountInfo({
         </div>
       )}
     </LoadingFrame>
+  );
+}
+
+export function AddTokenModule(): React.ReactNode {
+  const [isShown, setIsShown] = useState<boolean>(false);
+  const localTokens = useLocalTokens();
+
+  const toggleShown = useCallback(() => setIsShown(!isShown), [isShown, setIsShown]);
+
+  const { mutate: addTokenMutate, status: addTokenStatus } = useTokensAddMutation();
+  const onAddToken = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
+    const fields = parseForm(event, {
+      address: "0x0",
+    });
+    fields && !!localTokens && !localTokens?.[fields.address] && addTokenMutate(fields);
+  }, [localTokens, addTokenMutate]);
+
+  return (
+    <form className="flex flex-col items-center gap-2">
+      <button type="button" onClick={toggleShown} className="text-xl">
+        {isShown ? "- Hide" : "+ More"} Token Options
+      </button>
+      <div className={`
+        flex flex-col items-center gap-2
+        ${isShown ? "block" : "hidden"}
+      `}>
+        <input type="text" name="address" required
+          placeholder="token address"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck="false"
+          pattern={REGEX.ADDRESS}
+          className="input-lg"
+        />
+        <button type="button"
+          disabled={(addTokenStatus === "pending")}
+          onClick={onAddToken}
+          className="w-full button-lg"
+        >
+          {(addTokenStatus === "pending") ? (
+            <TinyLoadingIcon />
+          ) : (addTokenStatus === "error") ? (
+            "Error!"
+          ) : (
+            "Add Token"
+          )}
+        </button>
+      </div>
+    </form>
   );
 }

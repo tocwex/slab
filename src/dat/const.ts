@@ -98,6 +98,7 @@ export const SAFE = Object.freeze({
 // FIXME: These expressions need a lot of work; see more information here:
 // https://github.com/urbit/urbit-ob/blob/master/src/internal/co.js
 export const REGEX = Object.freeze({
+  ADDRESS: "0x[0-9a-fA-F]{40}",
   AZIMUTH: (Object.freeze({
     GALAXY: "~[a-z]{3}",
     STAR: "~[a-z]{6}",

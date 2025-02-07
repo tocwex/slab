@@ -16,7 +16,7 @@ import { useWalletMeta, useTokenboundClient } from '@/hook/wallet';
 import { fetchTBAddress } from '@/lib/web3';
 import {
   formUrbitID, forceUrbitID, isValidPDO,
-  encodeSet, decodeSet,
+  encodeSet, decodeSet, parseForm,
 } from '@/lib/util';
 import { REGEX } from '@/dat/const';
 import * as ob from "urbit-ob";
@@ -78,22 +78,20 @@ export default function IDPage(): React.ReactNode {
   );
 
   const onCreateSafe = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    const createData = new FormData((event.currentTarget as HTMLButtonElement).form ?? undefined);
-    safeCreateMutate({
+    const fields = parseForm(event, {
       managers: managerNames.map(forceUrbitID),
-      threshold: Number(createData.get("threshold") ?? "1"),
+      threshold: 1,
     });
+    fields && safeCreateMutate(fields);
   }, [managerNames, safeCreateMutate]);
   const onCreatePDO = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    const createData = new FormData((event.currentTarget as HTMLButtonElement).form ?? undefined);
     if (!!deploymentSafe) {
-      pdoCreateMutate({
+      const fields = parseForm(event, {
         safe: deploymentSafe,
         managers: managerNames.map(forceUrbitID),
-        reset: Boolean(createData.get("reset") ?? false),
+        reset: false,
       });
+      fields && pdoCreateMutate(fields);
     }
   }, [managerNames, deploymentSafe, pdoCreateMutate]);
 
@@ -218,10 +216,7 @@ export default function IDPage(): React.ReactNode {
           </div>
           {!!deploymentSafe && (
             <>
-              <button type="button"
-                onClick={toggleAdvancedShown}
-                className="text-xl hover:cursor-pointer"
-              >
+              <button type="button" onClick={toggleAdvancedShown} className="text-xl">
                 {isAdvancedShown ? "- Hide" : "+ Show"} Advanced Options
               </button>
               <div className={`
@@ -249,7 +244,7 @@ export default function IDPage(): React.ReactNode {
           {/* TODO: Add notice that TBA must be deployed first */}
           {!!localSafes && (
             !deploymentSafe ? (
-              <button
+              <button type="button"
                 disabled={
                   !tbAccount?.deployed
                   || managerTBAs.some(tba => tba === null)
@@ -269,7 +264,7 @@ export default function IDPage(): React.ReactNode {
                 )}
               </button>
             ) : (
-              <button
+              <button type="button"
                 disabled={!tbAccount?.deployed || (pdoCreateStatus === "pending")}
                 onClick={onCreatePDO}
                 className="mt-4 button-lg"
