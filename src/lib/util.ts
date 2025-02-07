@@ -53,10 +53,19 @@ export function decodeSet<U>(str: string, sip?: (s: string) => U): Set<U> {
 
 export function formatToken(amount: number | bigint | string, token: Token): string {
   return `${
-    formatUnits(BigInt(amount), token.decimals)
+    formatFloat(formatUnits(BigInt(amount), token.decimals))
   } \$${
     token.symbol
   }`;
+}
+
+// FIXME: These should use 'BigInt' while accounting for potential decimal numbers
+export function formatFloat(amount: number | bigint | string): string {
+  return Number(amount).toLocaleString("en-US", {maximumFractionDigits: 18});
+}
+
+export function formatUint(amount: number | bigint | string): string {
+  return Number(amount).toLocaleString("en-US", {maximumFractionDigits: 0}).replaceAll(",", ".");
 }
 
 export function trimAddress(address: string): string {

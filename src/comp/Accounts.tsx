@@ -17,7 +17,10 @@ import {
   usePDOSendMutation, usePDOSignMutation, usePDOExecMutation, usePDOLaunchMutation,
 } from '@/hook/web3';
 import { useLocalTokens, useTokensAddMutation } from '@/hook/local';
-import { trimAddress, formatToken, hasClanBoon, parseForm } from '@/lib/util';
+import {
+  trimAddress, hasClanBoon, parseForm,
+  formatToken, formatFloat, formatUint,
+} from '@/lib/util';
 import { formatUnits } from 'viem';
 import { MATH, REGEX } from '@/dat/const';
 
@@ -106,7 +109,7 @@ export function TokenboundAccountInfo({
         </li>
         <li>
           <span className="font-bold">point number: </span>
-          <span>{urbitID.id}</span>
+          <span>{formatUint(urbitID.id)}</span>
         </li>
         <li>
           <div className="flex flex-row items-center gap-2">
@@ -148,7 +151,7 @@ export function TokenboundAccountInfo({
               )).map(([, {token: {name, symbol, decimals}, balance}]: [string, TokenHolding]) => (
                 <li key={symbol}>
                   <span className="font-bold">{name}: </span>
-                  <code>{formatUnits(balance, decimals)}</code>
+                  <code>{formatFloat(formatUnits(balance, decimals))}</code>
                 </li>
               ))}
             </ul>
@@ -288,7 +291,7 @@ export function PDOAccountInfo({
               )).map(([, {token: {name, symbol, decimals}, balance}]: [string, TokenHolding]) => (
                 <li key={symbol}>
                   <span className="font-bold">{name}: </span>
-                  <code>{formatUnits(balance, decimals)}</code>
+                  <code>{formatFloat(formatUnits(balance, decimals))}</code>
                 </li>
               ))}
             </ul>
@@ -391,7 +394,7 @@ export function PDOAccountInfo({
                 </div>
                 <input type="number" name="max_supply" required={useMaxSupply}
                   min="0.0001" max="100000000" step="0.0001"
-                  placeholder="max supply"
+                  placeholder="max supply (e.g. 2000000)"
                   className={useMaxSupply ? "input-lg" : "hidden"}
                 />
                 {/* NOTE: Attempting to launch a token for a planet causes
@@ -562,7 +565,7 @@ export function AddTokenModule(): React.ReactNode {
         ${isShown ? "block" : "hidden"}
       `}>
         <input type="text" name="address" required
-          placeholder="token address"
+          placeholder="erc20 token address"
           autoComplete="off"
           autoCorrect="off"
           autoCapitalize="off"
@@ -580,7 +583,7 @@ export function AddTokenModule(): React.ReactNode {
           ) : (addTokenStatus === "error") ? (
             "Error!"
           ) : (
-            "Add Token"
+            "Add ERC20 Token"
           )}
         </button>
       </div>
