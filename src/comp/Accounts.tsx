@@ -12,13 +12,13 @@ import {
   ErrorIcon, SendIcon, SignIcon,
 } from '@/comp/Icons';
 import {
-  useTokenboundAccount, useSafeAccount, useSafeProposals,
+  useTokenboundAccount, useSafeAccount, useSafeProposals, useDeployerTax,
   useTokenboundCreateMutation, useTokenboundSendMutation,
   usePDOSendMutation, usePDOSignMutation, usePDOExecMutation, usePDOLaunchMutation,
 } from '@/hook/web3';
-import { trimAddress, hasClanBoon } from '@/lib/util';
+import { trimAddress, formatToken, hasClanBoon } from '@/lib/util';
 import { formatUnits } from 'viem';
-import { REGEX } from '@/dat/const';
+import { MATH, REGEX } from '@/dat/const';
 
 export function SafeAccountInfo({
   urbitID,
@@ -204,6 +204,7 @@ export function PDOAccountInfo({
   const idAccount = useTokenboundAccount(urbitID);
   const pdoAccount = useTokenboundAccount(urbitPDO);
   const pdoProposals = useSafeProposals(urbitPDO);
+  const twDeployerTax = useDeployerTax();
 
   const { mutate: pdoSignMutate, status: pdoSignStatus } = usePDOSignMutation(urbitID, urbitPDO);
   const { mutate: pdoExecMutate, status: pdoExecStatus } = usePDOExecMutation(urbitPDO);
@@ -215,6 +216,21 @@ export function PDOAccountInfo({
     urbitID, urbitPDO,
     { onSuccess: () => launchFormRef.current?.reset() },
   );
+
+  const TransactionRow = useCallback(({
+      children,
+      title,
+      className,
+    } : {
+      children: React.ReactNode;
+      title?: string;
+      className?: string;
+    }) => (
+      <div className={`flex flex-row justify-between gap-2 ${className ?? ""}`}>
+        <span className="whitespace-nowrap font-semibold">{title ?? "<unknown>"}</span>
+        {children}
+      </div>
+  ), []);
 
   const toggleMaxSupply = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     setUseMaxSupply(event.target.checked);
@@ -250,12 +266,11 @@ export function PDOAccountInfo({
     const form = (event.currentTarget as HTMLButtonElement).form ?? undefined;
     if (form?.reportValidity()) {
       const launchData = new FormData(form);
-      const maxSupplyVar = !!launchData.get("use_max_supply") ? "max_supply" : "init_supply";
       pdoLaunchMutate({
         name: String(launchData.get("name") ?? ""),
         symbol: String(launchData.get("symbol") ?? ""),
         init_supply: String(launchData.get("init_supply") ?? "0"),
-        max_supply: String(launchData.get(maxSupplyVar) ?? "0"),
+        max_supply: String(launchData.get("max_supply") ?? MATH.MAX_UINT256),
       });
     }
   }, [pdoLaunchMutate]);
@@ -344,7 +359,7 @@ export function PDOAccountInfo({
             ) : (
               <div className="flex flex-col gap-2">
                 <input type="text" name="name" required
-                  placeholder="name (e.g. Tocwex Token)"
+                  placeholder={`name (e.g. ${urbitPDO.patp} token)`}
                   autoComplete="off"
                   autoCorrect="off"
                   autoCapitalize="off"
@@ -352,7 +367,7 @@ export function PDOAccountInfo({
                   className="input-lg"
                 />
                 <input type="text" name="symbol" required
-                  placeholder="symbol (e.g. TOCWEX)"
+                  placeholder={`symbol (e.g. ${urbitPDO.patp.slice(1).toUpperCase()})`}
                   autoComplete="off"
                   autoCorrect="off"
                   autoCapitalize="off"
@@ -403,14 +418,14 @@ export function PDOAccountInfo({
             <h2 className="text-2xl">
               PDO Proposals
             </h2>
-            {(pdoProposals === undefined) ? (
+            {(pdoProposals === undefined || twDeployerTax === undefined) ? (
               <TinyLoadingIcon />
-            ) : (pdoProposals === null) ? (
+            ) : (pdoProposals === null || twDeployerTax === null) ? (
               <div>error</div>
             ) : (pdoProposals.length === 0) ? (
               <div>(no proposals found)</div>
             ) : (
-              <div className="w-full flex flex-col items-center gap-2">
+              <div className="min-w-96 w-full flex flex-col items-center gap-2">
                 {pdoProposals.map(({safeTxHash, transaction, confirmations, confirmationsRequired}) => {
                   const confirms = (confirmations ?? []);
                   return (
@@ -418,47 +433,57 @@ export function PDOAccountInfo({
                       key={safeTxHash}
                       className="w-full flex flex-row border-2 border-white rounded-md gap-2 p-3"
                     >
-                      <div className="w-1/2 flex flex-col gap-2 justify-center items-center">
-                        {(transaction.type === "transfer") ? (
-                          <span className="italic">
-                            {`${
-                              formatUnits(transaction.amount, transaction.token.decimals)
-                            } \$${
-                              transaction.token.symbol
-                            }`}
-                          </span>
-                        ) : (transaction.type === "launch") ? (
-                          <span className="italic">
-                            Launch Token
-                          </span>
-                        ) : (
-                          <span className="italic">
-                            Send Transaction
-                          </span>
-                        )}
-                        <span className="font-bold">↓</span>
-                        {(transaction.type === "transfer") ? (
-                          <TBAFrame address={transaction.to} className="italic" />
-                        ) : (transaction.type === "launch") ? (
-                          <span className="font-bold italic">
-                            {transaction.token.name} (${transaction.token.symbol})
-                          </span>
-                        ) : (
-                          <AddressFrame
-                            address={(safeTxHash as Address)}
-                            type="signature"
-                            className="italic"
-                          />
-                        )}
+                      <div className="w-7/12 flex flex-col gap-2 items-center">
+                        <span className="font-bold underline">
+                          {(transaction.type === "transfer") ? (
+                            "Transfer Token"
+                          ) : (transaction.type === "launch") ? (
+                            "Launch Token"
+                          ) : (
+                            "Execute Transaction"
+                          )}
+                        </span>
+                        <div className="w-full h-full flex flex-col gap-1 justify-center text-sm">
+                          {(transaction.type === "transfer") ? (
+                            <TransactionRow
+                              title={formatToken(transaction.amount, transaction.token)}
+                            >
+                              <TBAFrame address={transaction.to} short={true} />
+                            </TransactionRow>
+                          ) : (transaction.type === "launch") ? (
+                            <>
+                              <TransactionRow title="Mint Total">
+                                {formatToken(transaction.amount, transaction.token)}
+                              </TransactionRow>
+                              <TransactionRow title="Protocol Fee">
+                                {twDeployerTax.fee.toFixed(2)}%
+                              </TransactionRow>
+                              <TransactionRow title="PDO Receives">
+                                {
+                                  formatToken(
+                                    transaction.amount - (transaction.amount / BigInt(twDeployerTax.fee)),
+                                    transaction.token,
+                                  )
+                                }
+                              </TransactionRow>
+                            </>
+                          ) : (
+                            <AddressFrame
+                              address={(safeTxHash as Address)}
+                              type="signature"
+                              className="italic"
+                            />
+                          )}
+                        </div>
                       </div>
-                      <div className="w-1/2 flex flex-col gap-2 pl-2 border-l border-white">
+                      <div className="w-5/12 flex flex-col gap-2 pl-2 border-l border-white">
                         <h4 className="font-medium">
                           Signed by ({confirms.length} / {confirmationsRequired}):
                         </h4>
                         <ul>
                           {confirms.map(({owner}) => (
                             <li key={owner}>
-                              <TBAFrame address={(owner as Address)} className="text-sm" />
+                              <TBAFrame address={(owner as Address)} short={true} className="text-sm" />
                             </li>
                           ))}
                         </ul>

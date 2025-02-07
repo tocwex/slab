@@ -100,7 +100,7 @@ export function AddressFrame({
 }: {
   address: Address;
   type?: AddressType;
-  short?: boolean;
+  short?: boolean | string;
   className?: string;
 }): React.ReactNode {
   const wallet = useWalletMeta();
@@ -110,7 +110,11 @@ export function AddressFrame({
     type !== "signature"
   ), [type]);
   const text: string = useMemo(() => (
-    !short ? address : trimAddress(address)
+    (typeof short === "string")
+      ? short
+      : !short
+        ? address
+        : trimAddress(address)
   ), [address, short]);
   const href: string = useMemo(() => (`
     https://${
@@ -147,7 +151,7 @@ export function AddressFrame({
 export function TBAFrame({
   address,
   link=true,
-  short=true,
+  short=false,
   className=undefined,
 }: {
   address: Address;
@@ -156,7 +160,9 @@ export function TBAFrame({
   className?: string;
 }): React.ReactNode {
   const urbitID = useTokenboundUrbitID(address);
-  return (
+  return short ? (
+    <AddressFrame address={address} short={urbitID?.patp ?? true} className={className} />
+  ) : (
     <div className="inline-flex flex-row gap-1 items-center text-nowrap">
       {(!!urbitID) && (
         <>
@@ -164,7 +170,7 @@ export function TBAFrame({
           <span>: </span>
         </>
       )}
-      <AddressFrame address={address} short={short} className={className} />
+      <AddressFrame address={address} short={true} className={className} />
     </div>
   );
 }

@@ -118,7 +118,7 @@ export async function fetchSafeAccount(
         },
         safeDeploymentConfig: {
           saltNonce: keccak256(numberToHex(Date.now())),
-          safeVersion: "1.4.1",
+          safeVersion: SAFE.VERSION,
         },
       },
     }),

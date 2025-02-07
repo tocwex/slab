@@ -1,6 +1,6 @@
 import type { QueryKey, UseMutationOptions } from '@tanstack/react-query';
 import type {
-  Loadable, Nullable, Address, ChainAddress, UrbitID,
+  Loadable, Nullable, Address, ChainAddress, Tax, UrbitID,
   Contract, Token, Transaction, TokenHolding, TokenHoldings,
   TokenboundAccount, SafeAccount, SafeResponse,
   SafeOwners, SafeArchive,
@@ -434,7 +434,7 @@ export function useSafeProposals(urbitPDO: UrbitID): Loadable<SafeResponse[]> {
 
       const safeTransactions: SafeResponse[] = [];
       for (const proposal of safeProposals.results) {
-        const proposalData: Address = ((proposal.data ?? "0x0") as Address)
+        const proposalData: Address = ((proposal.data ?? "0x0") as Address);
         // TODO: Our custom ERC-6551 implementation calls are too exotic to be
         // decoded by Safe's in-house solution
         const safeTransaction: Transaction = await decodeProposal(wallet, proposalData);
@@ -627,9 +627,9 @@ export function useTokenboundAccount(urbitID: UrbitID): Loadable<TokenboundAccou
 
       const tbHoldings: TokenHoldings = {};
       for (const token of [
-          formToken(wallet.chain, "ETH"),
-          formToken(wallet.chain, "USDC"),
-          ...(!tbToken ? [] : [tbToken]),
+        formToken(wallet.chain, "ETH"),
+        formToken(wallet.chain, "USDC"),
+        ...(!tbToken ? [] : [tbToken]),
       ]) {
         const holding = await getBalance(wallet.wagmi, {
           address: tbAddress,
@@ -693,6 +693,44 @@ export function useSafeAccount(urbitID: UrbitID): Loadable<SafeAccount> {
   return isLoading ? undefined
     : isError ? null
     : (data as SafeAccount);
+}
+
+export function useDeployerTax(): Loadable<Tax> {
+  const wallet = useWalletMeta();
+  const queryKey: QueryKey = useMemo(() => [
+    APP.TAG, "deployer", "meta", wallet?.chainID,
+  ], [wallet?.chainID]);
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: queryKey,
+    queryFn: async () => {
+      if (!wallet) throw Error(ERROR.INVALID_QUERY);
+      const DEPLOY_V1: Contract = formContract(wallet.chain, "DEPLOYER_V1");
+      const deployFee = ((await readContract(wallet.wagmi, {
+        abi: DEPLOY_V1.abi,
+        address: DEPLOY_V1.address,
+        functionName: "getFee",
+      })) as bigint);
+      const deployRecipient = ((await readContract(wallet.wagmi, {
+        abi: DEPLOY_V1.abi,
+        address: DEPLOY_V1.address,
+        functionName: "getFeeRecipient",
+      })) as Address);
+
+      return {
+        fee: Number(deployFee / (BigInt(10) ** BigInt(18))),
+        to: deployRecipient,
+      };
+    },
+    enabled: !!wallet,
+    staleTime: Infinity,
+    retryOnMount: false,
+    refetchOnMount: false,
+  });
+
+  return isLoading ? undefined
+    : isError ? null
+    : (data as Tax);
 }
 
 export function useTokenboundUrbitID(address: Address): Loadable<UrbitID> {

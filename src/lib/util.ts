@@ -5,7 +5,7 @@ import type {
 import type { WalletState } from '@web3-onboard/core';
 import { APP, ABI, ACCOUNT, BLOCKCHAIN, CONTRACT } from '@/dat/const';
 import * as ob from "urbit-ob";
-import { hexToNumber, hexToBigInt } from 'viem';
+import { formatUnits, isHex, toHex, fromHex } from 'viem';
 
 const CLAN_INDEX = Object.freeze({
   galaxy: 0,
@@ -49,6 +49,14 @@ export function encodeSet<U>(set: Set<U>): string {
 export function decodeSet<U>(str: string, sip?: (s: string) => U): Set<U> {
   const stringToU = sip ?? ((val: string): U => (val as U));
   return new Set(str.split(",").map(stringToU));
+}
+
+export function formatToken(amount: number | bigint | string, token: Token): string {
+  return `${
+    formatUnits(BigInt(amount), token.decimals)
+  } \$${
+    token.symbol
+  }`;
 }
 
 export function trimAddress(address: string): string {

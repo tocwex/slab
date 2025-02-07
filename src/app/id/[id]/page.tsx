@@ -40,9 +40,7 @@ export default function IDPage(): React.ReactNode {
           const managerID = formUrbitID(manager);
           return !managerID.id
             ? Promise.resolve(null)
-            : !!managerTBAs?.[idx]
-              ? Promise.resolve(managerTBAs[idx])
-              : fetchTBAddress(wallet, tbClient, managerID);
+            : fetchTBAddress(wallet, tbClient, managerID);
         }));
         setManagerTBAs(newTBAs);
       }
@@ -252,7 +250,11 @@ export default function IDPage(): React.ReactNode {
           {!!localSafes && (
             !deploymentSafe ? (
               <button
-                disabled={!tbAccount?.deployed || (safeCreateStatus === "pending")}
+                disabled={
+                  !tbAccount?.deployed
+                  || managerTBAs.some(tba => tba === null)
+                  || (safeCreateStatus === "pending")
+                }
                 onClick={onCreateSafe}
                 className="mt-4 button-lg"
               >

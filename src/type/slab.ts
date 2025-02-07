@@ -9,8 +9,12 @@ export type Version = `${string}.${string}.${string}`;
 
 export type Address = `0x${string}`;
 export type AddressType = 'account' | 'transaction' | 'signature';
-
 export type ChainAddress = `${string}:${Address}`;
+
+export interface Tax {
+  fee: number;
+  to: Address;
+}
 
 export interface WalletMeta {
   wagmi: WagmiConfig;

@@ -87,6 +87,10 @@ export const CONTRACT = Object.freeze({
   }),
 });
 
+export const MATH = Object.freeze({
+  MAX_UINT256: BigInt("0x" + "f".repeat(256 / 4)),
+});
+
 export const SAFE = Object.freeze({
   VERSION: "1.4.1",
 });
