@@ -1,6 +1,39 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@theme { /* NOTE: https://tailwindcss.com/docs/theme#theme-variable-namespaces */
+  --font-sans: "Urbit Sans", sans-serif;
+  --font-serif: "Urbit Sans", serif;
+  --font-mono: "Urbit Sans Mono", monospace;
+
+  --text-2xs: 0.50rem;
+  --text-2xs--line-height: 0.75rem;
+  --text-3xs: 0.25rem;
+  --text-3xs--line-height: 0.50rem;
+}
+
+/* Scrollbar Improvements (courtesy of Tlon) */
+
+/* Works on Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-gray-500) transparent;
+}
+
+/* Works on Chrome, Edge, and Safari */
+*::-webkit-scrollbar {
+  width: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+  border: solid 2px transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--color-gray-500);
+  border: solid 2px transparent;
+  border-radius: 20px;
+  background-clip: content-box;
+}
 
 a {
     @apply font-bold underline;

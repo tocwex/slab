@@ -3,6 +3,7 @@ import type { UrbitID, Address, Token, TokenHolding } from "@/type/slab";
 import { useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { SingleSelector } from '@/comp/Selector';
 import {
   HeroFrame, LoadingFrame, SafeFrame,
   AddressFrame, UrbitIDFrame, TBAFrame,
@@ -89,8 +90,8 @@ export function TokenboundAccountInfo({
 
   const onSend = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
     const fields = parseForm(event, {
-      token: "ETH",
       recipient: urbitID.patp,
+      token: "ETH",
       amount: "0",
     });
     fields && tbSendMutate(fields);
@@ -165,14 +166,20 @@ export function TokenboundAccountInfo({
                 pattern={REGEX.AZIMUTH.POINT}
                 className="input-lg"
               />
-              <select required name="token" className="invalid:text-[#969da8] input-lg">
-                <option value="">currency</option>
-                <option value="ETH">ethereum</option>
-                <option value="USDC">usdc</option>
-                {Object.entries(localTokens).map(([addr, token]: [string, Token]) => (
-                  <option key={addr} value={addr}>{token.name}</option>
-                ))}
-              </select>
+              <SingleSelector name="token" required={true}
+                placeholder="currency"
+                className="w-full"
+                options={[
+                  { value: 'ETH', label: 'ethereum' },
+                  { value: 'USDC', label: 'usdc' },
+                  ...(Object.entries(localTokens).map(
+                    ([addr, token]: [string, Token]) => ({
+                      value: addr,
+                      label: token.name,
+                    })
+                  )),
+                ]}
+              />
               <input type="number" name="amount" required
                 min="0" max="100000000" step="0.0001"
                 placeholder="amount"
@@ -305,19 +312,23 @@ export function PDOAccountInfo({
                 pattern={REGEX.AZIMUTH.POINT}
                 className="input-lg"
               />
-              <select required name="token" className="invalid:text-[#969da8] input-lg">
-                <option value="">currency</option>
-                <option value="ETH">ethereum</option>
-                <option value="USDC">usdc</option>
-                {(!!pdoAccount.token) && (
-                  <option value={pdoAccount.token.address}>
-                    {pdoAccount.token.name}
-                  </option>
-                )}
-                {Object.entries(localTokens).map(([addr, token]: [string, Token]) => (
-                  <option key={addr} value={addr}>{token.name}</option>
-                ))}
-              </select>
+              <SingleSelector name="token" required={true}
+                placeholder="currency"
+                className="w-full"
+                options={[
+                  { value: 'ETH', label: 'ethereum' },
+                  { value: 'USDC', label: 'usdc' },
+                  ...(!pdoAccount.token ? [] : [
+                    { value: pdoAccount.token.address, label: pdoAccount.token.name },
+                  ]),
+                  ...(Object.entries(localTokens).map(
+                    ([addr, token]: [string, Token]) => ({
+                      value: addr,
+                      label: token.name,
+                    })
+                  )),
+                ]}
+              />
               <input type="number" name="amount" required
                 min="0" max="100000000" step="0.0001"
                 placeholder="amount"
@@ -467,7 +478,10 @@ export function PDOAccountInfo({
                               <TransactionRow title="PDO Receives">
                                 {
                                   formatToken(
-                                    transaction.amount - (transaction.amount / BigInt(twDeployerTax.fee)),
+                                    transaction.amount - ((twDeployerTax.fee === 0)
+                                      ? BigInt(0)
+                                      : (transaction.amount / BigInt(twDeployerTax.fee))
+                                    ),
                                     transaction.token,
                                   )
                                 }

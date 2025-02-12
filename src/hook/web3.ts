@@ -30,10 +30,10 @@ import {
 } from '@/lib/web3';
 import {
   formContract, formToken, formUrbitID,
-  isValidPDO, compareUrbitIDs, encodeSet, decodeSet,
+  isValidPDO, compareUrbitIDs, encodeSet, decodeSet, clamp,
 } from '@/lib/util';
 import { update as updateLocal } from '@/dat/local';
-import { APP, ABI, ACCOUNT, CONTRACT, ERROR } from '@/dat/const';
+import { APP, ABI, ACCOUNT, CONTRACT, MATH, ERROR } from '@/dat/const';
 
 // TODO: Secondary query invalidations don't seem to be working for tokenbound
 // accounts (e.g. in `useTokenboundSendMutation`)
@@ -121,8 +121,8 @@ export function usePDOLaunchMutation(
     }) => {
       if (!wallet || !tbClient || !idAccount || !pdoAccount || !pdoSafe)
         throw Error(ERROR.INVALID_QUERY);
-      const initSupply = parseUnits(init_supply, 18);
-      const maxSupply = parseUnits(max_supply, 18);
+      const initSupply = clamp(parseUnits(init_supply, 18), BigInt(0), MATH.MAX_UINT256);
+      const maxSupply = clamp(parseUnits(max_supply, 18), BigInt(0), MATH.MAX_UINT256);
       const salt = pad("0x0"); // TODO: Customize or randomize salt?
       if (maxSupply < initSupply)
         throw Error("Maximum token supply must be at least as large as initial supply.");

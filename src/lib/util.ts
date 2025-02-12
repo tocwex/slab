@@ -51,6 +51,10 @@ export function decodeSet<U>(str: string, sip?: (s: string) => U): Set<U> {
   return new Set(str.split(",").map(stringToU));
 }
 
+export function clamp<T>(value: T, lo: T, hi: T): T {
+  return ((value < lo) ? lo : ((value > hi) ? hi : value));
+}
+
 export function formatToken(amount: number | bigint | string, token: Token): string {
   return `${
     formatFloat(formatUnits(BigInt(amount), token.decimals))
@@ -112,7 +116,7 @@ export function parseForm<
   if (form?.reportValidity()) {
     const formData = new FormData(form);
     formEntries = Object.fromEntries(Object.entries(defaults).map(
-      ([key, val]: [string, any]) => ([key, formData.get(key) ?? val])
+      ([key, val]: [string, any]) => ([key, formData.get(key) || val])
     ));
   }
 

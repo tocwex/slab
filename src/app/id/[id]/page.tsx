@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { TokenboundAccountInfo } from '@/comp/Accounts';
 import { SafeFrame } from '@/comp/Frames';
 import { TinyLoadingIcon } from '@/comp/Icons';
+import { SingleSelector, SingleSelection } from '@/comp/Selector';
 import { useRouteUrbitID } from '@/hook/app';
 import {
   useSafePDOs, useTokenboundAccount,
@@ -64,10 +65,9 @@ export default function IDPage(): React.ReactNode {
   ), [isAdvancedShown, setIsAdvancedShown]);
 
   const goNewPDO = useCallback(() => router.push(`/new/${routeID.patp}`), [router]);
-  const goUrbitID = useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
-    const urbitPDO: string | undefined = event.target?.value;
-    if (!!urbitPDO) {
-      router.push(`/id/${routeID.patp}/pdo/${urbitPDO}`);
+  const goUrbitID = useCallback((selection: SingleSelection) => {
+    if (!!selection) {
+      router.push(`/id/${routeID.patp}/pdo/${selection.value}`);
     }
   }, [router]);
 
@@ -173,16 +173,15 @@ export default function IDPage(): React.ReactNode {
         {(routePDOs === undefined) ? (
           <TinyLoadingIcon />
         ) : (
-          <select onChange={goUrbitID} className="input-lg">
-            <option key="" value="">
-              Select PDO
-            </option>
-            {(routePDOs ?? []).map(({id, patp, clan}: UrbitID) => (
-              <option key={id} value={patp}>
-                {patp}
-              </option>
+          <SingleSelector
+            onChange={goUrbitID}
+            placeholder="Select PDO"
+            isClearable={false}
+            styles={{container: (s) => ({...s, width: "200px"})}}
+            options={(routePDOs ?? []).map(({id, patp, clan}: UrbitID) => (
+              { value: patp, label: patp }
             ))}
-          </select>
+          />
         )}
       </form>
       <TokenboundAccountInfo urbitID={routeID} />
@@ -231,7 +230,7 @@ export default function IDPage(): React.ReactNode {
                   dragons here.
                 </p>
                 <div className="flex flex-row items-center gap-2">
-                  <input type="checkbox" name="reset" required />
+                  <input type="checkbox" name="reset" />
                   <span>reset on creation?</span>
                 </div>
               </div>

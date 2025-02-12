@@ -5,6 +5,7 @@ import { FormEvent, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { HeroFrame, LoadingFrame, AddressFrame } from '@/comp/Frames';
 import { ConnectedWalletGuard } from '@/comp/Guards';
+import { SingleSelector, SingleSelection } from '@/comp/Selector';
 import { useWalletMeta, useWalletUrbitIDs } from '@/hook/wallet';
 import { toTitleCase } from '@/lib/util';
 
@@ -13,10 +14,9 @@ export default function Home(): React.ReactNode {
   const wallet = useWalletMeta();
   const urbitIDs = useWalletUrbitIDs();
 
-  const gotoUrbitID = useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
-    const urbitID: string | undefined = event.target?.value;
-    if (!!urbitID) {
-      router.push(`/id/${urbitID}`);
+  const goUrbitID = useCallback((selection: SingleSelection) => {
+    if (!!selection) {
+      router.push(`/id/${selection.value}`);
     }
   }, [router]);
 
@@ -42,16 +42,15 @@ export default function Home(): React.ReactNode {
         )
       }>
         <HeroFrame>
-          <select onChange={gotoUrbitID} className="input-lg">
-            <option key="" value="">
-              Select Urbit ID
-            </option>
-            {(urbitIDs ?? []).map(({id, patp, clan}: UrbitID) => (
-              <option key={id} value={patp}>
-                {patp}
-              </option>
+          <SingleSelector
+            onChange={goUrbitID}
+            placeholder="Select Urbit ID"
+            isClearable={false}
+            styles={{container: (s) => ({...s, width: "200px"})}}
+            options={(urbitIDs ?? []).map(({id, patp, clan}: UrbitID) => (
+              { value: patp, label: patp }
             ))}
-          </select>
+          />
         </HeroFrame>
       </LoadingFrame>
     </ConnectedWalletGuard>

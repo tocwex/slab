@@ -8,6 +8,7 @@ import { useSafeAccount } from '@/hook/web3';
 import { useWalletUrbitTBAs } from '@/hook/wallet';
 import { HeroFrame, LoadingFrame, UrbitIDFrame } from '@/comp/Frames';
 import { HugeLoadingIcon } from '@/comp/Icons';
+import { SingleSelector, SingleSelection } from '@/comp/Selector';
 import * as ob from "urbit-ob";
 
 export default function NewPage(): React.ReactNode {
@@ -30,10 +31,9 @@ export default function NewPage(): React.ReactNode {
     }
   }, [router, walletTBAs, walletOwnerTBAs]);
 
-  const gotoUrbitID = useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
-    const urbitID: string | undefined = event.target?.value;
-    if (!!urbitID) {
-      router.push(`/id/${urbitID}/pdo/${routeID.patp}`);
+  const goUrbitID = useCallback((selection: SingleSelection) => {
+    if (!!selection) {
+      router.push(`/id/${selection.value}/pdo/${routeID.patp}`);
     }
   }, [router]);
 
@@ -63,16 +63,15 @@ export default function NewPage(): React.ReactNode {
             <HugeLoadingIcon />
           </>
         ) : (
-          <select onChange={gotoUrbitID} className="input-lg">
-            <option key="" value="">
-              Select Ownership ID
-            </option>
-            {Object.entries(walletOwnerTBAs ?? {}).map(([tba, uid]: [string, UrbitID]) => (
-              <option key={tba} value={uid.patp}>
-                {uid.patp}
-              </option>
+          <SingleSelector
+            onChange={goUrbitID}
+            placeholder="Select Urbit ID"
+            isClearable={false}
+            styles={{container: (s) => ({...s, width: "200px"})}}
+            options={Object.entries(walletOwnerTBAs ?? {}).map(([tba, uid]: [string, UrbitID]) => (
+              { value: uid.patp, label: uid.patp }
             ))}
-          </select>
+          />
         )}
       </HeroFrame>
     </LoadingFrame>

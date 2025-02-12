@@ -38,14 +38,14 @@ export const CONTRACT = Object.freeze({
   REGISTRY: Object.freeze({ // ~tocwex.syndiate token registry
     ADDRESS: (Object.freeze({
       ETHEREUM: "0x0000000000000000000000000000000000000000", // TODO: Add real address
-      SEPOLIA: "0xE57F713E6EF80ac54bb1BB8288E9292bdE1Be8D7",
+      SEPOLIA: "0x01702f7f3651fc5399884d372f364dee4e926b5b",
     }) as {[network: string]: `0x${string}`;}),
     ABI: ABI.TOCWEX_REGISTRY,
   }),
   DEPLOYER_V1: Object.freeze({ // ~tocwex.syndiate token deployer (v1)
     ADDRESS: (Object.freeze({
       ETHEREUM: "0x0000000000000000000000000000000000000000", // TODO: Add real address
-      SEPOLIA: "0xEFe0C14e640Eac03C669127aAdD883B65D2945b3",
+      SEPOLIA: "0x9563e810c9f1Da4540Eac5f10DA5D4210FD2E9fA",
     }) as {[network: string]: `0x${string}`;}),
     ABI: ABI.TOCWEX_DEPLOYER_V1,
   }),
