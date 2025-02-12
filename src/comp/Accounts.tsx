@@ -381,14 +381,16 @@ export function PDOAccountInfo({
                   autoCorrect="off"
                   autoCapitalize="off"
                   spellCheck="false"
+                  pattern={REGEX.SYNDICATE.NAME}
                   className="input-lg"
                 />
                 <input type="text" name="symbol" required
-                  placeholder={`symbol (e.g. ${urbitPDO.patp.slice(1).toUpperCase()})`}
+                  placeholder={`symbol (e.g. ${urbitPDO.patp.toUpperCase()})`}
                   autoComplete="off"
                   autoCorrect="off"
                   autoCapitalize="off"
                   spellCheck="false"
+                  pattern={REGEX.SYNDICATE.TOKEN}
                   className="input-lg"
                 />
                 <input type="number" name="init_supply" required

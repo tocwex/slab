@@ -32,6 +32,10 @@ export const ACCOUNT = Object.freeze({
     ETHEREUM: "0x0000000000000000000000000000000000000000",
     SEPOLIA: "0x0000000000000000000000000000000000000000",
   }) as {[network: string]: `0x${string}`;}),
+  AZP_L2: (Object.freeze({
+    ETHEREUM: "0x1111111111111111111111111111111111111111",
+    SEPOLIA: "0x1111111111111111111111111111111111111111",
+  }) as {[network: string]: `0x${string}`;}),
 });
 
 export const CONTRACT = Object.freeze({
@@ -105,6 +109,11 @@ export const REGEX = Object.freeze({
     PLANET: "~[a-z]{6}-[a-z]{6}",
     POINT: "~(([a-z]{3})|([a-z]{6}(-[a-z]{6}){0,3})|([a-z]{6}(-[a-z]{6}){3})--([a-z]{6}(-[a-z]{6}){3}))",
   }) as {[point: string]: string;}),
+  SYNDICATE: (Object.freeze({
+    // NOTE: https://stackoverflow.com/a/60782571
+    NAME: "^(?!\\s)(?![\\s\\S]*\\s$)[0-9a-zA-Z ~\\-]{1,50}$",
+    TOKEN: "^[0-9A-Z~\\-]{1,16}$",
+  }) as {[param: string]: string;}),
 });
 
 export const ERROR = Object.freeze({

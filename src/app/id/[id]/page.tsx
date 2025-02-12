@@ -39,13 +39,22 @@ export default function IDPage(): React.ReactNode {
       if (!!wallet && !!tbClient) {
         const newTBAs = await Promise.all(managerNames.map((manager: string, idx: number) => {
           const managerID = formUrbitID(manager);
-          return !managerID.id
-            ? Promise.resolve(null)
-            : fetchTBAddress(wallet, tbClient, managerID);
+          if (!managerID.id) {
+            return Promise.resolve(null);
+          } else {
+            return fetchTBAddress(wallet, tbClient, managerID).then((address) => (
+              Promise.all([
+                Promise.resolve(address),
+                tbClient.checkAccountDeployment({accountAddress: address}),
+              ])
+            )).then(([address, isDeployed]: [Address, boolean]) => (
+              !isDeployed ? null : address
+            ));
+          }
         }));
         setManagerTBAs(newTBAs);
       }
-    }
+    };
     setNewTBAs();
   }, [wallet, tbClient, managerNames, setManagerTBAs]);
 
@@ -110,8 +119,11 @@ export default function IDPage(): React.ReactNode {
     ), [realID, managerNames]);
     const urbitAccount = useUrbitAccount(managerUrbitID);
     const tbAccount = useTokenboundAccount(managerUrbitID);
-    const { mutate: tbCreateMutate, status: tbCreateStatus } =
-      useTokenboundCreateMutation(managerUrbitID);
+    const { mutate: tbCreateMutate, status: tbCreateStatus } = useTokenboundCreateMutation(
+      managerUrbitID,
+      // FIXME: Dirty way to prompt requery of TBAs after a new one is launched
+      { onSuccess: () => setManagerNames(managerNames.splice(0)) },
+    );
 
     const delManager = useCallback(() => (
       setManagerNames(managerNames.toSpliced(realID, 1))
@@ -161,7 +173,7 @@ export default function IDPage(): React.ReactNode {
           ) : (tbCreateStatus === "error") ? (
             "Error!"
           ) : (urbitAccount.layer !== "l1") ? (
-            "Not L1 Point"
+            "Invalid Manager"
           ) : !tbAccount?.deployed ? (
             "~ Deploy"
           ) : (

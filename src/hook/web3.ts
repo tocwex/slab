@@ -2,7 +2,7 @@ import type { QueryKey, UseMutationOptions } from '@tanstack/react-query';
 import type {
   Loadable, Nullable, Address, ChainAddress, Tax, UrbitID,
   Contract, Token, Transaction, TokenHolding, TokenHoldings,
-  TokenboundAccount, SafeAccount, UrbitAccount,
+  TokenboundAccount, SafeAccount, UrbitAccount, UrbitNetworkLayer,
   SafeResponse, SafeOwners, SafeArchive,
 } from '@/type/slab';
 import { useMemo } from 'react';
@@ -29,7 +29,7 @@ import {
   fetchToken, fetchUrbitID, decodeProposal,
 } from '@/lib/web3';
 import {
-  formContract, formToken, formUrbitID,
+  getChainMeta, formContract, formToken, formUrbitID,
   isValidPDO, compareUrbitIDs, encodeSet, decodeSet, clamp,
 } from '@/lib/util';
 import { update as updateLocal } from '@/dat/local';
@@ -708,10 +708,12 @@ export function useUrbitAccount(urbitID: UrbitID): Loadable<UrbitAccount> {
     queryKey: queryKey,
     queryFn: async () => {
       if (!wallet) throw Error(ERROR.INVALID_QUERY);
-      let owner = "0x1111111111111111111111111111111111111111";
-      let layer = "l2";
-
+      const [ , chainTag] = getChainMeta(wallet.chain);
+      const AZP_L2: Address = ACCOUNT.AZP_L2?.[chainTag] ?? ACCOUNT.AZP_L2.ETHEREUM;
       const ECLIPTIC: Token = formToken(wallet.chain, "ECL");
+
+      let owner: Address = AZP_L2;
+      let layer: UrbitNetworkLayer = "l2";
       const pointExists: boolean = ((await readContract(wallet.wagmi, {
         abi: ECLIPTIC.abi,
         address: ECLIPTIC.address,
@@ -719,13 +721,13 @@ export function useUrbitAccount(urbitID: UrbitID): Loadable<UrbitAccount> {
         args: [urbitID.id],
       })) as boolean);
       if (pointExists) {
-        layer = "l1";
         owner = ((await readContract(wallet.wagmi, {
           abi: ECLIPTIC.abi,
           address: ECLIPTIC.address,
           functionName: "ownerOf",
           args: [urbitID.id],
         })) as Address);
+        layer = (owner === AZP_L2) ? "l2" : "l1";
       }
 
       return { layer, owner };
@@ -764,7 +766,7 @@ export function useDeployerTax(): Loadable<Tax> {
       })) as Address);
 
       return {
-        fee: Number(deployFee / (BigInt(10) ** BigInt(18))),
+        fee: Number(deployFee) / Number(BigInt(10) ** BigInt(2)),
         to: deployRecipient,
       };
     },
