@@ -39,6 +39,10 @@ a {
     @apply font-bold underline;
 }
 
+input::placeholder {
+  color: var(--color-gray-500);
+}
+
 :is(button, [type='button'], [type='reset'], [type='submit']):disabled {
     @apply bg-white/20;
 }

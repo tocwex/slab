@@ -65,6 +65,20 @@ export interface TokenHolding {
 }
 export type TokenHoldings = Record<string, TokenHolding>;
 
+export type UrbitNetworkLayer = 'l1' | 'l2' | 'no';
+export interface UrbitL1Account {
+  layer: 'l1';
+  owner: Address;
+}
+export interface UrbitL2Account {
+  layer: 'l2';
+  owner: '0x1111111111111111111111111111111111111111';
+}
+export interface UrbitNoAccount {
+  layer: 'no';
+}
+export type UrbitAccount = UrbitL1Account | UrbitL2Account | UrbitNoAccount;
+
 export interface TokenboundAccount {
   address: Address;
   deployed: boolean;

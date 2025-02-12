@@ -2,8 +2,8 @@ import type { QueryKey, UseMutationOptions } from '@tanstack/react-query';
 import type {
   Loadable, Nullable, Address, ChainAddress, Tax, UrbitID,
   Contract, Token, Transaction, TokenHolding, TokenHoldings,
-  TokenboundAccount, SafeAccount, SafeResponse,
-  SafeOwners, SafeArchive,
+  TokenboundAccount, SafeAccount, UrbitAccount,
+  SafeResponse, SafeOwners, SafeArchive,
 } from '@/type/slab';
 import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -696,6 +696,49 @@ export function useSafeAccount(urbitID: UrbitID): Loadable<SafeAccount> {
   return isLoading ? undefined
     : isError ? null
     : (data as SafeAccount);
+}
+
+export function useUrbitAccount(urbitID: UrbitID): Loadable<UrbitAccount> {
+  const wallet = useWalletMeta();
+  const queryKey: QueryKey = useMemo(() => [
+    APP.TAG, "urbit", "account", wallet?.chainID, urbitID.id,
+  ], [wallet?.chainID, urbitID.id]);
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: queryKey,
+    queryFn: async () => {
+      if (!wallet) throw Error(ERROR.INVALID_QUERY);
+      let owner = "0x1111111111111111111111111111111111111111";
+      let layer = "l2";
+
+      const ECLIPTIC: Token = formToken(wallet.chain, "ECL");
+      const pointExists: boolean = ((await readContract(wallet.wagmi, {
+        abi: ECLIPTIC.abi,
+        address: ECLIPTIC.address,
+        functionName: "exists",
+        args: [urbitID.id],
+      })) as boolean);
+      if (pointExists) {
+        layer = "l1";
+        owner = ((await readContract(wallet.wagmi, {
+          abi: ECLIPTIC.abi,
+          address: ECLIPTIC.address,
+          functionName: "ownerOf",
+          args: [urbitID.id],
+        })) as Address);
+      }
+
+      return { layer, owner };
+    },
+    enabled: !!wallet,
+    staleTime: Infinity,
+    retryOnMount: false,
+    refetchOnMount: false,
+  });
+
+  return isLoading ? undefined
+    : isError ? null
+    : (data as UrbitAccount);
 }
 
 export function useDeployerTax(): Loadable<Tax> {

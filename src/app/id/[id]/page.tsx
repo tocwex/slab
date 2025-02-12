@@ -9,7 +9,7 @@ import { TinyLoadingIcon } from '@/comp/Icons';
 import { SingleSelector, SingleSelection } from '@/comp/Selector';
 import { useRouteUrbitID } from '@/hook/app';
 import {
-  useSafePDOs, useTokenboundAccount,
+  useSafePDOs, useUrbitAccount, useTokenboundAccount,
   useTokenboundCreateMutation, useSafeCreateMutation, usePDOCreateMutation,
 } from '@/hook/web3';
 import { useLocalSafes } from '@/hook/local';
@@ -108,6 +108,7 @@ export default function IDPage(): React.ReactNode {
     const managerUrbitID = useMemo(() => formUrbitID(
       managerNames[realID]
     ), [realID, managerNames]);
+    const urbitAccount = useUrbitAccount(managerUrbitID);
     const tbAccount = useTokenboundAccount(managerUrbitID);
     const { mutate: tbCreateMutate, status: tbCreateStatus } =
       useTokenboundCreateMutation(managerUrbitID);
@@ -139,18 +140,28 @@ export default function IDPage(): React.ReactNode {
           </button>
         )}
         <button type="button"
-          disabled={!tbAccount || !!tbAccount.deployed || (tbCreateStatus === "pending")}
+          disabled={
+            !tbAccount
+            || !urbitAccount
+            || !!tbAccount.deployed
+            || (urbitAccount.layer !== "l1")
+            || (tbCreateStatus === "pending")
+          }
           onClick={tbCreateMutate}
           className="button-sm"
         >
           {!managerUrbitID.id ? (
             "Waiting…"
-          ) : !tbAccount ? (
+          ) : (tbAccount === undefined || urbitAccount === undefined) ? (
             "Connecting…"
+          ) : (tbAccount === null || urbitAccount === null) ? (
+            "Disconnected!"
           ) : (tbCreateStatus === "pending") ? (
             <TinyLoadingIcon />
           ) : (tbCreateStatus === "error") ? (
             "Error!"
+          ) : (urbitAccount.layer !== "l1") ? (
+            "Not L1 Point"
           ) : !tbAccount?.deployed ? (
             "~ Deploy"
           ) : (
