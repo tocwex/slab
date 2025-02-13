@@ -94,6 +94,85 @@ export function usePDOExecMutation(
   });
 }
 
+export function usePDOMintMutation(
+  urbitID: UrbitID,
+  urbitPDO: UrbitID,
+  options?: UseMutationOptions<Address, unknown, any, unknown>,
+) {
+  const wallet = useWalletMeta();
+  const tbClient = useTokenboundClient();
+  const idAccount = useTokenboundAccount(urbitID);
+  const pdoAccount = useTokenboundAccount(urbitPDO);
+  const pdoSafe = useSafeAccount(urbitPDO);
+  const queryKey: QueryKey = useMemo(() => [
+    APP.TAG, "safe", "proposals", wallet?.chainID, urbitPDO.id,
+  ], [wallet?.chainID, urbitPDO.id]);
+  const pdoKey: QueryKey = useMemo(() => [
+    APP.TAG, "tokenbound", "account", wallet?.chainID, urbitPDO.id,
+  ], [wallet?.chainID, urbitPDO.id]);
+
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({amount, recipient}: {
+      amount: string,
+      recipient: string,
+    }) => {
+      if (!wallet || !tbClient || !idAccount || !pdoAccount || !pdoSafe)
+        throw Error(ERROR.INVALID_QUERY);
+      if (!pdoAccount.token)
+        throw Error("Cannot mint tokens for PDO without dedicated token");
+      const recipientAddress = await fetchTBAddress(wallet, tbClient, recipient);
+      const recipientAmount = parseUnits(amount, pdoAccount.token.decimals);
+
+      const tbMintTransaction = await tbClient.prepareExecution({
+        account: pdoAccount.address,
+        to: pdoAccount.token.address,
+        value: BigInt(0),
+        data: encodeFunctionData({
+          abi: ABI.TOCWEX_TOKEN_V1,
+          functionName: "mint",
+          args: [recipientAddress, recipientAmount],
+        }),
+      });
+
+      const safeAccount: Safe = await fetchSafeAccount(wallet, (pdoSafe.address as Address));
+      const safeTransaction = await safeAccount.createTransaction({
+        transactions: [{
+          operation: OperationType.Call,
+          to: tbMintTransaction.to,
+          data: tbMintTransaction.data,
+          value: tbMintTransaction.value.toString(),
+        }],
+      });
+      const safeTxHash = await safeAccount.getTransactionHash(safeTransaction);
+      const safeTxSign = await signTBSafeTx(wallet, idAccount.address, safeTxHash);
+
+      const safeClient = new SafeApiKit({chainId: wallet.chain});
+      await safeClient.proposeTransaction({
+        safeAddress: pdoSafe.address,
+        safeTransactionData: safeTransaction.data,
+        safeTxHash: safeTxHash,
+        senderAddress: idAccount.address,
+        senderSignature: safeTxSign,
+      });
+
+      return (safeTxSign as Address);
+    },
+    onMutate: async (variables) => {
+      await queryClient.cancelQueries({ queryKey: queryKey });
+      return await queryClient.getQueryData(queryKey);
+    },
+    onError: (err, variables, oldData) => {
+      queryClient.setQueryData(queryKey, oldData);
+    },
+    onSettled: (_data, _error, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKey });
+      queryClient.invalidateQueries({ queryKey: pdoKey });
+    },
+    ...options,
+  });
+}
+
 export function usePDOLaunchMutation(
   urbitID: UrbitID,
   urbitPDO: UrbitID,
@@ -236,7 +315,7 @@ export function usePDOSendMutation(
       if (!wallet || !tbClient || !idAccount || !pdoAccount || !pdoSafe)
         throw Error(ERROR.INVALID_QUERY);
       const TOKEN: Token = await fetchToken(wallet, symbol);
-      const recipientAddress = await fetchTBAddress(wallet, tbClient, urbitID);
+      const recipientAddress = await fetchTBAddress(wallet, tbClient, recipient);
       const tbTransferTransaction = await ((symbol === "ETH") ? tbClient.prepareExecution({
         account: pdoAccount.address,
         to: recipientAddress,
@@ -743,10 +822,53 @@ export function useUrbitAccount(urbitID: UrbitID): Loadable<UrbitAccount> {
     : (data as UrbitAccount);
 }
 
+export function useSyndicateTax(urbitID: UrbitID): Loadable<Tax> {
+  const wallet = useWalletMeta();
+  const idAccount = useTokenboundAccount(urbitID);
+  const queryKey: QueryKey = useMemo(() => [
+    APP.TAG, "tax", "syndicate", wallet?.chainID, urbitID.id,
+  ], [wallet?.chainID, urbitID.id]);
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: queryKey,
+    queryFn: async () => {
+      if (!wallet || !idAccount) throw Error(ERROR.INVALID_QUERY);
+      let syndicateFee: bigint = BigInt(0);
+      let syndicateTo: Address = formContract(wallet.chain, "NULL").address;
+
+      if (!!idAccount.token) {
+        syndicateFee = ((await readContract(wallet.wagmi, {
+          abi: ABI.TOCWEX_TOKEN_V1,
+          address: idAccount.token.address,
+          functionName: "getProtocolFee",
+        })) as bigint);
+        syndicateTo = ((await readContract(wallet.wagmi, {
+          abi: ABI.TOCWEX_TOKEN_V1,
+          address: idAccount.token.address,
+          functionName: "getFeeRecipient",
+        })) as Address);
+      }
+
+      return {
+        fee: syndicateFee,
+        to: syndicateTo,
+      };
+    },
+    enabled: !!wallet && !!idAccount,
+    staleTime: Infinity,
+    retryOnMount: false,
+    refetchOnMount: false,
+  });
+
+  return isLoading ? undefined
+    : isError ? null
+    : (data as Tax);
+}
+
 export function useDeployerTax(): Loadable<Tax> {
   const wallet = useWalletMeta();
   const queryKey: QueryKey = useMemo(() => [
-    APP.TAG, "deployer", "meta", wallet?.chainID,
+    APP.TAG, "tax", "deployer", wallet?.chainID,
   ], [wallet?.chainID]);
 
   const { data, isLoading, isError } = useQuery({
@@ -766,7 +888,7 @@ export function useDeployerTax(): Loadable<Tax> {
       })) as Address);
 
       return {
-        fee: Number(deployFee) / Number(BigInt(10) ** BigInt(2)),
+        fee: deployFee,
         to: deployRecipient,
       };
     },

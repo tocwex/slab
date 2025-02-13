@@ -1,6 +1,6 @@
 "use client";
 import type { UrbitID, Address, Token, TokenHolding } from "@/type/slab";
-import { useState, useCallback, useRef } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { SingleSelector } from '@/comp/Selector';
@@ -13,14 +13,16 @@ import {
   ErrorIcon, SendIcon, SignIcon,
 } from '@/comp/Icons';
 import {
-  useTokenboundAccount, useSafeAccount, useSafeProposals, useDeployerTax,
+  useTokenboundAccount, useSafeAccount, useSafeProposals,
+  useDeployerTax, useSyndicateTax,
   useTokenboundCreateMutation, useTokenboundSendMutation,
-  usePDOSendMutation, usePDOSignMutation, usePDOExecMutation, usePDOLaunchMutation,
+  usePDOSendMutation, usePDOSignMutation, usePDOExecMutation,
+  usePDOMintMutation, usePDOLaunchMutation,
 } from '@/hook/web3';
 import { useLocalTokens, useTokensAddMutation } from '@/hook/local';
 import {
-  trimAddress, hasClanBoon, parseForm,
-  formatToken, formatFloat, formatUint,
+  trimAddress, hasClanBoon, parseForm, coerceBigInt,
+  applyTax, formatTax, formatToken, formatFloat, formatUint,
 } from '@/lib/util';
 import { formatUnits } from 'viem';
 import { MATH, REGEX } from '@/dat/const';
@@ -217,13 +219,16 @@ export function PDOAccountInfo({
   const router = useRouter();
   const sendFormRef = useRef<HTMLFormElement>(null);
   const launchFormRef = useRef<HTMLFormElement>(null);
+  const mintFormRef = useRef<HTMLFormElement>(null);
   const [useMaxSupply, setUseMaxSupply] = useState<boolean>(false);
+  const [mintAmount, setMintAmount] = useState<number | string>("");
 
   const localTokens = useLocalTokens();
   const idAccount = useTokenboundAccount(urbitID);
   const pdoAccount = useTokenboundAccount(urbitPDO);
   const pdoProposals = useSafeProposals(urbitPDO);
   const twDeployerTax = useDeployerTax();
+  const twSyndicateTax = useSyndicateTax(urbitPDO);
 
   const { mutate: pdoSignMutate, status: pdoSignStatus } = usePDOSignMutation(urbitID, urbitPDO);
   const { mutate: pdoExecMutate, status: pdoExecStatus } = usePDOExecMutation(urbitPDO);
@@ -235,6 +240,16 @@ export function PDOAccountInfo({
     urbitID, urbitPDO,
     { onSuccess: () => launchFormRef.current?.reset() },
   );
+  const { mutate: pdoMintMutate, status: pdoMintStatus } = usePDOMintMutation(
+    urbitID, urbitPDO,
+    { onSuccess: () => mintFormRef.current?.reset() },
+  );
+
+  const mintValue = useMemo(() => {
+    const [mintValue, mintDecimals] = coerceBigInt(mintAmount);
+    const mintShift = (pdoAccount?.token?.decimals ?? 18) - mintDecimals;
+    return mintValue * BigInt(10) ** BigInt(mintShift);
+  }, [mintAmount, pdoAccount]);
 
   const TransactionRow = useCallback(({
       children,
@@ -284,6 +299,14 @@ export function PDOAccountInfo({
     fields && pdoLaunchMutate(fields);
   }, [pdoLaunchMutate]);
 
+  const onMint = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
+    const fields = parseForm(event, {
+      amount: "0",
+      recipient: urbitID.patp,
+    });
+    fields && pdoMintMutate(fields);
+  }, [pdoMintMutate]);
+
   return (
     <LoadingFrame title={"Tokenbound Account"} size="md" status={idAccount && pdoAccount}>
       {(!!idAccount && !!pdoAccount && !!localTokens && pdoAccount.deployed) && (
@@ -292,14 +315,11 @@ export function PDOAccountInfo({
             <h2 className="text-2xl">
               Tokenbound Account
             </h2>
-            <ul>
+            <ul className="list-disc">
               {Object.entries(pdoAccount.holdings).sort(([a, ], [b, ]) => (
                 a.localeCompare(b)
-              )).map(([, {token: {name, symbol, decimals}, balance}]: [string, TokenHolding]) => (
-                <li key={symbol}>
-                  <span className="font-bold">{name}: </span>
-                  <code>{formatFloat(formatUnits(balance, decimals))}</code>
-                </li>
+              )).map(([, {token, balance}]: [string, TokenHolding]) => (
+                <li key={token.symbol}>{formatToken(balance, token)}</li>
               ))}
             </ul>
             <div className="flex flex-col gap-2">
@@ -350,31 +370,84 @@ export function PDOAccountInfo({
             </div>
           </form>
           <AddTokenModule />
-          <form ref={launchFormRef} className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2">
             <h2 className="text-2xl">
               PDO Token
             </h2>
-            {(pdoAccount === undefined) ? (
+            {(pdoAccount === undefined || twSyndicateTax === undefined) ? (
               <TinyLoadingIcon />
-            ) : (pdoAccount === null) ? (
+            ) : (pdoAccount === null || twSyndicateTax === null) ? (
               <div>error</div>
             ) : (pdoAccount.token !== undefined) ? (
-              <ul className="list-disc">
-                <li>
-                  <span className="font-bold">name: </span>
-                  <span>{pdoAccount.token.name}</span>
-                </li>
-                <li>
-                  <span className="font-bold">symbol: </span>
-                  <span>${pdoAccount.token.symbol}</span>
-                </li>
-                <li>
-                  <span className="font-bold">contract: </span>
-                  <AddressFrame address={pdoAccount.token.address} />
-                </li>
-              </ul>
+              <>
+                <ul className="list-disc">
+                  <li>
+                    <span className="font-bold">name: </span>
+                    <span>{pdoAccount.token.name}</span>
+                  </li>
+                  <li>
+                    <span className="font-bold">symbol: </span>
+                    <span>${pdoAccount.token.symbol}</span>
+                  </li>
+                  <li>
+                    <span className="font-bold">contract: </span>
+                    <AddressFrame address={pdoAccount.token.address} />
+                  </li>
+                </ul>
+                <h4 className="text-lg">Mint Tokens</h4>
+                <p className="max-w-72">
+                  Input the amount of tokens to be received by the
+                  recipients.
+                </p>
+                <form ref={mintFormRef} className="flex flex-col gap-2">
+                  <input type="text" name="recipient" required
+                    placeholder="urbit id"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck="false"
+                    pattern={REGEX.AZIMUTH.POINT}
+                    className="input-lg"
+                  />
+                  <input type="number" name="amount" required
+                    min="0.0001" max="100000000" step="0.0001"
+                    placeholder="amount"
+                    value={mintAmount}
+                    onChange={e => setMintAmount(
+                      e.target.value && Number(e.target.value)
+                    )}
+                    className="input-lg"
+                  />
+                  <div className="w-full flex flex-col">
+                    <TransactionRow title="Protocol Fee">
+                      {formatTax(twSyndicateTax)}
+                    </TransactionRow>
+                    <TransactionRow title="Total Mint Quantity">
+                      {
+                        formatToken(
+                          mintValue + applyTax(mintValue, twSyndicateTax),
+                          pdoAccount.token,
+                        )
+                      }
+                    </TransactionRow>
+                  </div>
+                  <button type="button"
+                    disabled={(pdoMintStatus === "pending")}
+                    onClick={onMint}
+                    className="w-full button-lg"
+                  >
+                    {(pdoMintStatus === "pending") ? (
+                      <TinyLoadingIcon />
+                    ) : (pdoMintStatus === "error") ? (
+                      "Error!"
+                    ) : (
+                      "Propose"
+                    )}
+                  </button>
+                </form>
+              </>
             ) : (
-              <div className="flex flex-col gap-2">
+              <form ref={launchFormRef}  className="flex flex-col gap-2">
                 <input type="text" name="name" required
                   placeholder={`name (e.g. ${urbitPDO.patp} token)`}
                   autoComplete="off"
@@ -430,16 +503,16 @@ export function PDOAccountInfo({
                     "Launch"
                   )}
                 </button>
-              </div>
+              </form>
             )}
-          </form>
+          </div>
           <div className="flex flex-col items-center gap-2">
             <h2 className="text-2xl">
               PDO Proposals
             </h2>
-            {(pdoProposals === undefined || twDeployerTax === undefined) ? (
+            {(pdoProposals === undefined || twDeployerTax === undefined || twSyndicateTax === undefined) ? (
               <TinyLoadingIcon />
-            ) : (pdoProposals === null || twDeployerTax === null) ? (
+            ) : (pdoProposals === null || twDeployerTax === null || twSyndicateTax === null) ? (
               <div>error</div>
             ) : (pdoProposals.length === 0) ? (
               <div>(no proposals found)</div>
@@ -458,6 +531,8 @@ export function PDOAccountInfo({
                             "Transfer Token"
                           ) : (transaction.type === "launch") ? (
                             "Launch Token"
+                          ) : (transaction.type === "mint") ? (
+                            "Mint Token"
                           ) : (
                             "Execute Transaction"
                           )}
@@ -475,18 +550,31 @@ export function PDOAccountInfo({
                                 {formatToken(transaction.amount, transaction.token)}
                               </TransactionRow>
                               <TransactionRow title="Protocol Fee">
-                                {twDeployerTax.fee.toFixed(2)}%
+                                {formatTax(twDeployerTax)}
                               </TransactionRow>
                               <TransactionRow title="PDO Receives">
                                 {
                                   formatToken(
-                                    transaction.amount - ((twDeployerTax.fee === 0)
-                                      ? BigInt(0)
-                                      : (transaction.amount / BigInt(twDeployerTax.fee))
-                                    ),
+                                    transaction.amount - applyTax(transaction.amount, twDeployerTax),
                                     transaction.token,
                                   )
                                 }
+                              </TransactionRow>
+                            </>
+                          ) : (transaction.type === "mint") ? (
+                            <>
+                              <TransactionRow
+                                title={formatToken(transaction.amount, transaction.token)}
+                              >
+                                <TBAFrame address={transaction.to} short={true} />
+                              </TransactionRow>
+                              <TransactionRow
+                                title={formatToken(
+                                  applyTax(transaction.amount, twDeployerTax),
+                                  transaction.token,
+                                )}
+                              >
+                                <AddressFrame address={twDeployerTax.to} short={true} />
                               </TransactionRow>
                             </>
                           ) : (

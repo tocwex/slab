@@ -64,13 +64,13 @@ export function HeroFrame({
 }): React.ReactNode {
   const blockHeight: string = (size !== "lg") ? "" : "h-lvh";
   const textSize: string =
-    (size === "sm") ? ("text-base")
-    : (size === "md") ? ("text-2xl")
-    : "text-4xl";
+    (size === "sm") ? "text-base"
+    : (size === "md") ? "text-2xl"
+    : "font-bold underline text-4xl";
   return (
     <div className={`main ${blockHeight}`}>
       {!!title && (
-        <h1 className={`font-bold underline ${textSize}`}>{title}</h1>
+        <h1 className={`${textSize}`}>{title}</h1>
       )}
       {children}
     </div>

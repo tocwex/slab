@@ -1,11 +1,11 @@
 import type {
   Nullable, Address, Contract, Transaction,
-  UrbitID, UrbitClan, Token,
+  UrbitID, UrbitClan, Token, Tax,
 } from '@/type/slab';
 import type { WalletState } from '@web3-onboard/core';
 import { APP, ABI, ACCOUNT, BLOCKCHAIN, CONTRACT } from '@/dat/const';
 import * as ob from "urbit-ob";
-import { formatUnits, isHex, toHex, fromHex } from 'viem';
+import { formatUnits, isHex, hexToBigInt } from 'viem';
 
 const CLAN_INDEX = Object.freeze({
   galaxy: 0,
@@ -14,6 +14,10 @@ const CLAN_INDEX = Object.freeze({
   moon: 3,
   comet: 4,
 });
+
+export function clamp<T>(value: T, lo: T, hi: T): T {
+  return ((value < lo) ? lo : ((value > hi) ? hi : value));
+}
 
 export function delay(milliseconds: number): Promise<void> {
   return new Promise(res => setTimeout(res, milliseconds));
@@ -51,25 +55,51 @@ export function decodeSet<U>(str: string, sip?: (s: string) => U): Set<U> {
   return new Set(str.split(",").map(stringToU));
 }
 
-export function clamp<T>(value: T, lo: T, hi: T): T {
-  return ((value < lo) ? lo : ((value > hi) ? hi : value));
+export function coerceBigInt(amount: number | string | bigint): [bigint, number] {
+  let [value, decimals]: [bigint, number] = [BigInt(0), 0];
+
+  if (typeof amount === "bigint") {
+    value = amount;
+  } else if (typeof amount === "string" && isHex(amount)) {
+    value = hexToBigInt(amount);
+  } else {
+    const decimal: number = Number(amount);
+    if (!isNaN(decimal)) {
+      const amountString: string = String(decimal);
+      value = BigInt(amountString.replace(".", ""));
+      decimals = (amountString.split(".")?.[1] ?? "").length;
+    }
+  }
+
+  return [value, decimals];
+}
+
+export function applyTax(amount: number | bigint | string, tax: Tax): bigint {
+  const [bigAmount, ] = coerceBigInt(amount);
+  return (bigAmount * tax.fee) / BigInt(10000);
+}
+
+export function formatTax(tax: Tax): string {
+  return `${Number(formatUnits(tax.fee, 2)).toFixed(2)}%`;
 }
 
 export function formatToken(amount: number | bigint | string, token: Token): string {
+  const [bigAmount, bigDecimals] = coerceBigInt(amount);
   return `${
-    formatFloat(formatUnits(BigInt(amount), token.decimals))
+    formatUnits(bigAmount, bigDecimals + token.decimals)
   } \$${
     token.symbol
   }`;
 }
 
-// FIXME: These should use 'BigInt' while accounting for potential decimal numbers
 export function formatFloat(amount: number | bigint | string): string {
-  return Number(amount).toLocaleString("en-US", {maximumFractionDigits: 18});
+  const [bigAmount, bigDecimals] = coerceBigInt(amount);
+  return formatUnits(bigAmount, bigDecimals);
 }
 
 export function formatUint(amount: number | bigint | string): string {
-  return Number(amount).toLocaleString("en-US", {maximumFractionDigits: 0}).replaceAll(",", ".");
+  const floatFormat = formatFloat(amount);
+  return floatFormat.split(".")[0];
 }
 
 export function trimAddress(address: string): string {

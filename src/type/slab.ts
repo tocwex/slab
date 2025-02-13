@@ -12,7 +12,7 @@ export type AddressType = 'account' | 'transaction' | 'signature';
 export type ChainAddress = `${string}:${Address}`;
 
 export interface Tax {
-  fee: number;
+  fee: bigint; // NOTE: assumed to be between 0 and 10000
   to: Address;
 }
 
@@ -31,7 +31,7 @@ export interface UrbitID {
   clan: UrbitClan;
 }
 
-export type TransactionType = 'transfer' | 'launch' | 'other';
+export type TransactionType = 'transfer' | 'launch' | 'mint' | 'other';
 export interface TransferTransaction {
   type: 'transfer';
   to: Address;
@@ -43,10 +43,16 @@ export interface LaunchTransaction {
   amount: bigint;
   token: Token;
 }
+export interface MintTransaction {
+  type: 'mint';
+  to: Address;
+  amount: bigint;
+  token: Token;
+}
 export interface OtherTransaction {
   type: 'other';
 }
-export type Transaction = TransferTransaction | LaunchTransaction | OtherTransaction;
+export type Transaction = TransferTransaction | LaunchTransaction | MintTransaction | OtherTransaction;
 
 export interface Contract {
   address: Address;

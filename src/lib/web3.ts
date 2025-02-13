@@ -184,14 +184,14 @@ export async function decodeProposal(
     });
     if (tbFunc === "execute") {
       const [tbTo, tbValue, tbData, tbOp] = (tbArgs as [Address, bigint, Address, number]);
-      if (tbData === "0x") {
+      if (tbData === "0x") { // first: ETH transfer
         transaction = {
           type: "transfer",
           to: tbTo,
           amount: tbValue,
           token: formToken(wallet.chain, "ETH"),
         };
-      } else {
+      } else {  // second: ERC20 transfer
         try {
           const { functionName: inFunc, args: inArgs } = decodeFunctionData({
             abi: ABI.ERC20,
@@ -209,26 +209,44 @@ export async function decodeProposal(
               };
             }
           }
-        } catch (error) {
-          const { functionName: inFunc, args: inArgs } = decodeFunctionData({
-            abi: ABI.TOCWEX_DEPLOYER_V1,
-            data: tbData,
-          });
-          if (inFunc === "deploySyndicate") {
-            const [, , tkInitSupply, tkMaxSupply, , tkName, tkSymbol] =
-              (inArgs as [Address, string, bigint, bigint, number, string, string]);
-            transaction = {
-              type: "launch",
-              amount: tkInitSupply,
-              token: {
-                address: NULL.address,
-                // @ts-ignore
-                abi: ABI.ERC20,
-                name: tkName,
-                symbol: tkSymbol,
-                decimals: 18,
-              },
-            };
+        } catch (error) { // third: Syndicate mint
+          try {
+            const { functionName: inFunc, args: inArgs } = decodeFunctionData({
+              abi: ABI.TOCWEX_TOKEN_V1,
+              data: tbData,
+            });
+            // TODO: Add support for batched mint here
+            if (inFunc === "mint") {
+              const [mintAddress, mintAmount] = (inArgs as [Address, bigint]);
+              const mintToken = await fetchToken(wallet, tbTo);
+              transaction = {
+                type: "mint",
+                to: mintAddress,
+                amount: mintAmount,
+                token: mintToken,
+              };
+            }
+          } catch (error) { // fourth: Syndicate deployment
+            const { functionName: inFunc, args: inArgs } = decodeFunctionData({
+              abi: ABI.TOCWEX_DEPLOYER_V1,
+              data: tbData,
+            });
+            if (inFunc === "deploySyndicate") {
+              const [, , tkInitSupply, tkMaxSupply, , tkName, tkSymbol] =
+                (inArgs as [Address, string, bigint, bigint, number, string, string]);
+              transaction = {
+                type: "launch",
+                amount: tkInitSupply,
+                token: {
+                  address: NULL.address,
+                  // @ts-ignore
+                  abi: ABI.ERC20,
+                  name: tkName,
+                  symbol: tkSymbol,
+                  decimals: 18,
+                },
+              };
+            }
           }
         }
       }
