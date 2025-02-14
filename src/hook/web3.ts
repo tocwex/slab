@@ -1,7 +1,7 @@
 import type { QueryKey, UseMutationOptions } from '@tanstack/react-query';
 import type {
   Loadable, Nullable, Address, ChainAddress, Tax, UrbitID,
-  Contract, Token, Transaction, TokenHolding, TokenHoldings,
+  Contract, Token, TokenHolding, TokenHoldings, SlabTransaction,
   TokenboundAccount, SafeAccount, UrbitAccount, UrbitNetworkLayer,
   SafeResponse, SafeOwners, SafeArchive,
 } from '@/type/slab';
@@ -113,16 +113,22 @@ export function usePDOMintMutation(
 
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({amount, recipient}: {
-      amount: string,
-      recipient: string,
+    mutationFn: async ({amounts, recipients}: {
+      amounts: string[],
+      recipients: string[],
     }) => {
       if (!wallet || !tbClient || !idAccount || !pdoAccount || !pdoSafe)
         throw Error(ERROR.INVALID_QUERY);
       if (!pdoAccount.token)
         throw Error("Cannot mint tokens for PDO without dedicated token");
-      const recipientAddress = await fetchTBAddress(wallet, tbClient, recipient);
-      const recipientAmount = parseUnits(amount, pdoAccount.token.decimals);
+      if (amounts.length !== recipients.length)
+        throw Error("Mismatch in the number of minting amounts and recipients");
+      const recipientAmounts: bigint[] = amounts.map((amount) => (
+        parseUnits(amount, (pdoAccount?.token?.decimals ?? 18))
+      ));
+      const recipientAddresses: Address[] = await Promise.all(recipients.map((recipient) => (
+        fetchTBAddress(wallet, tbClient, recipient)
+      )));
 
       const tbMintTransaction = await tbClient.prepareExecution({
         account: pdoAccount.address,
@@ -130,8 +136,13 @@ export function usePDOMintMutation(
         value: BigInt(0),
         data: encodeFunctionData({
           abi: ABI.TOCWEX_TOKEN_V1,
-          functionName: "mint",
-          args: [recipientAddress, recipientAmount],
+          ...((recipientAmounts.length === 1) ? ({
+            functionName: "mint",
+            args: [recipientAddresses[0], recipientAmounts[0]],
+          }) : ({
+            functionName: "batchMint",
+            args: [recipientAddresses, recipientAmounts],
+          })),
         }),
       });
 
@@ -517,7 +528,7 @@ export function useSafeProposals(urbitPDO: UrbitID): Loadable<SafeResponse[]> {
         const proposalData: Address = ((proposal.data ?? "0x0") as Address);
         // TODO: Our custom ERC-6551 implementation calls are too exotic to be
         // decoded by Safe's in-house solution
-        const safeTransaction: Transaction = await decodeProposal(wallet, proposalData);
+        const safeTransaction: SlabTransaction = await decodeProposal(wallet, proposalData);
         safeTransactions.push({...proposal, transaction: safeTransaction});
       }
 

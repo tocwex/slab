@@ -1,8 +1,8 @@
 import type { WagmiConfig } from '@web3-onboard/core';
 import type { EIP1193Provider } from 'viem';
 import type {
-  Address, Contract, Transaction,
-  UrbitID, WalletMeta, Token,
+  Address, Contract, Transfer, Token,
+  UrbitID, WalletMeta, SlabTransaction,
 } from '@/type/slab';
 import { TokenboundClient } from '@tokenbound/sdk';
 import Safe, { getSafeAddressFromDeploymentTx } from '@safe-global/protocol-kit';
@@ -173,9 +173,9 @@ export async function fetchUrbitID(
 export async function decodeProposal(
   wallet: WalletMeta,
   data: Address,
-): Promise<Transaction> {
+): Promise<SlabTransaction> {
   const NULL: Token = formToken(wallet.chain, "NULL");
-  let transaction: Transaction = { type: "other" };
+  let transaction: SlabTransaction = { type: "other" };
 
   try {
     const { functionName: tbFunc, args: tbArgs } = decodeFunctionData({
@@ -215,15 +215,27 @@ export async function decodeProposal(
               abi: ABI.TOCWEX_TOKEN_V1,
               data: tbData,
             });
-            // TODO: Add support for batched mint here
             if (inFunc === "mint") {
               const [mintAddress, mintAmount] = (inArgs as [Address, bigint]);
               const mintToken = await fetchToken(wallet, tbTo);
               transaction = {
                 type: "mint",
-                to: mintAddress,
-                amount: mintAmount,
                 token: mintToken,
+                transfers: [{
+                  to: mintAddress,
+                  amount: mintAmount,
+                }],
+              };
+            } else if (inFunc === "batchMint") {
+              const [mintAddresses, mintAmounts] = (inArgs as [Address[], bigint[]]);
+              const mintToken = await fetchToken(wallet, tbTo);
+              transaction = {
+                type: "mint",
+                token: mintToken,
+                transfers: mintAddresses.map((address, index): Transfer => ({
+                  to: address,
+                  amount: mintAmounts[index],
+                })),
               };
             }
           } catch (error) { // fourth: Syndicate deployment

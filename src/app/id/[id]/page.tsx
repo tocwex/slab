@@ -142,15 +142,13 @@ export default function IDPage(): React.ReactNode {
           value={managerNames[realID]}
           onChange={e => setManagerNames(managerNames.toSpliced(realID, 1, e.target.value))}
         />
-        {(realID > 0) && (
-          <button type="button"
-            disabled={(tbCreateStatus === "pending")}
-            onClick={delManager}
-            className="button-sm"
-          >
-            X
-          </button>
-        )}
+        <button type="button"
+          disabled={(realID === 0) || (tbCreateStatus === "pending")}
+          onClick={delManager}
+          className="button-sm"
+        >
+          X
+        </button>
         <button type="button"
           disabled={
             !tbAccount

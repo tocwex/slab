@@ -21,8 +21,8 @@ import {
 } from '@/hook/web3';
 import { useLocalTokens, useTokensAddMutation } from '@/hook/local';
 import {
-  trimAddress, hasClanBoon, parseForm, coerceBigInt,
-  applyTax, formatTax, formatToken, formatFloat, formatUint,
+  trimAddress, hasClanBoon, parseForm, coerceBigInt, applyTax,
+  formatTax, formatToken, forceUrbitID, formatFloat, formatUint,
 } from '@/lib/util';
 import { formatUnits } from 'viem';
 import { MATH, REGEX } from '@/dat/const';
@@ -221,7 +221,7 @@ export function PDOAccountInfo({
   const launchFormRef = useRef<HTMLFormElement>(null);
   const mintFormRef = useRef<HTMLFormElement>(null);
   const [useMaxSupply, setUseMaxSupply] = useState<boolean>(false);
-  const [mintAmount, setMintAmount] = useState<number | string>("");
+  const [mintData, setMintData] = useState<[string, string][]>([["", ""]]);
 
   const localTokens = useLocalTokens();
   const idAccount = useTokenboundAccount(urbitID);
@@ -242,14 +242,22 @@ export function PDOAccountInfo({
   );
   const { mutate: pdoMintMutate, status: pdoMintStatus } = usePDOMintMutation(
     urbitID, urbitPDO,
-    { onSuccess: () => mintFormRef.current?.reset() },
+    {
+      onSuccess: () => {
+        mintFormRef.current?.reset();
+        setMintData([["", ""]]);
+      },
+    },
   );
 
-  const mintValue = useMemo(() => {
-    const [mintValue, mintDecimals] = coerceBigInt(mintAmount);
-    const mintShift = (pdoAccount?.token?.decimals ?? 18) - mintDecimals;
-    return mintValue * BigInt(10) ** BigInt(mintShift);
-  }, [mintAmount, pdoAccount]);
+  const mintTotal = useMemo(() => {
+    const mintBigInts = mintData.map(([amount, recipient]) => coerceBigInt(amount));
+    const mintTotal = mintBigInts.reduce((mintValue, [mintBigInt, mintDecimals]) => {
+      const mintShift = (pdoAccount?.token?.decimals ?? 18) - mintDecimals;
+      return mintValue + (mintBigInt * BigInt(10) ** BigInt(mintShift));
+    }, BigInt(0));
+    return mintTotal;
+  }, [mintData, pdoAccount]);
 
   const TransactionRow = useCallback(({
       children,
@@ -269,6 +277,59 @@ export function PDOAccountInfo({
   const toggleMaxSupply = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     setUseMaxSupply(event.target.checked);
   }, [setUseMaxSupply]);
+  const addMintDatum = useCallback(() => (
+    setMintData(mintData.concat([["", ""]]))
+  ), [mintData, setMintData]);
+
+  const MintInput = useCallback(({
+    mintData,
+    setMintData,
+    id,
+    ...props
+  }: {
+    mintData: [string, string][];
+    setMintData: (s: [string, string][]) => void;
+  } & React.HTMLAttributes<HTMLDivElement>) => {
+    const realID = useMemo(() => Number(id ?? 0), [id]);
+
+    const delInput = useCallback(() => (
+      setMintData(mintData.toSpliced(realID, 1))
+    ), [realID, mintData, setMintData]);
+
+    return (
+      <div {...props} className="w-full flex flex-row justify-between items-center gap-2">
+        <input type="text" name={`recipient-${id}`} required
+          placeholder="urbit id"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck="false"
+          value={mintData[realID][1]}
+          onChange={e => setMintData(
+            mintData.toSpliced(realID, 1, [mintData[realID][0], e.target.value])
+          )}
+          pattern={REGEX.AZIMUTH.POINT}
+          className="input-lg"
+        />
+        <input type="number" name={`amount-${id}`} required
+          min="0.0001" max="100000000" step="0.0001"
+          placeholder="amount"
+          value={mintData[realID][0]}
+          onChange={e => setMintData(
+            mintData.toSpliced(realID, 1, [e.target.value, mintData[realID][1]])
+          )}
+          className="input-lg"
+        />
+        <button type="button"
+          disabled={(realID === 0)}
+          onClick={delInput}
+          className="button-sm"
+        >
+          X
+        </button>
+      </div>
+    );
+  }, []);
 
   const onSign = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
     const signHash = (event.currentTarget as HTMLButtonElement).dataset.hash;
@@ -301,11 +362,11 @@ export function PDOAccountInfo({
 
   const onMint = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
     const fields = parseForm(event, {
-      amount: "0",
-      recipient: urbitID.patp,
+      amounts: mintData.map(([a, r]) => a),
+      recipients: mintData.map(([a, r]) => r).map(forceUrbitID),
     });
     fields && pdoMintMutate(fields);
-  }, [pdoMintMutate]);
+  }, [pdoMintMutate, mintData]);
 
   return (
     <LoadingFrame title={"Tokenbound Account"} size="md" status={idAccount && pdoAccount}>
@@ -399,25 +460,19 @@ export function PDOAccountInfo({
                   Input the amount of tokens to be received by the
                   recipients.
                 </p>
-                <form ref={mintFormRef} className="flex flex-col gap-2">
-                  <input type="text" name="recipient" required
-                    placeholder="urbit id"
-                    autoComplete="off"
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    spellCheck="false"
-                    pattern={REGEX.AZIMUTH.POINT}
-                    className="input-lg"
-                  />
-                  <input type="number" name="amount" required
-                    min="0.0001" max="100000000" step="0.0001"
-                    placeholder="amount"
-                    value={mintAmount}
-                    onChange={e => setMintAmount(
-                      e.target.value && Number(e.target.value)
-                    )}
-                    className="input-lg"
-                  />
+                <form ref={mintFormRef} className="flex flex-col gap-2 items-center">
+                  {mintData.map((mintDatum, mintID: number) => (
+                    <MintInput key={mintID} id={String(mintID)}
+                      mintData={mintData}
+                      setMintData={setMintData}
+                    />
+                  ))}
+                  <button type="button"
+                    onClick={addMintDatum}
+                    className="button-sm"
+                  >
+                    {"+ Add"}
+                  </button>
                   <div className="w-full flex flex-col">
                     <TransactionRow title="Protocol Fee">
                       {formatTax(twSyndicateTax)}
@@ -425,7 +480,7 @@ export function PDOAccountInfo({
                     <TransactionRow title="Total Mint Quantity">
                       {
                         formatToken(
-                          mintValue + applyTax(mintValue, twSyndicateTax),
+                          mintTotal + applyTax(mintTotal, twSyndicateTax),
                           pdoAccount.token,
                         )
                       }
@@ -563,18 +618,24 @@ export function PDOAccountInfo({
                             </>
                           ) : (transaction.type === "mint") ? (
                             <>
-                              <TransactionRow
-                                title={formatToken(transaction.amount, transaction.token)}
-                              >
-                                <TBAFrame address={transaction.to} short={true} />
-                              </TransactionRow>
+                              {transaction.transfers.map(({amount, to}) => (
+                                <TransactionRow key={to}
+                                  title={formatToken(amount, transaction.token)}
+                                >
+                                  <TBAFrame address={to} short={true} />
+                                </TransactionRow>
+                              ))}
+                              <hr />
                               <TransactionRow
                                 title={formatToken(
-                                  applyTax(transaction.amount, twDeployerTax),
+                                  applyTax(
+                                    transaction.transfers.reduce((a, {amount: n}) => a + n, BigInt(0)),
+                                    twDeployerTax,
+                                  ),
                                   transaction.token,
                                 )}
                               >
-                                <AddressFrame address={twDeployerTax.to} short={true} />
+                                Protocol Fee
                               </TransactionRow>
                             </>
                           ) : (

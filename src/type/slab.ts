@@ -12,8 +12,13 @@ export type AddressType = 'account' | 'transaction' | 'signature';
 export type ChainAddress = `${string}:${Address}`;
 
 export interface Tax {
-  fee: bigint; // NOTE: assumed to be between 0 and 10000
   to: Address;
+  fee: bigint; // NOTE: assumed to be between 0 and 10000
+}
+
+export interface Transfer {
+  to: Address;
+  amount: bigint; // NOTE: unitless unless relative to some token
 }
 
 export interface WalletMeta {
@@ -31,28 +36,29 @@ export interface UrbitID {
   clan: UrbitClan;
 }
 
-export type TransactionType = 'transfer' | 'launch' | 'mint' | 'other';
-export interface TransferTransaction {
+export type SlabTransactionType = 'transfer' | 'launch' | 'mint' | 'other';
+export interface SlabTransferTransaction extends Transfer {
   type: 'transfer';
-  to: Address;
-  amount: bigint;
   token: Token;
 }
-export interface LaunchTransaction {
+export interface SlabLaunchTransaction {
   type: 'launch';
   amount: bigint;
   token: Token;
 }
-export interface MintTransaction {
+export interface SlabMintTransaction {
   type: 'mint';
-  to: Address;
-  amount: bigint;
+  transfers: Transfer[];
   token: Token;
 }
-export interface OtherTransaction {
+export interface SlabOtherTransaction {
   type: 'other';
 }
-export type Transaction = TransferTransaction | LaunchTransaction | MintTransaction | OtherTransaction;
+export type SlabTransaction =
+  SlabTransferTransaction
+  | SlabLaunchTransaction
+  | SlabMintTransaction
+  | SlabOtherTransaction;
 
 export interface Contract {
   address: Address;
@@ -102,7 +108,7 @@ export type SafeOwners = Record<string, Address>;
 export type SafeArchive = Record<ChainAddress, SafeOwners>;
 
 export interface SafeResponse extends SafeMultisigTransactionResponse {
-  transaction: Transaction;
+  transaction: SlabTransaction;
 }
 
 export interface SafeAccount extends SafeInfoResponse {

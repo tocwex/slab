@@ -1,6 +1,5 @@
 import type {
-  Nullable, Address, Contract, Transaction,
-  UrbitID, UrbitClan, Token, Tax,
+  Nullable, Address, Contract, Token, Tax, UrbitID, UrbitClan,
 } from '@/type/slab';
 import type { WalletState } from '@web3-onboard/core';
 import { APP, ABI, ACCOUNT, BLOCKCHAIN, CONTRACT } from '@/dat/const';
