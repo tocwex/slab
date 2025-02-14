@@ -54,6 +54,10 @@ export function decodeSet<U>(str: string, sip?: (s: string) => U): Set<U> {
   return new Set(str.split(",").map(stringToU));
 }
 
+export function trimAddress(address: string): string {
+  return `${address.slice(0, 5)}…${address.slice(-4)}`;
+}
+
 export function coerceBigInt(amount: number | string | bigint): [bigint, number] {
   let [value, decimals]: [bigint, number] = [BigInt(0), 0];
 
@@ -73,36 +77,51 @@ export function coerceBigInt(amount: number | string | bigint): [bigint, number]
   return [value, decimals];
 }
 
+export function formatFloat(
+  amount: number | bigint | string,
+  minDecimals: number | undefined = undefined,
+  maxDecimals: number | undefined = undefined,
+): string {
+  const [bigAmount, bigDecimals] = coerceBigInt(amount);
+  const floatFormat: string = formatUnits(bigAmount, bigDecimals);
+  const [floatNum, floatDec] = floatFormat.split(".");
+  const curDecimals: number = (floatDec ?? "").length;
+
+  let finalFormat: string = floatFormat;
+  if ((minDecimals !== undefined) && curDecimals < minDecimals) {
+    finalFormat = `${floatNum}.${"0".repeat(minDecimals - curDecimals)}`;
+  } if ((maxDecimals !== undefined) && curDecimals > maxDecimals) {
+    finalFormat = `${floatNum}.${floatDec.slice(0, maxDecimals)}`;
+  }
+
+  return finalFormat;
+}
+
+export function formatUint(amount: number | bigint | string): string {
+  return formatFloat(amount, 0, 0);
+}
+
 export function applyTax(amount: number | bigint | string, tax: Tax): bigint {
   const [bigAmount, ] = coerceBigInt(amount);
   return (bigAmount * tax.fee) / BigInt(10000);
 }
 
+export function includeTax(amount: number | bigint | string, tax: Tax): bigint {
+  const [bigAmount, ] = coerceBigInt(amount);
+  return (bigAmount * BigInt(10000)) / (BigInt(10000) - tax.fee);
+}
+
 export function formatTax(tax: Tax): string {
-  return `${Number(formatUnits(tax.fee, 2)).toFixed(2)}%`;
+  return `${formatFloat(formatUnits(tax.fee, 2), 2, 2)}%`;
 }
 
 export function formatToken(amount: number | bigint | string, token: Token): string {
   const [bigAmount, bigDecimals] = coerceBigInt(amount);
   return `${
-    formatUnits(bigAmount, bigDecimals + token.decimals)
+    formatFloat(formatUnits(bigAmount, bigDecimals + token.decimals), 0, 2)
   } \$${
     token.symbol
   }`;
-}
-
-export function formatFloat(amount: number | bigint | string): string {
-  const [bigAmount, bigDecimals] = coerceBigInt(amount);
-  return formatUnits(bigAmount, bigDecimals);
-}
-
-export function formatUint(amount: number | bigint | string): string {
-  const floatFormat = formatFloat(amount);
-  return floatFormat.split(".")[0];
-}
-
-export function trimAddress(address: string): string {
-  return `${address.slice(0, 5)}…${address.slice(-4)}`;
 }
 
 export function compareUrbitIDs(a: UrbitID, b: UrbitID): number {

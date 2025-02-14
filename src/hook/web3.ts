@@ -29,8 +29,8 @@ import {
   fetchToken, fetchUrbitID, decodeProposal,
 } from '@/lib/web3';
 import {
-  getChainMeta, formContract, formToken, formUrbitID,
-  isValidPDO, compareUrbitIDs, encodeSet, decodeSet, clamp,
+  clamp, getChainMeta, formContract, formToken, formUrbitID,
+  includeTax, isValidPDO, compareUrbitIDs, encodeSet, decodeSet,
 } from '@/lib/util';
 import { update as updateLocal } from '@/dat/local';
 import { APP, ABI, ACCOUNT, CONTRACT, MATH, ERROR } from '@/dat/const';
@@ -103,6 +103,7 @@ export function usePDOMintMutation(
   const tbClient = useTokenboundClient();
   const idAccount = useTokenboundAccount(urbitID);
   const pdoAccount = useTokenboundAccount(urbitPDO);
+  const twTax = useSyndicateTax(urbitPDO);
   const pdoSafe = useSafeAccount(urbitPDO);
   const queryKey: QueryKey = useMemo(() => [
     APP.TAG, "safe", "proposals", wallet?.chainID, urbitPDO.id,
@@ -117,15 +118,17 @@ export function usePDOMintMutation(
       amounts: string[],
       recipients: string[],
     }) => {
-      if (!wallet || !tbClient || !idAccount || !pdoAccount || !pdoSafe)
+      if (!wallet || !tbClient || !idAccount || !pdoAccount || !pdoSafe || !twTax)
         throw Error(ERROR.INVALID_QUERY);
       if (!pdoAccount.token)
         throw Error("Cannot mint tokens for PDO without dedicated token");
       if (amounts.length !== recipients.length)
         throw Error("Mismatch in the number of minting amounts and recipients");
-      const recipientAmounts: bigint[] = amounts.map((amount) => (
-        parseUnits(amount, (pdoAccount?.token?.decimals ?? 18))
-      ));
+      const recipientAmounts: bigint[] = amounts.map((amount) => {
+        const bigAmount = parseUnits(amount, (pdoAccount?.token?.decimals ?? 18));
+        const bigAmountWTax = includeTax(bigAmount, twTax);
+        return bigAmountWTax;
+      });
       const recipientAddresses: Address[] = await Promise.all(recipients.map((recipient) => (
         fetchTBAddress(wallet, tbClient, recipient)
       )));

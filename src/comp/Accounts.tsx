@@ -21,7 +21,8 @@ import {
 } from '@/hook/web3';
 import { useLocalTokens, useTokensAddMutation } from '@/hook/local';
 import {
-  trimAddress, hasClanBoon, parseForm, coerceBigInt, applyTax,
+  trimAddress, hasClanBoon, parseForm,
+  coerceBigInt, applyTax, includeTax,
   formatTax, formatToken, forceUrbitID, formatFloat, formatUint,
 } from '@/lib/util';
 import { formatUnits } from 'viem';
@@ -480,7 +481,7 @@ export function PDOAccountInfo({
                     <TransactionRow title="Total Mint Quantity">
                       {
                         formatToken(
-                          mintTotal + applyTax(mintTotal, twSyndicateTax),
+                          includeTax(mintTotal, twSyndicateTax),
                           pdoAccount.token,
                         )
                       }
@@ -620,7 +621,10 @@ export function PDOAccountInfo({
                             <>
                               {transaction.transfers.map(({amount, to}) => (
                                 <TransactionRow key={to}
-                                  title={formatToken(amount, transaction.token)}
+                                  title={formatToken(
+                                    amount - applyTax(amount, twSyndicateTax),
+                                    transaction.token,
+                                  )}
                                 >
                                   <TBAFrame address={to} short={true} />
                                 </TransactionRow>
@@ -630,7 +634,7 @@ export function PDOAccountInfo({
                                 title={formatToken(
                                   applyTax(
                                     transaction.transfers.reduce((a, {amount: n}) => a + n, BigInt(0)),
-                                    twDeployerTax,
+                                    twSyndicateTax,
                                   ),
                                   transaction.token,
                                 )}
