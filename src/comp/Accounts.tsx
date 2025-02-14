@@ -13,7 +13,7 @@ import {
   ErrorIcon, SendIcon, SignIcon,
 } from '@/comp/Icons';
 import {
-  useTokenboundAccount, useSafeAccount, useSafeProposals,
+  useTokenboundAccount, useSafeAccount, useSafeProposals, useUrbitAccount,
   useDeployerTax, useSyndicateTax,
   useTokenboundCreateMutation, useTokenboundSendMutation,
   usePDOSendMutation, usePDOSignMutation, usePDOExecMutation,
@@ -21,9 +21,9 @@ import {
 } from '@/hook/web3';
 import { useLocalTokens, useTokensAddMutation } from '@/hook/local';
 import {
-  trimAddress, hasClanBoon, parseForm,
-  coerceBigInt, applyTax, includeTax,
-  formatTax, formatToken, forceUrbitID, formatFloat, formatUint,
+  trimAddress, hasClanBoon, parseForm, formUrbitID,
+  coerceBigInt, applyTax, includeTax, forceUrbitID,
+  formatTax, formatToken, formatFloat, formatUint,
 } from '@/lib/util';
 import { formatUnits } from 'viem';
 import { MATH, REGEX } from '@/dat/const';
@@ -292,6 +292,17 @@ export function PDOAccountInfo({
     setMintData: (s: [string, string][]) => void;
   } & React.HTMLAttributes<HTMLDivElement>) => {
     const realID = useMemo(() => Number(id ?? 0), [id]);
+    const mintUrbitID = useMemo(() => formUrbitID(
+      mintData[realID][1]
+    ), [realID, mintData]);
+
+    const urbitAccount = useUrbitAccount(mintUrbitID);
+    const tbAccount = useTokenboundAccount(mintUrbitID);
+    const { mutate: tbCreateMutate, status: tbCreateStatus } = useTokenboundCreateMutation(
+      mintUrbitID,
+      // FIXME: Dirty way to prompt requery of TBAs after a new one is launched
+      { onSuccess: () => setMintData(mintData.splice(0)) },
+    );
 
     const delInput = useCallback(() => (
       setMintData(mintData.toSpliced(realID, 1))
@@ -327,6 +338,35 @@ export function PDOAccountInfo({
           className="button-sm"
         >
           X
+        </button>
+        <button type="button"
+          disabled={
+            !tbAccount
+            || !urbitAccount
+            || !!tbAccount.deployed
+            || (urbitAccount.layer !== "l1")
+            || (tbCreateStatus === "pending")
+          }
+          onClick={tbCreateMutate}
+          className="button-sm"
+        >
+          {!mintUrbitID.id ? (
+            "Waiting…"
+          ) : (tbAccount === undefined || urbitAccount === undefined) ? (
+            "Connecting…"
+          ) : (tbAccount === null || urbitAccount === null) ? (
+            "Disconnected!"
+          ) : (tbCreateStatus === "pending") ? (
+            <TinyLoadingIcon />
+          ) : (tbCreateStatus === "error") ? (
+            "Error!"
+          ) : (urbitAccount.layer !== "l1") ? (
+            "Invalid Recipient"
+          ) : !tbAccount?.deployed ? (
+            "~ Deploy"
+          ) : (
+            "Ready!"
+          )}
         </button>
       </div>
     );
@@ -364,8 +404,10 @@ export function PDOAccountInfo({
   const onMint = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
     const fields = parseForm(event, {
       amounts: mintData.map(([a, r]) => a),
-      recipients: mintData.map(([a, r]) => r).map(forceUrbitID),
+      recipients: mintData.map(([a, r]) => r).map(formUrbitID),
     });
+    // FIXME: We do this after parsing the form for better user alerts
+    mintData.map(([a, r]) => r).map(forceUrbitID);
     fields && pdoMintMutate(fields);
   }, [pdoMintMutate, mintData]);
 
@@ -584,11 +626,14 @@ export function PDOAccountInfo({
                       <div className="w-7/12 flex flex-col gap-2 items-center">
                         <span className="font-bold underline">
                           {(transaction.type === "transfer") ? (
-                            "Transfer Token"
+                            `Transfer ${formatToken(transaction.amount, transaction.token)}`
                           ) : (transaction.type === "launch") ? (
-                            "Launch Token"
+                            `Launch \$${transaction.token.symbol}`
                           ) : (transaction.type === "mint") ? (
-                            "Mint Token"
+                            `Mint ${formatToken(
+                              transaction.transfers.reduce((a, {amount: n}) => a + n, BigInt(0)),
+                              transaction.token,
+                            )}`
                           ) : (
                             "Execute Transaction"
                           )}
@@ -629,7 +674,6 @@ export function PDOAccountInfo({
                                   <TBAFrame address={to} short={true} />
                                 </TransactionRow>
                               ))}
-                              <hr />
                               <TransactionRow
                                 title={formatToken(
                                   applyTax(

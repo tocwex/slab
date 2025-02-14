@@ -203,6 +203,9 @@ export function usePDOLaunchMutation(
   const pdoKey: QueryKey = useMemo(() => [
     APP.TAG, "tokenbound", "account", wallet?.chainID, urbitPDO.id,
   ], [wallet?.chainID, urbitPDO.id]);
+  const taxKey: QueryKey = useMemo(() => [
+    APP.TAG, "tax", "syndicate", wallet?.chainID, urbitPDO.id,
+  ], [wallet?.chainID, urbitPDO.id]);
 
   const queryClient = useQueryClient();
   return useMutation({
@@ -266,6 +269,7 @@ export function usePDOLaunchMutation(
     onSettled: (_data, _error, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKey });
       queryClient.invalidateQueries({ queryKey: pdoKey });
+      queryClient.invalidateQueries({ queryKey: taxKey });
     },
     ...options,
   });
