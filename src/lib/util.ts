@@ -89,7 +89,7 @@ export function formatFloat(
 
   let finalFormat: string = floatFormat;
   if ((minDecimals !== undefined) && curDecimals < minDecimals) {
-    finalFormat = `${floatNum}.${"0".repeat(minDecimals - curDecimals)}`;
+    finalFormat = `${floatNum}.${floatDec ?? ""}${"0".repeat(minDecimals - curDecimals)}`;
   } if ((maxDecimals !== undefined) && curDecimals > maxDecimals) {
     finalFormat = `${floatNum}.${floatDec.slice(0, maxDecimals)}`;
   }
@@ -98,7 +98,9 @@ export function formatFloat(
 }
 
 export function formatUint(amount: number | bigint | string): string {
-  return formatFloat(amount, 0, 0);
+  // NOTE: https://stackoverflow.com/a/721415
+  const floatFormat = formatFloat(amount, 0, 0);
+  return floatFormat.replaceAll(/(\d)(?=(\d{3})+$)/g, "$1.");
 }
 
 export function applyTax(amount: number | bigint | string, tax: Tax): bigint {

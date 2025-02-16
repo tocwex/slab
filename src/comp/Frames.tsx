@@ -77,6 +77,23 @@ export function HeroFrame({
   );
 }
 
+export function WideFrame({
+  title = "<unknown>",
+  className = "",
+  children,
+}: {
+  title?: string;
+  className?: string;
+  children: React.ReactNode;
+}): React.ReactNode {
+  return (
+    <div className={`flex flex-row justify-between gap-2 ${className}`}>
+      <span className="whitespace-nowrap font-semibold">{title}</span>
+      {children}
+    </div>
+  );
+}
+
 export function UrbitIDFrame({
   urbitID,
   link=true,

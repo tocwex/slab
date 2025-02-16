@@ -5,6 +5,9 @@ const reactqueryClientSingleton = () => (new QueryClient({
   defaultOptions: {
     queries: {
       gcTime: Infinity,
+      staleTime: Infinity,
+      retryOnMount: false,
+      refetchOnMount: false,
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
       refetchInterval: false,

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { TokenboundAccountInfo } from '@/comp/Accounts';
 import { SafeFrame } from '@/comp/Frames';
+import { RecipientInput, RecipientTBAInput } from '@/comp/Forms';
 import { TinyLoadingIcon } from '@/comp/Icons';
 import { SingleSelector, SingleSelection } from '@/comp/Selector';
 import { useRouteUrbitID } from '@/hook/app';
@@ -109,21 +110,12 @@ export default function IDPage(): React.ReactNode {
     setManagerNames,
     id,
     ...props
-  }: {
+  }: React.ComponentProps<"div"> & {
     managerNames: string[];
     setManagerNames: (s: string[]) => void;
-  } & React.HTMLAttributes<HTMLDivElement>) => {
+  }) => {
     const realID = useMemo(() => Number(id ?? 0), [id]);
-    const managerUrbitID = useMemo(() => formUrbitID(
-      managerNames[realID]
-    ), [realID, managerNames]);
-    const urbitAccount = useUrbitAccount(managerUrbitID);
-    const tbAccount = useTokenboundAccount(managerUrbitID);
-    const { mutate: tbCreateMutate, status: tbCreateStatus } = useTokenboundCreateMutation(
-      managerUrbitID,
-      // FIXME: Dirty way to prompt requery of TBAs after a new one is launched
-      { onSuccess: () => setManagerNames(managerNames.splice(0)) },
-    );
+    const value = useMemo(() => managerNames[realID], [managerNames, realID]);
 
     const delManager = useCallback(() => (
       setManagerNames(managerNames.toSpliced(realID, 1))
@@ -131,52 +123,16 @@ export default function IDPage(): React.ReactNode {
 
     return (
       <div {...props} className="w-full flex flex-row justify-between items-center gap-2">
-        <input type="text" name={`manager-${id}`} required
-          placeholder="manager urbit id"
-          autoComplete="off"
-          autoCorrect="off"
-          autoCapitalize="off"
-          spellCheck="false"
-          pattern={REGEX.AZIMUTH.POINT}
-          className="input-sm"
-          value={managerNames[realID]}
+        <RecipientTBAInput name={`manager-${id}`} required
+          value={value}
           onChange={e => setManagerNames(managerNames.toSpliced(realID, 1, e.target.value))}
         />
         <button type="button"
-          disabled={(realID === 0) || (tbCreateStatus === "pending")}
+          disabled={managerNames.length < 2}
           onClick={delManager}
           className="button-sm"
         >
-          X
-        </button>
-        <button type="button"
-          disabled={
-            !tbAccount
-            || !urbitAccount
-            || !!tbAccount.deployed
-            || (urbitAccount.layer !== "l1")
-            || (tbCreateStatus === "pending")
-          }
-          onClick={tbCreateMutate}
-          className="button-sm"
-        >
-          {!managerUrbitID.id ? (
-            "Waiting…"
-          ) : (tbAccount === undefined || urbitAccount === undefined) ? (
-            "Connecting…"
-          ) : (tbAccount === null || urbitAccount === null) ? (
-            "Disconnected!"
-          ) : (tbCreateStatus === "pending") ? (
-            <TinyLoadingIcon />
-          ) : (tbCreateStatus === "error") ? (
-            "Error!"
-          ) : (urbitAccount.layer !== "l1") ? (
-            "Invalid Manager"
-          ) : !tbAccount?.deployed ? (
-            "~ Deploy"
-          ) : (
-            "Ready!"
-          )}
+          ❌
         </button>
       </div>
     );

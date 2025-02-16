@@ -5,12 +5,15 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { SingleSelector } from '@/comp/Selector';
 import {
-  HeroFrame, LoadingFrame, SafeFrame,
-  AddressFrame, UrbitIDFrame, TBAFrame,
+  HeroFrame, LoadingFrame, WideFrame,
+  SafeFrame, AddressFrame, UrbitIDFrame, TBAFrame,
 } from '@/comp/Frames';
 import {
+  CurrencyInput, TextInput, RecipientInput, RecipientTBAInput,
+} from '@/comp/Forms';
+import {
   TinyLoadingIcon, TextLoadingIcon,
-  ErrorIcon, SendIcon, SignIcon,
+  ClanIcon, AzimuthIcon, ErrorIcon, SendIcon, SignIcon,
 } from '@/comp/Icons';
 import {
   useTokenboundAccount, useSafeAccount, useSafeProposals, useUrbitAccount,
@@ -102,32 +105,28 @@ export function TokenboundAccountInfo({
 
   return (
     <div className="main">
-      <ul className="list-disc">
-        <li>
-          <span className="font-bold">urbit id: </span>
-          <UrbitIDFrame urbitID={urbitID} />
-        </li>
-        <li>
+      <div className="flex flex-col gap-2">
+        <div className="inline-flex flex-row gap-1 items-center">
           <span className="font-bold">point type: </span>
           <span>{urbitID.clan}</span>
-        </li>
-        <li>
+          <ClanIcon clan={urbitID.clan} className="w-5 h-5" />
+        </div>
+        <div className="inline-flex flex-row gap-1 items-center">
           <span className="font-bold">point number: </span>
-          <span>{formatUint(urbitID.id)}</span>
-        </li>
-        <li>
-          <div className="flex flex-row items-center gap-2">
-            <span className="font-bold">has tba?: </span>
-            {!tbAccount ? (
-              <TextLoadingIcon />
-            ) : !tbAccount.deployed ? (
-              <span>No</span>
-            ) : (
-              <AddressFrame address={tbAccount.address} />
-            )}
-          </div>
-        </li>
-      </ul>
+          <span className="font-mono">{formatUint(urbitID.id)}</span>
+          <AzimuthIcon className="w-5 h-5" />
+        </div>
+        <div className="flex flex-row items-center gap-2">
+          <span className="font-bold">has tba?: </span>
+          {!tbAccount ? (
+            <TextLoadingIcon />
+          ) : !tbAccount.deployed ? (
+            <span>No</span>
+          ) : (
+            <AddressFrame address={tbAccount.address} />
+          )}
+        </div>
+      </div>
       {(!!tbAccount && !tbAccount.deployed) && (
         <button type="button"
           disabled={(tbCreateStatus === "pending")}
@@ -160,15 +159,7 @@ export function TokenboundAccountInfo({
               ))}
             </ul>
             <div className="flex flex-col gap-2">
-              <input type="text" name="recipient" required
-                placeholder="urbit id"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck="false"
-                pattern={REGEX.AZIMUTH.POINT}
-                className="input-lg"
-              />
+              <RecipientInput name="recipient" required />
               <SingleSelector name="token" required={true}
                 placeholder="currency"
                 className="w-full"
@@ -183,11 +174,7 @@ export function TokenboundAccountInfo({
                   )),
                 ]}
               />
-              <input type="number" name="amount" required
-                min="0" max="100000000" step="0.0001"
-                placeholder="amount"
-                className="input-lg"
-              />
+              <CurrencyInput name="amount" required />
               <button type="button"
                 disabled={(tbSendStatus === "pending")}
                 onClick={onSend}
@@ -260,21 +247,6 @@ export function PDOAccountInfo({
     return mintTotal;
   }, [mintData, pdoAccount]);
 
-  const TransactionRow = useCallback(({
-      children,
-      title,
-      className,
-    } : {
-      children: React.ReactNode;
-      title?: string;
-      className?: string;
-    }) => (
-      <div className={`flex flex-row justify-between gap-2 ${className ?? ""}`}>
-        <span className="whitespace-nowrap font-semibold">{title ?? "<unknown>"}</span>
-        {children}
-      </div>
-  ), []);
-
   const toggleMaxSupply = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     setUseMaxSupply(event.target.checked);
   }, [setUseMaxSupply]);
@@ -287,86 +259,40 @@ export function PDOAccountInfo({
     setMintData,
     id,
     ...props
-  }: {
+  }: React.ComponentProps<"div"> & {
     mintData: [string, string][];
     setMintData: (s: [string, string][]) => void;
-  } & React.HTMLAttributes<HTMLDivElement>) => {
+  }) => {
     const realID = useMemo(() => Number(id ?? 0), [id]);
-    const mintUrbitID = useMemo(() => formUrbitID(
-      mintData[realID][1]
-    ), [realID, mintData]);
-
-    const urbitAccount = useUrbitAccount(mintUrbitID);
-    const tbAccount = useTokenboundAccount(mintUrbitID);
-    const { mutate: tbCreateMutate, status: tbCreateStatus } = useTokenboundCreateMutation(
-      mintUrbitID,
-      // FIXME: Dirty way to prompt requery of TBAs after a new one is launched
-      { onSuccess: () => setMintData(mintData.splice(0)) },
-    );
+    const value = useMemo(() => mintData[realID][1], [mintData, realID]);
 
     const delInput = useCallback(() => (
       setMintData(mintData.toSpliced(realID, 1))
     ), [realID, mintData, setMintData]);
 
     return (
-      <div {...props} className="w-full flex flex-row justify-between items-center gap-2">
-        <input type="text" name={`recipient-${id}`} required
-          placeholder="urbit id"
-          autoComplete="off"
-          autoCorrect="off"
-          autoCapitalize="off"
-          spellCheck="false"
-          value={mintData[realID][1]}
-          onChange={e => setMintData(
-            mintData.toSpliced(realID, 1, [mintData[realID][0], e.target.value])
-          )}
-          pattern={REGEX.AZIMUTH.POINT}
-          className="input-lg"
-        />
-        <input type="number" name={`amount-${id}`} required
-          min="0.0001" max="100000000" step="0.0001"
-          placeholder="amount"
-          value={mintData[realID][0]}
-          onChange={e => setMintData(
-            mintData.toSpliced(realID, 1, [e.target.value, mintData[realID][1]])
-          )}
-          className="input-lg"
-        />
+      <div {...props} className="w-full flex flex-row justify-between items-center gap-1">
+        <div className="flex flex-col gap-1">
+          <RecipientTBAInput name={`recipient-${id}`} required
+            value={value}
+            onChange={e => setMintData(
+              mintData.toSpliced(realID, 1, [mintData[realID][0], e.target.value])
+            )}
+          />
+          <CurrencyInput name={`amount-${id}`} required
+            className="input-sm"
+            value={mintData[realID][0]}
+            onChange={e => setMintData(
+              mintData.toSpliced(realID, 1, [e.target.value, mintData[realID][1]])
+            )}
+          />
+        </div>
         <button type="button"
-          disabled={(realID === 0)}
+          disabled={mintData.length < 2}
           onClick={delInput}
           className="button-sm"
         >
-          X
-        </button>
-        <button type="button"
-          disabled={
-            !tbAccount
-            || !urbitAccount
-            || !!tbAccount.deployed
-            || (urbitAccount.layer !== "l1")
-            || (tbCreateStatus === "pending")
-          }
-          onClick={tbCreateMutate}
-          className="button-sm"
-        >
-          {!mintUrbitID.id ? (
-            "Waiting…"
-          ) : (tbAccount === undefined || urbitAccount === undefined) ? (
-            "Connecting…"
-          ) : (tbAccount === null || urbitAccount === null) ? (
-            "Disconnected!"
-          ) : (tbCreateStatus === "pending") ? (
-            <TinyLoadingIcon />
-          ) : (tbCreateStatus === "error") ? (
-            "Error!"
-          ) : (urbitAccount.layer !== "l1") ? (
-            "Invalid Recipient"
-          ) : !tbAccount?.deployed ? (
-            "~ Deploy"
-          ) : (
-            "Ready!"
-          )}
+          ❌
         </button>
       </div>
     );
@@ -427,15 +353,7 @@ export function PDOAccountInfo({
               ))}
             </ul>
             <div className="flex flex-col gap-2">
-              <input type="text" name="recipient" required
-                placeholder="urbit id"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck="false"
-                pattern={REGEX.AZIMUTH.POINT}
-                className="input-lg"
-              />
+              <RecipientInput name="recipient" required />
               <SingleSelector name="token" required={true}
                 placeholder="currency"
                 className="w-full"
@@ -453,11 +371,7 @@ export function PDOAccountInfo({
                   )),
                 ]}
               />
-              <input type="number" name="amount" required
-                min="0" max="100000000" step="0.0001"
-                placeholder="amount"
-                className="input-lg"
-              />
+              <CurrencyInput name="amount" required />
               <button type="button"
                 disabled={(pdoSendStatus === "pending")}
                 onClick={onSend}
@@ -517,17 +431,17 @@ export function PDOAccountInfo({
                     {"+ Add"}
                   </button>
                   <div className="w-full flex flex-col">
-                    <TransactionRow title="Protocol Fee">
+                    <WideFrame title="Protocol Fee">
                       {formatTax(twSyndicateTax)}
-                    </TransactionRow>
-                    <TransactionRow title="Total Mint Quantity">
+                    </WideFrame>
+                    <WideFrame title="Total Mint Quantity">
                       {
                         formatToken(
                           includeTax(mintTotal, twSyndicateTax),
                           pdoAccount.token,
                         )
                       }
-                    </TransactionRow>
+                    </WideFrame>
                   </div>
                   <button type="button"
                     disabled={(pdoMintStatus === "pending")}
@@ -546,28 +460,17 @@ export function PDOAccountInfo({
               </>
             ) : (
               <form ref={launchFormRef}  className="flex flex-col gap-2">
-                <input type="text" name="name" required
+                <TextInput name="name" required
                   placeholder={`name (e.g. ${urbitPDO.patp} token)`}
-                  autoComplete="off"
-                  autoCorrect="off"
-                  autoCapitalize="off"
-                  spellCheck="false"
                   pattern={REGEX.SYNDICATE.NAME}
-                  className="input-lg"
                 />
-                <input type="text" name="symbol" required
+                <TextInput name="symbol" required
                   placeholder={`symbol (e.g. ${urbitPDO.patp.toUpperCase()})`}
-                  autoComplete="off"
-                  autoCorrect="off"
-                  autoCapitalize="off"
-                  spellCheck="false"
                   pattern={REGEX.SYNDICATE.TOKEN}
-                  className="input-lg"
                 />
-                <input type="number" name="init_supply" required
-                  min="0.0001" max="100000000" step="0.0001"
+                <CurrencyInput name="init_supply" required />
+                <CurrencyInput name="init_supply" required
                   placeholder="supply (e.g. 1000000)"
-                  className="input-lg"
                 />
                 <div className="flex flex-row items-center gap-2">
                   <input type="checkbox" name="use_max_supply"
@@ -576,8 +479,7 @@ export function PDOAccountInfo({
                   />
                   <span>set max supply?</span>
                 </div>
-                <input type="number" name="max_supply" required={useMaxSupply}
-                  min="0.0001" max="100000000" step="0.0001"
+                <CurrencyInput name="max_supply" required={useMaxSupply}
                   placeholder="max supply (e.g. 2000000)"
                   className={useMaxSupply ? "input-lg" : "hidden"}
                 />
@@ -640,51 +542,53 @@ export function PDOAccountInfo({
                         </span>
                         <div className="w-full h-full flex flex-col gap-1 justify-center text-sm">
                           {(transaction.type === "transfer") ? (
-                            <TransactionRow
+                            <WideFrame
                               title={formatToken(transaction.amount, transaction.token)}
                             >
                               <TBAFrame address={transaction.to} short={true} />
-                            </TransactionRow>
+                            </WideFrame>
                           ) : (transaction.type === "launch") ? (
                             <>
-                              <TransactionRow title="Mint Total">
+                              <WideFrame title="Mint Total">
                                 {formatToken(transaction.amount, transaction.token)}
-                              </TransactionRow>
-                              <TransactionRow title="Protocol Fee">
+                              </WideFrame>
+                              <WideFrame title="Protocol Fee">
                                 {formatTax(twDeployerTax)}
-                              </TransactionRow>
-                              <TransactionRow title="PDO Receives">
+                              </WideFrame>
+                              <WideFrame title="PDO Receives">
                                 {
                                   formatToken(
                                     transaction.amount - applyTax(transaction.amount, twDeployerTax),
                                     transaction.token,
                                   )
                                 }
-                              </TransactionRow>
+                              </WideFrame>
                             </>
                           ) : (transaction.type === "mint") ? (
                             <>
                               {transaction.transfers.map(({amount, to}) => (
-                                <TransactionRow key={to}
+                                <WideFrame key={to}
                                   title={formatToken(
                                     amount - applyTax(amount, twSyndicateTax),
                                     transaction.token,
                                   )}
                                 >
                                   <TBAFrame address={to} short={true} />
-                                </TransactionRow>
+                                </WideFrame>
                               ))}
-                              <TransactionRow
+                              <WideFrame
                                 title={formatToken(
                                   applyTax(
-                                    transaction.transfers.reduce((a, {amount: n}) => a + n, BigInt(0)),
+                                    transaction.transfers.reduce(
+                                      (a, {amount: n}) => a + n, BigInt(0)
+                                    ),
                                     twSyndicateTax,
                                   ),
                                   transaction.token,
                                 )}
                               >
                                 Protocol Fee
-                              </TransactionRow>
+                              </WideFrame>
                             </>
                           ) : (
                             <AddressFrame
@@ -777,14 +681,9 @@ export function AddTokenModule(): React.ReactNode {
         flex flex-col items-center gap-2
         ${isShown ? "block" : "hidden"}
       `}>
-        <input type="text" name="address" required
+        <TextInput name="address" required
           placeholder="erc20 token address"
-          autoComplete="off"
-          autoCorrect="off"
-          autoCapitalize="off"
-          spellCheck="false"
           pattern={REGEX.ADDRESS}
-          className="input-lg"
         />
         <button type="button"
           disabled={(addTokenStatus === "pending")}

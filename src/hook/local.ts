@@ -6,6 +6,7 @@ import type { QueryKey, UseMutationOptions } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useWalletMeta } from '@/hook/wallet';
+import { useBasicMutation } from '@/lib/hook';
 import { fetchToken } from '@/lib/web3';
 import { formContract, encodeSet, decodeSet } from '@/lib/util';
 import { get as getLocal, update as updateLocal } from '@/dat/local';
@@ -23,7 +24,7 @@ export function useTokensAddMutation(
   ], [wallet?.chainID]);
 
   const queryClient = useQueryClient();
-  return useMutation({
+  return useBasicMutation([queryKey, tbaKey], {
     mutationFn: async ({address}: {
       address: Address,
     }) => {
@@ -45,17 +46,6 @@ export function useTokensAddMutation(
 
       return token;
     },
-    onMutate: async (variables) => {
-      await queryClient.cancelQueries({ queryKey: queryKey });
-      return await queryClient.getQueryData(queryKey);
-    },
-    onError: (err, variables, oldData) => {
-      queryClient.setQueryData(queryKey, oldData);
-    },
-    onSettled: (_data, _error, variables) => {
-      queryClient.invalidateQueries({ queryKey: queryKey });
-      queryClient.invalidateQueries({ queryKey: tbaKey });
-    },
     ...options,
   });
 }
@@ -68,15 +58,12 @@ export function useLocalTokens(): Loadable<TokenMap> {
 
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKey,
+    enabled: !!wallet,
     queryFn: async () => {
       if (!wallet) throw Error(ERROR.INVALID_QUERY);
       const localTokens = (((await getLocal("tokens")) ?? {}) as TokenArchive);
       return ((localTokens?.[`${wallet.chain}`] ?? {}) as TokenMap);
     },
-    enabled: !!wallet,
-    staleTime: Infinity,
-    retryOnMount: false,
-    refetchOnMount: false,
   });
 
   return isLoading ? undefined
@@ -92,6 +79,7 @@ export function useLocalSafes(): Loadable<SafeOwners> {
 
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKey,
+    enabled: !!wallet,
     queryFn: async () => {
       if (!wallet) throw Error(ERROR.INVALID_QUERY);
       const localArchive = (((await getLocal("safes")) ?? {}) as SafeArchive);
@@ -99,10 +87,6 @@ export function useLocalSafes(): Loadable<SafeOwners> {
       const tbKey: ChainAddress = `${wallet.chain}:${tbContract.address}`;
       return ((localArchive?.[tbKey] ?? {}) as SafeOwners);
     },
-    enabled: !!wallet,
-    staleTime: Infinity,
-    retryOnMount: false,
-    refetchOnMount: false,
   });
 
   return isLoading ? undefined
