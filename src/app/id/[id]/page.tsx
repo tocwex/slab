@@ -1,5 +1,5 @@
 "use client";
-import type { Address, UrbitID, TokenHolding } from "@/type/slab";
+import type { Address, UrbitID, UrbitAccount, TokenHolding } from "@/type/slab";
 import { Fragment, useState, useMemo, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -15,7 +15,7 @@ import {
 } from '@/hook/web3';
 import { useLocalSafes } from '@/hook/local';
 import { useWalletMeta, useTokenboundClient } from '@/hook/wallet';
-import { fetchTBAddress } from '@/lib/web3';
+import { fetchUrbitAccount, fetchTBAddress } from '@/lib/web3';
 import {
   formUrbitID, forceUrbitID, isValidPDO,
   encodeSet, decodeSet, parseForm,
@@ -43,13 +43,17 @@ export default function IDPage(): React.ReactNode {
           if (!managerID.id) {
             return Promise.resolve(null);
           } else {
-            return fetchTBAddress(wallet, tbClient, managerID).then((address) => (
+            return Promise.all([
+              fetchTBAddress(wallet, tbClient, managerID),
+              fetchUrbitAccount(wallet, managerID),
+            ]).then(([address, urbitAccount]) => (
               Promise.all([
                 Promise.resolve(address),
+                Promise.resolve(urbitAccount),
                 tbClient.checkAccountDeployment({accountAddress: address}),
               ])
-            )).then(([address, isDeployed]: [Address, boolean]) => (
-              !isDeployed ? null : address
+            )).then(([address, urbitAccount, isDeployed]: [Address, UrbitAccount, boolean]) => (
+              (!isDeployed || (urbitAccount.layer !== "l1")) ? null : address
             ));
           }
         }));
@@ -82,10 +86,7 @@ export default function IDPage(): React.ReactNode {
   }, [router]);
 
   const { mutate: safeCreateMutate, status: safeCreateStatus } = useSafeCreateMutation();
-  const { mutate: pdoCreateMutate, status: pdoCreateStatus } = usePDOCreateMutation(
-    routeID,
-    { onSuccess: () => goNewPDO() },
-  );
+  const { mutate: pdoCreateMutate, status: pdoCreateStatus } = usePDOCreateMutation(routeID);
 
   const onCreateSafe = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
     const fields = parseForm(event, {
@@ -101,9 +102,12 @@ export default function IDPage(): React.ReactNode {
         managers: managerNames.map(forceUrbitID),
         reset: false,
       });
-      fields && pdoCreateMutate(fields);
+      // NOTE: We specify 'onSuccess' at the call level so that it doesn't override
+      // the 'usePDOCreateMutation' internal 'onSuccess' (which resets the local
+      // cache of safes)
+      fields && pdoCreateMutate(fields, {onSuccess: () => goNewPDO()});
     }
-  }, [managerNames, deploymentSafe, pdoCreateMutate]);
+  }, [managerNames, deploymentSafe, pdoCreateMutate, goNewPDO]);
 
   const PDOManager = useCallback(({
     managerNames,

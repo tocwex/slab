@@ -1,21 +1,21 @@
 import type { WagmiConfig } from '@web3-onboard/core';
-import type { EIP1193Provider } from 'viem';
+import type { EIP1193Provider, TransactionReceipt } from 'viem';
 import type {
-  Address, Contract, Transfer, Token,
-  UrbitID, WalletMeta, SlabTransaction,
+  Address, Contract, Transfer, Token, UrbitNetworkLayer,
+  UrbitID, UrbitAccount, WalletMeta, SlabTransaction,
 } from '@/type/slab';
 import { TokenboundClient } from '@tokenbound/sdk';
 import Safe, { getSafeAddressFromDeploymentTx } from '@safe-global/protocol-kit';
 import {
   getAccount, readContract, signMessage,
-  sendTransaction, waitForTransactionReceipt,
+  sendTransaction, getTransactionReceipt, waitForTransactionReceipt,
 } from '@web3-onboard/wagmi';
 import {
   keccak256, pad, decodeFunctionData,
   encodePacked, numberToHex,
 } from 'viem';
-import { formContract, formToken, formUrbitID } from '@/lib/util';
-import { ABI, SAFE } from '@/dat/const';
+import { getChainMeta, formContract, formToken, formUrbitID } from '@/lib/util';
+import { ABI, ACCOUNT, SAFE } from '@/dat/const';
 
 export async function createSafe(
   wallet: WalletMeta,
@@ -28,12 +28,9 @@ export async function createSafe(
   const deployTransaction = await safeAccount.createSafeDeploymentTransaction();
   // @ts-ignore
   const deployTxHash = await sendTransaction(wallet.wagmi, deployTransaction);
-  const deployReceipt = await waitForTransactionReceipt(wallet.wagmi, {
-    hash: deployTxHash,
-  });
+  const deployReceipt = await awaitReceipt(wallet, deployTxHash);
 
   const safeAddress = getSafeAddressFromDeploymentTx(deployReceipt, SAFE.VERSION);
-
   return (safeAddress as Address);
 }
 
@@ -138,6 +135,39 @@ export async function fetchSafeAccount(
   return safeAccount;
 }
 
+export async function fetchUrbitAccount(
+  wallet: WalletMeta,
+  urbit: number | string | UrbitID,
+): Promise<UrbitAccount> {
+  const [ , chainTag] = getChainMeta(wallet.chain);
+  const AZP_L2: Address = ACCOUNT.AZP_L2?.[chainTag] ?? ACCOUNT.AZP_L2.ETHEREUM;
+  const ECLIPTIC: Token = formToken(wallet.chain, "ECL");
+  const urbitID: UrbitID = !(typeof urbit === "number" || typeof urbit === "string")
+    ? urbit
+    : formUrbitID(urbit);
+
+  let owner: Address = AZP_L2;
+  let layer: UrbitNetworkLayer = "l2";
+  const pointExists: boolean = ((await readContract(wallet.wagmi, {
+    abi: ECLIPTIC.abi,
+    address: ECLIPTIC.address,
+    functionName: "exists",
+    args: [urbitID.id],
+  })) as boolean);
+  if (pointExists) {
+    owner = ((await readContract(wallet.wagmi, {
+      abi: ECLIPTIC.abi,
+      address: ECLIPTIC.address,
+      functionName: "ownerOf",
+      args: [urbitID.id],
+    })) as Address);
+    layer = (owner === AZP_L2) ? "l2" : "l1";
+  }
+
+  // @ts-ignore
+  return { layer, owner };
+}
+
 export async function fetchTBAddress(
   wallet: WalletMeta,
   tbClient: TokenboundClient,
@@ -168,6 +198,32 @@ export async function fetchUrbitID(
   if (ECLIPTIC.address !== tokenContract)
     throw Error(`Address ${address} is not a ERC-6551 contract`)
   return formUrbitID(tokenId);
+}
+
+export async function awaitReceipt(
+  wallet: WalletMeta,
+  hash: Address,
+): Promise<TransactionReceipt> {
+  const MAX_ATTEMPTS: number = 5;
+
+  let attempts: number = 0;
+  let receipt = undefined;
+  while (receipt === undefined && attempts++ < MAX_ATTEMPTS) {
+    try {
+      receipt = await waitForTransactionReceipt(wallet.wagmi, {hash, timeout: 20000});
+    } catch (error) {
+      try {
+        receipt = await getTransactionReceipt(wallet.wagmi, {hash});
+      } catch (error) {
+        // NOTE: no-op; just try again
+      }
+    }
+  }
+  if (receipt === undefined) {
+    throw new Error(`Unable to detect confirmation for transaction '${hash}'`);
+  }
+
+  return receipt;
 }
 
 export async function decodeProposal(

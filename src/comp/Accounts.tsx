@@ -659,21 +659,24 @@ export function PDOAccountInfo({
 }
 
 export function AddTokenModule(): React.ReactNode {
+  const addFormRef = useRef<HTMLFormElement>(null);
   const [isShown, setIsShown] = useState<boolean>(false);
   const localTokens = useLocalTokens();
 
   const toggleShown = useCallback(() => setIsShown(!isShown), [isShown, setIsShown]);
 
-  const { mutate: addTokenMutate, status: addTokenStatus } = useTokensAddMutation();
+  const { mutate: addTokenMutate, status: addTokenStatus } = useTokensAddMutation({
+    onSuccess: () => addFormRef.current?.reset(),
+  });
   const onAddToken = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
     const fields = parseForm(event, {
       address: "0x0",
     });
     fields && !!localTokens && !localTokens?.[fields.address] && addTokenMutate(fields);
-  }, [localTokens, addTokenMutate]);
+  }, [localTokens, addTokenMutate, addFormRef]);
 
   return (
-    <form className="flex flex-col items-center gap-2">
+    <form ref={addFormRef} className="flex flex-col items-center gap-2">
       <button type="button" onClick={toggleShown} className="text-xl">
         {isShown ? "- Hide" : "+ More"} Token Options
       </button>

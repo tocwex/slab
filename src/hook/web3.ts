@@ -9,9 +9,7 @@ import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useConnectWallet, useWagmiConfig } from '@web3-onboard/react';
 import {
-  getWalletClient, getBalance,
-  readContract, writeContract,
-  sendTransaction, waitForTransactionReceipt,
+  getWalletClient, getBalance, readContract, writeContract,
 } from '@web3-onboard/wagmi';
 import { TokenboundClient } from '@tokenbound/sdk';
 import Safe, { getSafeAddressFromDeploymentTx } from '@safe-global/protocol-kit';
@@ -25,13 +23,13 @@ import {
 import { useWalletMeta, useTokenboundClient } from '@/hook/wallet';
 import { useLocalTokens, useTokensAddMutation } from '@/hook/local';
 import {
-  createSafe, signTBSafeTx, fetchSafeAccount, fetchTBAddress,
-  fetchToken, fetchUrbitID, decodeProposal,
+  createSafe, signTBSafeTx, fetchSafeAccount, fetchUrbitAccount,
+  fetchTBAddress, fetchToken, fetchUrbitID, decodeProposal, awaitReceipt,
 } from '@/lib/web3';
 import { useBasicMutation } from '@/lib/hook';
 import {
-  clamp, getChainMeta, formContract, formToken, formUrbitID,
-  includeTax, isValidPDO, compareUrbitIDs, encodeSet, decodeSet,
+  clamp, formContract, formToken, formUrbitID, includeTax,
+  isValidPDO, compareUrbitIDs, encodeSet, decodeSet,
 } from '@/lib/util';
 import { update as updateLocal } from '@/dat/local';
 import { APP, ABI, ACCOUNT, CONTRACT, MATH, ERROR } from '@/dat/const';
@@ -62,13 +60,11 @@ export function usePDOExecMutation(
 
       const safeTransaction = await safeClient.getTransaction(txHash);
       const executeTxResponse = await safeAccount.executeTransaction(safeTransaction);
-      const executeReceipt = await waitForTransactionReceipt(wallet.wagmi, {
-        hash: (executeTxResponse.hash as Address),
-      });
+      const { transactionHash } = await awaitReceipt(wallet, (executeTxResponse.hash as Address));
 
-      return executeReceipt.transactionHash;
+      return transactionHash;
     },
-    onSettled: async (_data, _error, {txHash}) => {
+    onSettled: async (_, __, {txHash}, ___) => {
       queryClient.invalidateQueries({ queryKey: queryKey });
       queryClient.invalidateQueries({ queryKey: pdoKey });
       if (!!wallet && !!tbClient) {
@@ -363,30 +359,28 @@ export function usePDOCreateMutation(
         functionName: "transferPoint",
         args: [Number(urbitID.id), safe, reset],
       });
-      const transferReceipt = await waitForTransactionReceipt(wallet.wagmi, {
-        hash: transferTransaction,
-      });
+      const { transactionHash } = await awaitReceipt(wallet, transferTransaction);
 
-      { // remove safe from local safes cache
-        const owners: Address[] = await Promise.all(managers.map((urbitID) => (
-          fetchTBAddress(wallet, tbClient, urbitID)
-        )));
-        const tbContract = formContract(wallet.chain, "TOKENBOUND");
-        const tbKey: ChainAddress = `${wallet.chain}:${tbContract.address}`;
-        await updateLocal("safes", (oldArchive: SafeArchive | undefined) => {
-          const newArchive: SafeArchive = (oldArchive ?? {});
-          const oldOwners: SafeOwners = (newArchive?.[tbKey] ?? {});
-          delete oldOwners[encodeSet(new Set<Address>(owners))];
-          newArchive[tbKey] = oldOwners;
-          return newArchive;
-        });
-      }
-
-      return transferReceipt.transactionHash;
+      return transactionHash;
     },
-    onSettled: (_data, _error, {managers}) => {
-      queryClient.invalidateQueries({ queryKey: queryKey });
+    onSuccess: async (_, {managers, safe}, __) => {
+      if (!wallet || !tbClient) throw Error(ERROR.INVALID_QUERY);
+      const owners: Address[] = await Promise.all(managers.map((urbitID) => (
+        fetchTBAddress(wallet, tbClient, urbitID)
+      )));
+      const tbContract = formContract(wallet.chain, "TOKENBOUND");
+      const tbKey: ChainAddress = `${wallet.chain}:${tbContract.address}`;
+      await updateLocal("safes", (oldArchive: SafeArchive | undefined) => {
+        const newArchive: SafeArchive = (oldArchive ?? {});
+        const oldOwners: SafeOwners = (newArchive?.[tbKey] ?? {});
+        delete oldOwners[encodeSet(new Set<Address>(owners))];
+        newArchive[tbKey] = oldOwners;
+        return newArchive;
+      });
       queryClient.invalidateQueries({ queryKey: localKey });
+    },
+    onSettled: (_, __, {managers}, ___) => {
+      queryClient.invalidateQueries({ queryKey: queryKey });
       for (const managerID of managers) {
         queryClient.invalidateQueries({queryKey: [
           APP.TAG, "safe", "pdos", wallet?.chainID, managerID.id,
@@ -402,11 +396,12 @@ export function useSafeCreateMutation(
 ) {
   const wallet = useWalletMeta();
   const tbClient = useTokenboundClient();
-  const queryKey: QueryKey = useMemo(() => [
+  const localKey: QueryKey = useMemo(() => [
     APP.TAG, "local", "safes", wallet?.chainID,
   ], [wallet?.chainID]);
 
-  return useBasicMutation([queryKey], {
+  const queryClient = useQueryClient();
+  return useMutation({
     mutationFn: async ({managers, threshold}: {
       managers: UrbitID[],
       threshold: number,
@@ -415,23 +410,26 @@ export function useSafeCreateMutation(
       const owners: Address[] = await Promise.all(managers.map((urbitID) => (
         fetchTBAddress(wallet, tbClient, urbitID)
       )));
-
       const safeAddress = await createSafe(wallet, tbClient, owners, threshold);
-      { // add new safe to local safes cache
-        const tbContract = formContract(wallet.chain, "TOKENBOUND");
-        const tbKey: ChainAddress = `${wallet.chain}:${tbContract.address}`;
-        await updateLocal("safes", (oldArchive: SafeArchive | undefined) => {
-          const newArchive: SafeArchive = (oldArchive ?? {});
-          const oldOwners: SafeOwners = (newArchive?.[tbKey] ?? {});
-          const newOwners: SafeOwners = {...oldOwners, ...({
-            [encodeSet(new Set<Address>(owners))]: safeAddress,
-          })};
-          newArchive[tbKey] = newOwners;
-          return newArchive;
-        });
-      }
-
       return safeAddress;
+    },
+    onSuccess: async (safeAddress, {managers}, _) => {
+      if (!wallet || !tbClient) throw Error(ERROR.INVALID_QUERY);
+      const owners: Address[] = await Promise.all(managers.map((urbitID) => (
+        fetchTBAddress(wallet, tbClient, urbitID)
+      )));
+      const tbContract = formContract(wallet.chain, "TOKENBOUND");
+      const tbKey: ChainAddress = `${wallet.chain}:${tbContract.address}`;
+      await updateLocal("safes", (oldArchive: SafeArchive | undefined) => {
+        const newArchive: SafeArchive = (oldArchive ?? {});
+        const oldOwners: SafeOwners = (newArchive?.[tbKey] ?? {});
+        const newOwners: SafeOwners = {...oldOwners, ...({
+          [encodeSet(new Set<Address>(owners))]: safeAddress,
+        })};
+        newArchive[tbKey] = newOwners;
+        return newArchive;
+      });
+      queryClient.invalidateQueries({ queryKey: localKey });
     },
     ...options,
   });
@@ -469,10 +467,10 @@ export function useTokenboundSendMutation(
         erc20tokenAddress: TOKEN.address,
         erc20tokenDecimals: TOKEN.decimals,
       }));
-      const txReceipt = await waitForTransactionReceipt(wallet.wagmi, {hash: txHash});
-      return txReceipt.transactionHash;
+      const { transactionHash } = await awaitReceipt(wallet, txHash);
+      return transactionHash;
     },
-    onSettled: (_data, _error, {recipient}) => {
+    onSettled: (_, __, {recipient}, ___) => {
       queryClient.invalidateQueries({ queryKey: queryKey });
       queryClient.invalidateQueries({queryKey: [
         APP.TAG, "tokenbound", "account", wallet?.chainID, formUrbitID(recipient).id,
@@ -500,8 +498,8 @@ export function useTokenboundCreateMutation(
         tokenContract: ECLIPTIC.address,
         tokenId: urbitID.id,
       });
-      const txReceipt = await waitForTransactionReceipt(wallet.wagmi, {hash: txHash});
-      return txReceipt.transactionHash;
+      const { transactionHash } = await awaitReceipt(wallet, txHash);
+      return transactionHash;
     },
     ...options,
   });
@@ -705,29 +703,8 @@ export function useUrbitAccount(urbitID: UrbitID): Loadable<UrbitAccount> {
     enabled: !!wallet,
     queryFn: async () => {
       if (!wallet) throw Error(ERROR.INVALID_QUERY);
-      const [ , chainTag] = getChainMeta(wallet.chain);
-      const AZP_L2: Address = ACCOUNT.AZP_L2?.[chainTag] ?? ACCOUNT.AZP_L2.ETHEREUM;
-      const ECLIPTIC: Token = formToken(wallet.chain, "ECL");
-
-      let owner: Address = AZP_L2;
-      let layer: UrbitNetworkLayer = "l2";
-      const pointExists: boolean = ((await readContract(wallet.wagmi, {
-        abi: ECLIPTIC.abi,
-        address: ECLIPTIC.address,
-        functionName: "exists",
-        args: [urbitID.id],
-      })) as boolean);
-      if (pointExists) {
-        owner = ((await readContract(wallet.wagmi, {
-          abi: ECLIPTIC.abi,
-          address: ECLIPTIC.address,
-          functionName: "ownerOf",
-          args: [urbitID.id],
-        })) as Address);
-        layer = (owner === AZP_L2) ? "l2" : "l1";
-      }
-
-      return { layer, owner };
+      const urbitAccount = await fetchUrbitAccount(wallet, urbitID);
+      return urbitAccount;
     },
   });
 
