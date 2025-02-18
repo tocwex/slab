@@ -21,9 +21,9 @@ export function useBasicMutation<
     onError: (_, __, oldData) => {
       client.setQueryData(keys?.[0], oldData);
     },
-    onSettled: () => {
+    onSettled: async () => {
       for (const key of keys) {
-        client.invalidateQueries({ queryKey: key });
+        await client.invalidateQueries({ queryKey: key, refetchType: 'all' });
       }
     },
   };

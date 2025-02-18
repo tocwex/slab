@@ -88,6 +88,9 @@ export function TokenboundAccountInfo({
   const localTokens = useLocalTokens();
   const sendFormRef = useRef<HTMLFormElement>(null);
 
+  // console.log(Object.values(tbAccount?.holdings ?? {}).map(({token}) => token.name));
+  // console.log(Object.values(localTokens ?? {}).map(token => token.name));
+
   const { mutate: tbCreateMutate, status: tbCreateStatus } = useTokenboundCreateMutation(urbitID);
   const { mutate: tbSendMutate, status: tbSendStatus } = useTokenboundSendMutation(
     urbitID,
@@ -349,7 +352,10 @@ export function PDOAccountInfo({
               {Object.entries(pdoAccount.holdings).sort(([a, ], [b, ]) => (
                 a.localeCompare(b)
               )).map(([, {token, balance}]: [string, TokenHolding]) => (
-                <li key={token.symbol}>{formatToken(balance, token)}</li>
+                <li key={token.symbol}>
+                  <span className="font-bold">{token.name}: </span>
+                  <code>{formatFloat(formatUnits(balance, token.decimals))}</code>
+                </li>
               ))}
             </ul>
             <div className="flex flex-col gap-2">
@@ -382,7 +388,7 @@ export function PDOAccountInfo({
                 ) : (pdoSendStatus === "error") ? (
                   "Error!"
                 ) : (
-                  "Propose"
+                  "Propose Send"
                 )}
               </button>
             </div>
@@ -453,7 +459,7 @@ export function PDOAccountInfo({
                     ) : (pdoMintStatus === "error") ? (
                       "Error!"
                     ) : (
-                      "Propose"
+                      "Propose Mint"
                     )}
                   </button>
                 </form>
@@ -468,7 +474,6 @@ export function PDOAccountInfo({
                   placeholder={`symbol (e.g. ${urbitPDO.patp.toUpperCase()})`}
                   pattern={REGEX.SYNDICATE.TOKEN}
                 />
-                <CurrencyInput name="init_supply" required />
                 <CurrencyInput name="init_supply" required
                   placeholder="supply (e.g. 1000000)"
                 />
@@ -500,7 +505,7 @@ export function PDOAccountInfo({
                   ) : (pdoLaunchStatus === "error") ? (
                     "Error!"
                   ) : (
-                    "Launch"
+                    "Propose Launch"
                   )}
                 </button>
               </form>

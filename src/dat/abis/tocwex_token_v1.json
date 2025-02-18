@@ -213,7 +213,7 @@
     "inputs": [],
     "outputs": [
       {
-        "name": "",
+        "name": "azimuthPoint",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -226,7 +226,7 @@
     "inputs": [],
     "outputs": [
       {
-        "name": "",
+        "name": "deployerAddress",
         "type": "address",
         "internalType": "address"
       }
@@ -252,7 +252,7 @@
     "inputs": [],
     "outputs": [
       {
-        "name": "",
+        "name": "maxFee",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -265,7 +265,7 @@
     "inputs": [],
     "outputs": [
       {
-        "name": "",
+        "name": "maxSupply",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -278,7 +278,7 @@
     "inputs": [],
     "outputs": [
       {
-        "name": "",
+        "name": "syndicateOwner",
         "type": "address",
         "internalType": "address"
       }
@@ -291,7 +291,7 @@
     "inputs": [],
     "outputs": [
       {
-        "name": "",
+        "name": "currentFee",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -715,7 +715,7 @@
       {
         "name": "feeRecipient",
         "type": "address",
-        "indexed": false,
+        "indexed": true,
         "internalType": "address"
       },
       {
@@ -732,9 +732,34 @@
     "name": "ContractAddedToWhitelist",
     "inputs": [
       {
+        "name": "tokenOwner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
         "name": "contractAddress",
         "type": "address",
-        "indexed": false,
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ContractRemovedFromWhitelist",
+    "inputs": [
+      {
+        "name": "tokenOwner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "contractAddress",
+        "type": "address",
+        "indexed": true,
         "internalType": "address"
       }
     ],
@@ -747,7 +772,7 @@
       {
         "name": "feeRecipient",
         "type": "address",
-        "indexed": false,
+        "indexed": true,
         "internalType": "address"
       },
       {
@@ -766,7 +791,7 @@
       {
         "name": "tokenOwner",
         "type": "address",
-        "indexed": false,
+        "indexed": true,
         "internalType": "address"
       }
     ],
@@ -779,7 +804,7 @@
       {
         "name": "lastOwner",
         "type": "address",
-        "indexed": false,
+        "indexed": true,
         "internalType": "address"
       },
       {
@@ -798,13 +823,13 @@
       {
         "name": "newOwner",
         "type": "address",
-        "indexed": false,
+        "indexed": true,
         "internalType": "address"
       },
       {
         "name": "previousOwner",
         "type": "address",
-        "indexed": false,
+        "indexed": true,
         "internalType": "address"
       },
       {
@@ -846,7 +871,7 @@
     "name": "SyndicateDissolved",
     "inputs": [
       {
-        "name": "blockHeight",
+        "name": "blockheight",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
@@ -861,7 +886,7 @@
       {
         "name": "tokenOwner",
         "type": "address",
-        "indexed": false,
+        "indexed": true,
         "internalType": "address"
       },
       {
@@ -907,19 +932,6 @@
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "contractRemovedFromWhitelist",
-    "inputs": [
-      {
-        "name": "contractAddress",
-        "type": "address",
-        "indexed": false,
-        "internalType": "address"
       }
     ],
     "anonymous": false

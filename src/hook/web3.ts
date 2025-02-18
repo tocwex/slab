@@ -34,9 +34,6 @@ import {
 import { update as updateLocal } from '@/dat/local';
 import { APP, ABI, ACCOUNT, CONTRACT, MATH, ERROR } from '@/dat/const';
 
-// TODO: Secondary query invalidations don't seem to be working for tokenbound
-// accounts (e.g. in `useTokenboundSendMutation`)
-
 export function usePDOExecMutation(
   urbitPDO: UrbitID,
   options?: UseMutationOptions<Address, unknown, any, unknown>,
@@ -50,9 +47,12 @@ export function usePDOExecMutation(
   const pdoKey: QueryKey = useMemo(() => [
     APP.TAG, "tokenbound", "account", wallet?.chainID, urbitPDO.id,
   ], [wallet?.chainID, urbitPDO.id]);
+  const taxKey: QueryKey = useMemo(() => [
+    APP.TAG, "tax", "syndicate", wallet?.chainID, urbitPDO.id,
+  ], [wallet?.chainID, urbitPDO.id]);
 
   const queryClient = useQueryClient();
-  return useBasicMutation([queryKey], {
+  return useBasicMutation([queryKey, pdoKey, taxKey], {
     mutationFn: async ({txHash}: {txHash: Address}) => {
       if (!wallet || !pdoSafe) throw Error(ERROR.INVALID_QUERY);
       const safeAccount: Safe = await fetchSafeAccount(wallet, (pdoSafe.address as Address));
@@ -65,8 +65,10 @@ export function usePDOExecMutation(
       return transactionHash;
     },
     onSettled: async (_, __, {txHash}, ___) => {
-      queryClient.invalidateQueries({ queryKey: queryKey });
-      queryClient.invalidateQueries({ queryKey: pdoKey });
+      // TODO: Invalidate based on the type of transaction being performed
+      await queryClient.invalidateQueries({ queryKey: queryKey, refetchType: 'all' });
+      await queryClient.invalidateQueries({ queryKey: pdoKey, refetchType: 'all' });
+      await queryClient.invalidateQueries({ queryKey: taxKey, refetchType: 'all' });
       if (!!wallet && !!tbClient) {
         const safeClient = new SafeApiKit({chainId: wallet.chain});
         const safeRawTx = await safeClient.getTransaction(txHash);
@@ -74,11 +76,34 @@ export function usePDOExecMutation(
         const safeTx = await decodeProposal(wallet, safeRawData);
         if (safeTx.type === "transfer") {
           const urbitID = await fetchUrbitID(wallet, tbClient, safeTx.to);
-          queryClient.invalidateQueries({queryKey: [
+          await queryClient.invalidateQueries({queryKey: [
             APP.TAG, "tokenbound", "account", wallet.chainID, urbitID.id,
-          ]});
+          ], refetchType: 'all'});
         }
       }
+    },
+    ...options,
+  });
+}
+
+export function usePDOSignMutation(
+  urbitID: UrbitID,
+  urbitPDO: UrbitID,
+  options?: UseMutationOptions<Address, unknown, any, unknown>,
+) {
+  const wallet = useWalletMeta();
+  const idAccount = useTokenboundAccount(urbitID);
+  const queryKey: QueryKey = useMemo(() => [
+    APP.TAG, "safe", "proposals", wallet?.chainID, urbitPDO.id,
+  ], [wallet?.chainID, urbitPDO.id]);
+
+  return useBasicMutation([queryKey], {
+    mutationFn: async ({txHash}: {txHash: Address}) => {
+      if (!wallet || !idAccount) throw Error(ERROR.INVALID_QUERY);
+      const txSign = await signTBSafeTx(wallet, idAccount.address, txHash);
+      const safeClient = new SafeApiKit({chainId: wallet.chain});
+      await safeClient.confirmTransaction(txHash, txSign);
+      return (txSign as Address);
     },
     ...options,
   });
@@ -98,11 +123,8 @@ export function usePDOMintMutation(
   const queryKey: QueryKey = useMemo(() => [
     APP.TAG, "safe", "proposals", wallet?.chainID, urbitPDO.id,
   ], [wallet?.chainID, urbitPDO.id]);
-  const pdoKey: QueryKey = useMemo(() => [
-    APP.TAG, "tokenbound", "account", wallet?.chainID, urbitPDO.id,
-  ], [wallet?.chainID, urbitPDO.id]);
 
-  return useBasicMutation([queryKey, pdoKey], {
+  return useBasicMutation([queryKey], {
     mutationFn: async ({amounts, recipients}: {
       amounts: string[],
       recipients: string[],
@@ -178,14 +200,8 @@ export function usePDOLaunchMutation(
   const queryKey: QueryKey = useMemo(() => [
     APP.TAG, "safe", "proposals", wallet?.chainID, urbitPDO.id,
   ], [wallet?.chainID, urbitPDO.id]);
-  const pdoKey: QueryKey = useMemo(() => [
-    APP.TAG, "tokenbound", "account", wallet?.chainID, urbitPDO.id,
-  ], [wallet?.chainID, urbitPDO.id]);
-  const taxKey: QueryKey = useMemo(() => [
-    APP.TAG, "tax", "syndicate", wallet?.chainID, urbitPDO.id,
-  ], [wallet?.chainID, urbitPDO.id]);
 
-  return useBasicMutation([queryKey, pdoKey, taxKey], {
+  return useBasicMutation([queryKey], {
     mutationFn: async ({name, symbol, init_supply, max_supply}: {
       name: string,
       symbol: string,
@@ -235,29 +251,6 @@ export function usePDOLaunchMutation(
       });
 
       return (safeTxSign as Address);
-    },
-    ...options,
-  });
-}
-
-export function usePDOSignMutation(
-  urbitID: UrbitID,
-  urbitPDO: UrbitID,
-  options?: UseMutationOptions<Address, unknown, any, unknown>,
-) {
-  const wallet = useWalletMeta();
-  const idAccount = useTokenboundAccount(urbitID);
-  const queryKey: QueryKey = useMemo(() => [
-    APP.TAG, "safe", "proposals", wallet?.chainID, urbitPDO.id,
-  ], [wallet?.chainID, urbitPDO.id]);
-
-  return useBasicMutation([queryKey], {
-    mutationFn: async ({txHash}: {txHash: Address}) => {
-      if (!wallet || !idAccount) throw Error(ERROR.INVALID_QUERY);
-      const txSign = await signTBSafeTx(wallet, idAccount.address, txHash);
-      const safeClient = new SafeApiKit({chainId: wallet.chain});
-      await safeClient.confirmTransaction(txHash, txSign);
-      return (txSign as Address);
     },
     ...options,
   });
@@ -377,14 +370,14 @@ export function usePDOCreateMutation(
         newArchive[tbKey] = oldOwners;
         return newArchive;
       });
-      queryClient.invalidateQueries({ queryKey: localKey });
+      queryClient.invalidateQueries({ queryKey: localKey, refetchType: 'all' });
     },
-    onSettled: (_, __, {managers}, ___) => {
-      queryClient.invalidateQueries({ queryKey: queryKey });
+    onSettled: async (_, __, {managers}, ___) => {
+      await queryClient.invalidateQueries({ queryKey: queryKey, refetchType: 'all' });
       for (const managerID of managers) {
-        queryClient.invalidateQueries({queryKey: [
+        await queryClient.invalidateQueries({queryKey: [
           APP.TAG, "safe", "pdos", wallet?.chainID, managerID.id,
-        ]});
+        ], refetchType: 'all'});
       }
     },
     ...options,
@@ -429,7 +422,7 @@ export function useSafeCreateMutation(
         newArchive[tbKey] = newOwners;
         return newArchive;
       });
-      queryClient.invalidateQueries({ queryKey: localKey });
+      queryClient.invalidateQueries({ queryKey: localKey, refetchType: 'all' });
     },
     ...options,
   });
@@ -470,11 +463,11 @@ export function useTokenboundSendMutation(
       const { transactionHash } = await awaitReceipt(wallet, txHash);
       return transactionHash;
     },
-    onSettled: (_, __, {recipient}, ___) => {
-      queryClient.invalidateQueries({ queryKey: queryKey });
-      queryClient.invalidateQueries({queryKey: [
+    onSettled: async (_, __, {recipient}, ___) => {
+      await queryClient.invalidateQueries({ queryKey: queryKey, refetchType: 'all' });
+      await queryClient.invalidateQueries({queryKey: [
         APP.TAG, "tokenbound", "account", wallet?.chainID, formUrbitID(recipient).id,
-      ]});
+      ], refetchType: 'all'});
     },
     ...options,
   });

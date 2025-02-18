@@ -52,7 +52,7 @@
                 "type": "address"
             },
             {
-                "indexed": false,
+                "indexed": true,
                 "internalType": "uint64",
                 "name": "deployerVersion",
                 "type": "uint64"
@@ -73,55 +73,11 @@
             {
                 "indexed": true,
                 "internalType": "address",
-                "name": "target",
-                "type": "address"
-            },
-            {
-                "indexed": false,
-                "internalType": "bytes",
-                "name": "data",
-                "type": "bytes"
-            }
-        ],
-        "name": "ExternalCallAttempted",
-        "type": "event"
-    },
-    {
-        "anonymous": false,
-        "inputs": [
-            {
-                "indexed": true,
-                "internalType": "address",
-                "name": "target",
-                "type": "address"
-            },
-            {
-                "indexed": false,
-                "internalType": "bytes",
-                "name": "data",
-                "type": "bytes"
-            },
-            {
-                "indexed": false,
-                "internalType": "bool",
-                "name": "success",
-                "type": "bool"
-            }
-        ],
-        "name": "ExternalCallExecuted",
-        "type": "event"
-    },
-    {
-        "anonymous": false,
-        "inputs": [
-            {
-                "indexed": false,
-                "internalType": "address",
                 "name": "pendingOwner",
                 "type": "address"
             },
             {
-                "indexed": false,
+                "indexed": true,
                 "internalType": "address",
                 "name": "registryOwner",
                 "type": "address"
@@ -134,13 +90,13 @@
         "anonymous": false,
         "inputs": [
             {
-                "indexed": false,
+                "indexed": true,
                 "internalType": "address",
                 "name": "previousOwner",
                 "type": "address"
             },
             {
-                "indexed": false,
+                "indexed": true,
                 "internalType": "address",
                 "name": "newOwner",
                 "type": "address"
@@ -153,13 +109,13 @@
         "anonymous": false,
         "inputs": [
             {
-                "indexed": false,
+                "indexed": true,
                 "internalType": "address",
                 "name": "proposedOwner",
                 "type": "address"
             },
             {
-                "indexed": false,
+                "indexed": true,
                 "internalType": "address",
                 "name": "retainedOwner",
                 "type": "address"
@@ -172,7 +128,7 @@
         "anonymous": false,
         "inputs": [
             {
-                "indexed": false,
+                "indexed": true,
                 "internalType": "address",
                 "name": "previousOwner",
                 "type": "address"
@@ -185,13 +141,13 @@
         "anonymous": false,
         "inputs": [
             {
-                "indexed": false,
+                "indexed": true,
                 "internalType": "address",
                 "name": "registryOwner",
                 "type": "address"
             },
             {
-                "indexed": false,
+                "indexed": true,
                 "internalType": "address",
                 "name": "proposedOwner",
                 "type": "address"
@@ -216,13 +172,13 @@
                 "type": "address"
             },
             {
-                "indexed": true,
+                "indexed": false,
                 "internalType": "address",
                 "name": "owner",
                 "type": "address"
             },
             {
-                "indexed": false,
+                "indexed": true,
                 "internalType": "uint256",
                 "name": "azimuthPoint",
                 "type": "uint256"
@@ -247,10 +203,16 @@
                 "type": "address"
             },
             {
-                "indexed": true,
+                "indexed": false,
                 "internalType": "address",
                 "name": "owner",
                 "type": "address"
+            },
+            {
+                "indexed": true,
+                "internalType": "uint256",
+                "name": "azimuthPoint",
+                "type": "uint256"
             }
         ],
         "name": "SyndicateOwnerUpdated",
@@ -272,13 +234,13 @@
                 "type": "address"
             },
             {
-                "indexed": true,
+                "indexed": false,
                 "internalType": "address",
                 "name": "owner",
                 "type": "address"
             },
             {
-                "indexed": false,
+                "indexed": true,
                 "internalType": "uint256",
                 "name": "azimuthPoint",
                 "type": "uint256"
@@ -381,35 +343,6 @@
                 "internalType": "bool",
                 "name": "success",
                 "type": "bool"
-            }
-        ],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "target",
-                "type": "address"
-            },
-            {
-                "internalType": "bytes",
-                "name": "data",
-                "type": "bytes"
-            }
-        ],
-        "name": "executeCall",
-        "outputs": [
-            {
-                "internalType": "bool",
-                "name": "success",
-                "type": "bool"
-            },
-            {
-                "internalType": "bytes",
-                "name": "result",
-                "type": "bytes"
             }
         ],
         "stateMutability": "nonpayable",
