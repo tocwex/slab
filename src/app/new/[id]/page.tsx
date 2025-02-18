@@ -16,41 +16,41 @@ export default function NewPage(): React.ReactNode {
   const routeID: UrbitID = (useRouteUrbitID() as UrbitID);
 
   const walletTBAs = useWalletUrbitTBAs();
-  const pdoMultisig = useSafeAccount(routeID);
+  const syMultisig = useSafeAccount(routeID);
   const walletOwnerTBAs: Record<Address, UrbitID> = useMemo(() => {
     const tbas: Record<Address, UrbitID> = walletTBAs ?? {};
-    const owners: Address[] = ((pdoMultisig?.owners ?? []) as Address[]);
+    const owners: Address[] = ((syMultisig?.owners ?? []) as Address[]);
     const ownerTBAs = Array.from(new Set(owners).intersection(new Set(Object.keys(tbas))));
     return Object.fromEntries(ownerTBAs.map((tba) => ([tba, tbas[tba]])));
-  }, [walletTBAs, pdoMultisig]);
+  }, [walletTBAs, syMultisig]);
 
   useEffect(() => {
     const walletOwnerUIDs = Object.values(walletOwnerTBAs);
     if (!!walletTBAs && walletOwnerUIDs.length === 1) {
-      router.push(`/id/${walletOwnerUIDs[0].patp}/pdo/${routeID.patp}`);
+      router.push(`/id/${walletOwnerUIDs[0].patp}/sy/${routeID.patp}`);
     }
   }, [router, walletTBAs, walletOwnerTBAs]);
 
   const goUrbitID = useCallback((selection: SingleSelection) => {
     if (!!selection) {
-      router.push(`/id/${selection.value}/pdo/${routeID.patp}`);
+      router.push(`/id/${selection.value}/sy/${routeID.patp}`);
     }
   }, [router]);
 
   return (
-    <LoadingFrame status={pdoMultisig && walletTBAs} error={
+    <LoadingFrame status={syMultisig && walletTBAs} error={
       <div className="flex flex-col gap-2 text-center">
         <h4 className="font-medium">
-          <span>Unable to load PDO for </span>
+          <span>Unable to load Syndicate for </span>
           <UrbitIDFrame urbitID={routeID} />
           <span>.</span>
         </h4>
         <h4 className="font-medium">
-          Either the Urbit ID isn't a PDO or there were network errors.
+          Either the Urbit ID isn't a Syndicate or there were network errors.
         </h4>
       </div>
     }>
-      <HeroFrame title="PDO Creation Successful!">
+      <HeroFrame title="Syndicate Creation Successful!">
         {(Object.keys(walletOwnerTBAs ?? {}).length === 0) ? (
           <h4 className="font-medium">
             This ID is no longer owned by any of your wallets.
@@ -58,7 +58,7 @@ export default function NewPage(): React.ReactNode {
         ) : (Object.keys(walletOwnerTBAs ?? {}).length === 1) ? (
           <>
             <h4 className="font-medium">
-              Redirecting to the PDO ownership page...
+              Redirecting to the Syndicate ownership page...
             </h4>
             <HugeLoadingIcon />
           </>

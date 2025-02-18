@@ -1,27 +1,27 @@
 import type { Metadata, ResolvedMetadata, ResolvingMetadata } from 'next';
-import { PDORouteWrapper } from './components';
+import { SyndicateRouteWrapper } from './components';
 
 // https://nextjs.org/docs/app/api-reference/functions/generate-metadata#generatemetadata-function
 export async function generateMetadata(
-  {params}: {params: Promise<{ pdo: string }>},
+  {params}: {params: Promise<{ sy: string }>},
   parent: ResolvingMetadata,
 ): Promise<Metadata> {
-  const pdo: string = (await params).pdo;
+  const sy: string = (await params).sy;
   const meta: ResolvedMetadata = (await parent);
   return {
-    title: `%slab | ${pdo} pdo`,
+    title: `%slab | ${sy} syndicate`,
     description: meta.description,
   };
 }
 
-export default function PDOLayout({
+export default function SyndicateLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <PDORouteWrapper>
+    <SyndicateRouteWrapper>
       {children}
-    </PDORouteWrapper>
+    </SyndicateRouteWrapper>
   );
 }

@@ -1,7 +1,7 @@
 # `%slab` #
 
-A tool for forming and managing portal digital organizations (PDOs), including
-multisig transactions and token launches.
+A tool for forming and managing syndicates, the building blocks of the web3
+economy.
 
 ## Install ##
 

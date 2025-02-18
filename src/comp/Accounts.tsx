@@ -19,8 +19,8 @@ import {
   useTokenboundAccount, useSafeAccount, useSafeProposals, useUrbitAccount,
   useDeployerTax, useSyndicateTax,
   useTokenboundCreateMutation, useTokenboundSendMutation,
-  usePDOSendMutation, usePDOSignMutation, usePDOExecMutation,
-  usePDOMintMutation, usePDOLaunchMutation,
+  useSyndicateSendMutation, useSyndicateSignMutation, useSyndicateExecMutation,
+  useSyndicateMintMutation, useSyndicateLaunchMutation,
 } from '@/hook/web3';
 import { useLocalTokens, useTokensAddMutation } from '@/hook/local';
 import {
@@ -37,12 +37,12 @@ export function SafeAccountInfo({
   urbitID: UrbitID;
 }): React.ReactNode {
   const safeAccount = useSafeAccount(urbitID);
-  const pdoAccount = useTokenboundAccount(urbitID);
+  const syAccount = useTokenboundAccount(urbitID);
 
   return (
-    <LoadingFrame title={"Multisig Information"} size="md" status={safeAccount && pdoAccount}>
+    <LoadingFrame title={"Multisig Information"} size="md" status={safeAccount && syAccount}>
       <div className="main">
-        {(!!safeAccount && !!pdoAccount) && (
+        {(!!safeAccount && !!syAccount) && (
           <form className="flex flex-col gap-2">
             <h2 className="text-2xl">
               Multisig Information
@@ -50,7 +50,7 @@ export function SafeAccountInfo({
             <ul className="list-disc">
               <li>
                 <span className="font-bold">tba: </span>
-                <AddressFrame address={(pdoAccount.address as Address)} />
+                <AddressFrame address={(syAccount.address as Address)} />
               </li>
               <li>
                 <span className="font-bold">multisig: </span>
@@ -200,12 +200,12 @@ export function TokenboundAccountInfo({
   );
 }
 
-export function PDOAccountInfo({
+export function SyndicateAccountInfo({
   urbitID,
-  urbitPDO,
+  urbitSyndicate,
 }: {
   urbitID: UrbitID;
-  urbitPDO: UrbitID;
+  urbitSyndicate: UrbitID;
 }): React.ReactNode {
   const router = useRouter();
   const sendFormRef = useRef<HTMLFormElement>(null);
@@ -216,23 +216,23 @@ export function PDOAccountInfo({
 
   const localTokens = useLocalTokens();
   const idAccount = useTokenboundAccount(urbitID);
-  const pdoAccount = useTokenboundAccount(urbitPDO);
-  const pdoProposals = useSafeProposals(urbitPDO);
+  const syAccount = useTokenboundAccount(urbitSyndicate);
+  const syProposals = useSafeProposals(urbitSyndicate);
   const twDeployerTax = useDeployerTax();
-  const twSyndicateTax = useSyndicateTax(urbitPDO);
+  const twSyndicateTax = useSyndicateTax(urbitSyndicate);
 
-  const { mutate: pdoSignMutate, status: pdoSignStatus } = usePDOSignMutation(urbitID, urbitPDO);
-  const { mutate: pdoExecMutate, status: pdoExecStatus } = usePDOExecMutation(urbitPDO);
-  const { mutate: pdoSendMutate, status: pdoSendStatus } = usePDOSendMutation(
-    urbitID, urbitPDO,
+  const { mutate: sySignMutate, status: sySignStatus } = useSyndicateSignMutation(urbitID, urbitSyndicate);
+  const { mutate: syExecMutate, status: syExecStatus } = useSyndicateExecMutation(urbitSyndicate);
+  const { mutate: sySendMutate, status: sySendStatus } = useSyndicateSendMutation(
+    urbitID, urbitSyndicate,
     { onSuccess: () => sendFormRef.current?.reset() },
   );
-  const { mutate: pdoLaunchMutate, status: pdoLaunchStatus } = usePDOLaunchMutation(
-    urbitID, urbitPDO,
+  const { mutate: syLaunchMutate, status: syLaunchStatus } = useSyndicateLaunchMutation(
+    urbitID, urbitSyndicate,
     { onSuccess: () => launchFormRef.current?.reset() },
   );
-  const { mutate: pdoMintMutate, status: pdoMintStatus } = usePDOMintMutation(
-    urbitID, urbitPDO,
+  const { mutate: syMintMutate, status: syMintStatus } = useSyndicateMintMutation(
+    urbitID, urbitSyndicate,
     {
       onSuccess: () => {
         mintFormRef.current?.reset();
@@ -244,11 +244,11 @@ export function PDOAccountInfo({
   const mintTotal = useMemo(() => {
     const mintBigInts = mintData.map(([amount, recipient]) => coerceBigInt(amount));
     const mintTotal = mintBigInts.reduce((mintValue, [mintBigInt, mintDecimals]) => {
-      const mintShift = (pdoAccount?.token?.decimals ?? 18) - mintDecimals;
+      const mintShift = (syAccount?.token?.decimals ?? 18) - mintDecimals;
       return mintValue + (mintBigInt * BigInt(10) ** BigInt(mintShift));
     }, BigInt(0));
     return mintTotal;
-  }, [mintData, pdoAccount]);
+  }, [mintData, syAccount]);
 
   const toggleMaxSupply = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     setUseMaxSupply(event.target.checked);
@@ -303,13 +303,13 @@ export function PDOAccountInfo({
 
   const onSign = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
     const signHash = (event.currentTarget as HTMLButtonElement).dataset.hash;
-    pdoSignMutate({txHash: (signHash as Address)});
-  }, [pdoSignMutate]);
+    sySignMutate({txHash: (signHash as Address)});
+  }, [sySignMutate]);
 
   const onExec = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
     const execHash = (event.currentTarget as HTMLButtonElement).dataset.hash;
-    pdoExecMutate({txHash: (execHash as Address)});
-  }, [pdoExecMutate]);
+    syExecMutate({txHash: (execHash as Address)});
+  }, [syExecMutate]);
 
   const onSend = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
     const fields = parseForm(event, {
@@ -317,8 +317,8 @@ export function PDOAccountInfo({
       recipient: urbitID.patp,
       amount: "0",
     });
-    fields && pdoSendMutate(fields);
-  }, [pdoSendMutate]);
+    fields && sySendMutate(fields);
+  }, [sySendMutate]);
 
   const onLaunch = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
     const fields = parseForm(event, {
@@ -327,8 +327,8 @@ export function PDOAccountInfo({
       init_supply: "0",
       max_supply: String(MATH.MAX_UINT256),
     });
-    fields && pdoLaunchMutate(fields);
-  }, [pdoLaunchMutate]);
+    fields && syLaunchMutate(fields);
+  }, [syLaunchMutate]);
 
   const onMint = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
     const fields = parseForm(event, {
@@ -337,19 +337,19 @@ export function PDOAccountInfo({
     });
     // FIXME: We do this after parsing the form for better user alerts
     mintData.map(([a, r]) => r).map(forceUrbitID);
-    fields && pdoMintMutate(fields);
-  }, [pdoMintMutate, mintData]);
+    fields && syMintMutate(fields);
+  }, [syMintMutate, mintData]);
 
   return (
-    <LoadingFrame title={"Tokenbound Account"} size="md" status={idAccount && pdoAccount}>
-      {(!!idAccount && !!pdoAccount && !!localTokens && pdoAccount.deployed) && (
+    <LoadingFrame title={"Tokenbound Account"} size="md" status={idAccount && syAccount}>
+      {(!!idAccount && !!syAccount && !!localTokens && syAccount.deployed) && (
         <div className="main">
           <form ref={sendFormRef} className="flex flex-col gap-2">
             <h2 className="text-2xl">
               Tokenbound Account
             </h2>
             <ul className="list-disc">
-              {Object.entries(pdoAccount.holdings).sort(([a, ], [b, ]) => (
+              {Object.entries(syAccount.holdings).sort(([a, ], [b, ]) => (
                 a.localeCompare(b)
               )).map(([, {token, balance}]: [string, TokenHolding]) => (
                 <li key={token.symbol}>
@@ -366,8 +366,8 @@ export function PDOAccountInfo({
                 options={[
                   { value: 'ETH', label: 'ethereum' },
                   { value: 'USDC', label: 'usdc' },
-                  ...(!pdoAccount.token ? [] : [
-                    { value: pdoAccount.token.address, label: pdoAccount.token.name },
+                  ...(!syAccount.token ? [] : [
+                    { value: syAccount.token.address, label: syAccount.token.name },
                   ]),
                   ...(Object.entries(localTokens).map(
                     ([addr, token]: [string, Token]) => ({
@@ -379,13 +379,13 @@ export function PDOAccountInfo({
               />
               <CurrencyInput name="amount" required />
               <button type="button"
-                disabled={(pdoSendStatus === "pending")}
+                disabled={(sySendStatus === "pending")}
                 onClick={onSend}
                 className="w-full button-lg"
               >
-                {(pdoSendStatus === "pending") ? (
+                {(sySendStatus === "pending") ? (
                   <TinyLoadingIcon />
-                ) : (pdoSendStatus === "error") ? (
+                ) : (sySendStatus === "error") ? (
                   "Error!"
                 ) : (
                   "Propose Send"
@@ -396,26 +396,26 @@ export function PDOAccountInfo({
           <AddTokenModule />
           <div className="flex flex-col gap-2">
             <h2 className="text-2xl">
-              PDO Token
+              Syndicate Token
             </h2>
-            {(pdoAccount === undefined || twSyndicateTax === undefined) ? (
+            {(syAccount === undefined || twSyndicateTax === undefined) ? (
               <TinyLoadingIcon />
-            ) : (pdoAccount === null || twSyndicateTax === null) ? (
+            ) : (syAccount === null || twSyndicateTax === null) ? (
               <div>error</div>
-            ) : (pdoAccount.token !== undefined) ? (
+            ) : (syAccount.token !== undefined) ? (
               <>
                 <ul className="list-disc">
                   <li>
                     <span className="font-bold">name: </span>
-                    <span>{pdoAccount.token.name}</span>
+                    <span>{syAccount.token.name}</span>
                   </li>
                   <li>
                     <span className="font-bold">symbol: </span>
-                    <span>${pdoAccount.token.symbol}</span>
+                    <span>${syAccount.token.symbol}</span>
                   </li>
                   <li>
                     <span className="font-bold">contract: </span>
-                    <AddressFrame address={pdoAccount.token.address} />
+                    <AddressFrame address={syAccount.token.address} />
                   </li>
                 </ul>
                 <h4 className="text-lg">Mint Tokens</h4>
@@ -444,19 +444,19 @@ export function PDOAccountInfo({
                       {
                         formatToken(
                           includeTax(mintTotal, twSyndicateTax),
-                          pdoAccount.token,
+                          syAccount.token,
                         )
                       }
                     </WideFrame>
                   </div>
                   <button type="button"
-                    disabled={(pdoMintStatus === "pending")}
+                    disabled={(syMintStatus === "pending")}
                     onClick={onMint}
                     className="w-full button-lg"
                   >
-                    {(pdoMintStatus === "pending") ? (
+                    {(syMintStatus === "pending") ? (
                       <TinyLoadingIcon />
-                    ) : (pdoMintStatus === "error") ? (
+                    ) : (syMintStatus === "error") ? (
                       "Error!"
                     ) : (
                       "Propose Mint"
@@ -467,11 +467,11 @@ export function PDOAccountInfo({
             ) : (
               <form ref={launchFormRef}  className="flex flex-col gap-2">
                 <TextInput name="name" required
-                  placeholder={`name (e.g. ${urbitPDO.patp} token)`}
+                  placeholder={`name (e.g. ${urbitSyndicate.patp} token)`}
                   pattern={REGEX.SYNDICATE.NAME}
                 />
                 <TextInput name="symbol" required
-                  placeholder={`symbol (e.g. ${urbitPDO.patp.toUpperCase()})`}
+                  placeholder={`symbol (e.g. ${urbitSyndicate.patp.toUpperCase()})`}
                   pattern={REGEX.SYNDICATE.TOKEN}
                 />
                 <CurrencyInput name="init_supply" required
@@ -494,15 +494,15 @@ export function PDOAccountInfo({
                 */}
                 <button type="button"
                   disabled={
-                    !hasClanBoon(urbitPDO, "star")
-                    || (pdoLaunchStatus === "pending")
+                    !hasClanBoon(urbitSyndicate, "star")
+                    || (syLaunchStatus === "pending")
                   }
                   onClick={onLaunch}
                   className="w-full button-lg"
                 >
-                  {(pdoLaunchStatus === "pending") ? (
+                  {(syLaunchStatus === "pending") ? (
                     <TinyLoadingIcon />
-                  ) : (pdoLaunchStatus === "error") ? (
+                  ) : (syLaunchStatus === "error") ? (
                     "Error!"
                   ) : (
                     "Propose Launch"
@@ -513,17 +513,17 @@ export function PDOAccountInfo({
           </div>
           <div className="flex flex-col items-center gap-2">
             <h2 className="text-2xl">
-              PDO Proposals
+              Syndicate Proposals
             </h2>
-            {(pdoProposals === undefined || twDeployerTax === undefined || twSyndicateTax === undefined) ? (
+            {(syProposals === undefined || twDeployerTax === undefined || twSyndicateTax === undefined) ? (
               <TinyLoadingIcon />
-            ) : (pdoProposals === null || twDeployerTax === null || twSyndicateTax === null) ? (
+            ) : (syProposals === null || twDeployerTax === null || twSyndicateTax === null) ? (
               <div>error</div>
-            ) : (pdoProposals.length === 0) ? (
+            ) : (syProposals.length === 0) ? (
               <div>(no proposals found)</div>
             ) : (
               <div className="min-w-96 w-full flex flex-col items-center gap-2">
-                {pdoProposals.map(({safeTxHash, transaction, confirmations, confirmationsRequired}) => {
+                {syProposals.map(({safeTxHash, transaction, confirmations, confirmationsRequired}) => {
                   const confirms = (confirmations ?? []);
                   return (
                     <div
@@ -560,7 +560,7 @@ export function PDOAccountInfo({
                               <WideFrame title="Protocol Fee">
                                 {formatTax(twDeployerTax)}
                               </WideFrame>
-                              <WideFrame title="PDO Receives">
+                              <WideFrame title="Syndicate Receives">
                                 {
                                   formatToken(
                                     transaction.amount - applyTax(transaction.amount, twDeployerTax),
@@ -620,12 +620,12 @@ export function PDOAccountInfo({
                           <button type="button"
                             data-hash={safeTxHash}
                             onClick={onExec}
-                            disabled={pdoExecStatus === "pending"}
+                            disabled={syExecStatus === "pending"}
                             className="w-full button-lg"
                           >
-                            {(pdoExecStatus === "pending") ? (
+                            {(syExecStatus === "pending") ? (
                               <TinyLoadingIcon />
-                            ) : (pdoExecStatus === "error") ? (
+                            ) : (syExecStatus === "error") ? (
                               "Error!"
                             ) : (
                               "Execute"
@@ -637,13 +637,13 @@ export function PDOAccountInfo({
                             onClick={onSign}
                             disabled={
                               confirms.some(({owner}) => owner === idAccount?.address)
-                              || (pdoSignStatus === "pending")
+                              || (sySignStatus === "pending")
                             }
                             className="w-full button-lg"
                           >
-                            {(pdoSignStatus === "pending") ? (
+                            {(sySignStatus === "pending") ? (
                               <TinyLoadingIcon />
-                            ) : (pdoSignStatus === "error") ? (
+                            ) : (sySignStatus === "error") ? (
                               "Error!"
                             ) : (
                               "Sign"

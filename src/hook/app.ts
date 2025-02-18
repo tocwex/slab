@@ -15,8 +15,8 @@ export function useRouteUrbitID(): Nullable<UrbitID> {
   return useRouteUrbitParam("id");
 }
 
-export function useRouteUrbitPDO(): Nullable<UrbitID> {
-  return useRouteUrbitParam("pdo");
+export function useRouteUrbitSyndicate(): Nullable<UrbitID> {
+  return useRouteUrbitParam("sy");
 }
 
 export function useRedirect(link: string): () => void {

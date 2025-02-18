@@ -10,14 +10,14 @@ import { TinyLoadingIcon } from '@/comp/Icons';
 import { SingleSelector, SingleSelection } from '@/comp/Selector';
 import { useRouteUrbitID } from '@/hook/app';
 import {
-  useSafePDOs, useUrbitAccount, useTokenboundAccount,
-  useTokenboundCreateMutation, useSafeCreateMutation, usePDOCreateMutation,
+  useSafeSyndicates, useUrbitAccount, useTokenboundAccount,
+  useTokenboundCreateMutation, useSafeCreateMutation, useSyndicateCreateMutation,
 } from '@/hook/web3';
 import { useLocalSafes } from '@/hook/local';
 import { useWalletMeta, useTokenboundClient } from '@/hook/wallet';
 import { fetchUrbitAccount, fetchTBAddress } from '@/lib/web3';
 import {
-  formUrbitID, forceUrbitID, isValidPDO,
+  formUrbitID, forceUrbitID, isValidSyndicate,
   encodeSet, decodeSet, parseForm,
 } from '@/lib/util';
 import { REGEX } from '@/dat/const';
@@ -28,7 +28,7 @@ export default function IDPage(): React.ReactNode {
   const routeID: UrbitID = (useRouteUrbitID() as UrbitID);
   const wallet = useWalletMeta();
   const tbClient = useTokenboundClient();
-  const routePDOs = useSafePDOs(routeID);
+  const routeSyndicates = useSafeSyndicates(routeID);
   const tbAccount = useTokenboundAccount(routeID);
   const localSafes = useLocalSafes();
   const [managerNames, setManagerNames] = useState<string[]>([""]);
@@ -78,15 +78,15 @@ export default function IDPage(): React.ReactNode {
     setIsAdvancedShown(!isAdvancedShown)
   ), [isAdvancedShown, setIsAdvancedShown]);
 
-  const goNewPDO = useCallback(() => router.push(`/new/${routeID.patp}`), [router]);
+  const goNewSyndicate = useCallback(() => router.push(`/new/${routeID.patp}`), [router]);
   const goUrbitID = useCallback((selection: SingleSelection) => {
     if (!!selection) {
-      router.push(`/id/${routeID.patp}/pdo/${selection.value}`);
+      router.push(`/id/${routeID.patp}/sy/${selection.value}`);
     }
   }, [router]);
 
   const { mutate: safeCreateMutate, status: safeCreateStatus } = useSafeCreateMutation();
-  const { mutate: pdoCreateMutate, status: pdoCreateStatus } = usePDOCreateMutation(routeID);
+  const { mutate: syCreateMutate, status: syCreateStatus } = useSyndicateCreateMutation(routeID);
 
   const onCreateSafe = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
     const fields = parseForm(event, {
@@ -95,7 +95,7 @@ export default function IDPage(): React.ReactNode {
     });
     fields && safeCreateMutate(fields);
   }, [managerNames, safeCreateMutate]);
-  const onCreatePDO = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
+  const onCreateSyndicate = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
     if (!!deploymentSafe) {
       const fields = parseForm(event, {
         safe: deploymentSafe,
@@ -103,13 +103,13 @@ export default function IDPage(): React.ReactNode {
         reset: false,
       });
       // NOTE: We specify 'onSuccess' at the call level so that it doesn't override
-      // the 'usePDOCreateMutation' internal 'onSuccess' (which resets the local
+      // the 'useSyndicateCreateMutation' internal 'onSuccess' (which resets the local
       // cache of safes)
-      fields && pdoCreateMutate(fields, {onSuccess: () => goNewPDO()});
+      fields && syCreateMutate(fields, {onSuccess: () => goNewSyndicate()});
     }
-  }, [managerNames, deploymentSafe, pdoCreateMutate, goNewPDO]);
+  }, [managerNames, deploymentSafe, syCreateMutate, goNewSyndicate]);
 
-  const PDOManager = useCallback(({
+  const SyndicateManager = useCallback(({
     managerNames,
     setManagerNames,
     id,
@@ -149,32 +149,32 @@ export default function IDPage(): React.ReactNode {
       </h1>
       <form className="flex flex-col items-center gap-2">
         <h2 className="text-2xl">
-          Manage PDO
+          Manage Syndicate
         </h2>
-        {(routePDOs === undefined) ? (
+        {(routeSyndicates === undefined) ? (
           <TinyLoadingIcon />
         ) : (
           <SingleSelector
             onChange={goUrbitID}
-            placeholder="Select PDO"
+            placeholder="Select Syndicate"
             isClearable={false}
             styles={{container: (s) => ({...s, width: "200px"})}}
-            options={(routePDOs ?? []).map(({id, patp, clan}: UrbitID) => (
+            options={(routeSyndicates ?? []).map(({id, patp, clan}: UrbitID) => (
               { value: patp, label: patp }
             ))}
           />
         )}
       </form>
       <TokenboundAccountInfo urbitID={routeID} />
-      {!isValidPDO(routeID) ? (
+      {!isValidSyndicate(routeID) ? (
         <Fragment />
       ) : (
         <form className="flex flex-col items-center gap-2">
           <h2 className="text-2xl">
-            Create PDO
+            Create Syndicate
           </h2>
           {managerNames.map((managerName: string, managerID: number) => (
-            <PDOManager key={managerID} id={String(managerID)}
+            <SyndicateManager key={managerID} id={String(managerID)}
               managerNames={managerNames}
               setManagerNames={setManagerNames}
             />
@@ -245,15 +245,15 @@ export default function IDPage(): React.ReactNode {
               </button>
             ) : (
               <button type="button"
-                disabled={!tbAccount?.deployed || (pdoCreateStatus === "pending")}
-                onClick={onCreatePDO}
+                disabled={!tbAccount?.deployed || (syCreateStatus === "pending")}
+                onClick={onCreateSyndicate}
                 className="mt-4 button-lg"
               >
                 {!tbAccount ? (
                   "Connecting…"
-                ) : (pdoCreateStatus === "pending") ? (
+                ) : (syCreateStatus === "pending") ? (
                   <TinyLoadingIcon />
-                ) : (pdoCreateStatus === "error") ? (
+                ) : (syCreateStatus === "error") ? (
                   "Error!"
                 ) : (
                   "Transfer to Multisig"

@@ -7,7 +7,7 @@ import "./fonts.css";
 // https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadata-fields
 export const metadata: Metadata = {
   title: '%slab',
-  description: "A tool for launching and maintaining portal digital organizations (PDOs).",
+  description: "A tool for launching and maintaining syndicates.",
 };
 
 export default function RootLayout({

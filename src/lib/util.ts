@@ -143,7 +143,7 @@ export function hasClanBoon(urbit: UrbitID, clan: UrbitClan): boolean {
   return CLAN_INDEX[urbit.clan] <= CLAN_INDEX[clan];
 }
 
-export function isValidPDO(urbit: UrbitID): boolean {
+export function isValidSyndicate(urbit: UrbitID): boolean {
   return APP.DEBUG || hasClanBoon(urbit, "star");
 }
 

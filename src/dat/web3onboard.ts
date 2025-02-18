@@ -27,7 +27,7 @@ const web3onboardClientSingleton = () => (web3Init({
   // appMetadata: {
   //   name: "%slab",
   //   icon: "/tocwex.svg",
-  //   description: "A tool for launching and maintaining portal digital organizations (PDOs).",
+  //   description: "A tool for launching and maintaining portal digital organizations (Syndicates).",
   //   gettingStartedGuide: "https://docs.tocwexsyndicate.com/",
   //   // explore: "https://tocwexsyndicate.com/",
   // },

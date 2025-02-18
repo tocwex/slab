@@ -9,7 +9,7 @@ export async function generateMetadata(
   const id: string = (await params).id;
   const meta: ResolvedMetadata = (await parent);
   return {
-    title: `%slab | ${id} -> pdo`,
+    title: `%slab | ${id} -> syndicate`,
     description: meta.description,
   };
 }
