@@ -86,7 +86,7 @@ export function useSyndicateExecMutation(
           for (const transfer of slabTx.transfers) {
             const urbitID = await fetchUrbitID(wallet, tbClient, transfer.to);
             await queryClient.invalidateQueries({queryKey: [
-              APP.TAG, "safe", "syndicates", wallet?.chainID, urbitID.id,
+              APP.TAG, "tokenbound", "account", wallet.chainID, urbitID.id,
             ]});
           }
         }
@@ -355,6 +355,7 @@ export function useSyndicateCreateMutation(
       reset: boolean,
     }) => {
       if (!wallet || !tbClient) throw Error(ERROR.INVALID_QUERY);
+      // TODO: Use Azimuth to get latest Ecliptic
       const ECLIPTIC: Token = formToken(wallet.chain, "ECL");
 
       const transferTransaction = await writeContract(wallet.wagmi, {
@@ -493,9 +494,9 @@ export function useTokenboundCreateMutation(
   return useBasicMutation([queryKey], {
     mutationFn: async () => {
       if (!wallet || !tbClient) throw Error(ERROR.INVALID_QUERY);
-      const ECLIPTIC: Token = formToken(wallet.chain, "ECL");
+      const REGISTRY: Token = formToken(wallet.chain, "REGISTRY");
       const { txHash } = await tbClient.createAccount({
-        tokenContract: ECLIPTIC.address,
+        tokenContract: REGISTRY.address,
         tokenId: urbitID.id,
       });
       const { transactionHash } = await awaitReceipt(wallet, txHash);
@@ -517,10 +518,10 @@ export function useSafeProposals(urbitSyndicate: UrbitID): Loadable<SafeResponse
     enabled: !!wallet && !!tbClient,
     queryFn: async () => {
       if (!wallet || !tbClient) throw Error(ERROR.INVALID_QUERY);
-      const ECLIPTIC: Token = formToken(wallet.chain, "ECL");
+      const REGISTRY: Token = formToken(wallet.chain, "REGISTRY");
       const safeAddress = ((await readContract(wallet.wagmi, {
-        abi: ECLIPTIC.abi,
-        address: ECLIPTIC.address,
+        abi: REGISTRY.abi,
+        address: REGISTRY.address,
         functionName: "ownerOf",
         args: [urbitSyndicate.id],
       })) as Address);
@@ -610,6 +611,7 @@ export function useTokenboundAccount(urbitID: UrbitID): Loadable<TokenboundAccou
     enabled: !!wallet && !!tbClient && !!localTokens && !!urbitID.id,
     queryFn: async () => {
       if (!wallet || !tbClient || !localTokens) throw Error(ERROR.INVALID_QUERY);
+      // console.log(`querying for ${queryKey}`);
       const tbAddress = await fetchTBAddress(wallet, tbClient, urbitID);
       const tbIsDeployed: boolean = await tbClient.checkAccountDeployment({
         accountAddress: tbAddress,
@@ -673,10 +675,10 @@ export function useSafeAccount(urbitID: UrbitID): Loadable<SafeAccount> {
     enabled: !!wallet,
     queryFn: async () => {
       if (!wallet) throw Error(ERROR.INVALID_QUERY);
-      const ECLIPTIC: Token = formToken(wallet.chain, "ECL");
+      const REGISTRY: Token = formToken(wallet.chain, "REGISTRY");
       const safeAddress = ((await readContract(wallet.wagmi, {
-        abi: ECLIPTIC.abi,
-        address: ECLIPTIC.address,
+        abi: REGISTRY.abi,
+        address: REGISTRY.address,
         functionName: "ownerOf",
         args: [urbitID.id],
       })) as Address);

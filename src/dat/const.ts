@@ -42,18 +42,21 @@ export const CONTRACT = Object.freeze({
   REGISTRY: Object.freeze({ // ~tocwex.syndiate token registry
     ADDRESS: (Object.freeze({
       ETHEREUM: "0x0000000000000000000000000000000000000000", // TODO: Add real address
-      SEPOLIA: "0x7aae9880fdcd7d806038b341dcad258e630772d0",
+      SEPOLIA: "0x8c53afd9cba39a496333e6d050e584c8f37bb269",
     }) as {[network: string]: `0x${string}`;}),
+    NAME: "Azimuth Points",
+    SYMBOL: "AZP",
+    DECIMALS: 0,
     ABI: ABI.TOCWEX_REGISTRY,
   }),
   DEPLOYER_V1: Object.freeze({ // ~tocwex.syndiate token deployer (v1)
     ADDRESS: (Object.freeze({
       ETHEREUM: "0x0000000000000000000000000000000000000000", // TODO: Add real address
-      SEPOLIA: "0x2bcade92b1c4e9eeb2266f4dbcbf32cc5d82c441",
+      SEPOLIA: "0xcbf081e9bab6ba8fc7cc01344a1fcfc2fbe8198d",
     }) as {[network: string]: `0x${string}`;}),
     ABI: ABI.TOCWEX_DEPLOYER_V1,
   }),
-  TOKENBOUND: Object.freeze({ // Tokenbound
+  TOKENBOUND: Object.freeze({ // tokenbound
     ADDRESS: (Object.freeze({
       ETHEREUM: "0x0000000000000000000000000000000000000000", // TODO: Add real address
       SEPOLIA: "0x5Ee3b4196a20aec5EECDdf57d5AB24dF3cEAdFBe",

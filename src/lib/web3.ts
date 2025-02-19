@@ -173,13 +173,13 @@ export async function fetchTBAddress(
   tbClient: TokenboundClient,
   urbit: number | string | UrbitID,
 ): Promise<Address> {
-  const ECLIPTIC = formContract(wallet.chain, "ECL");
+  const REGISTRY = formContract(wallet.chain, "REGISTRY");
   const urbitID: UrbitID = !(typeof urbit === "number" || typeof urbit === "string")
     ? urbit
     : formUrbitID(urbit);
 
   const address: Address = await tbClient.getAccount({
-    tokenContract: ECLIPTIC.address,
+    tokenContract: REGISTRY.address,
     tokenId: urbitID.id,
   });
 
@@ -191,11 +191,11 @@ export async function fetchUrbitID(
   tbClient: TokenboundClient,
   address: Address,
 ): Promise<UrbitID> {
-  const ECLIPTIC = formToken(wallet.chain, "ECL");
+  const REGISTRY = formToken(wallet.chain, "REGISTRY");
   const { tokenContract, tokenId } = await tbClient.getNFT({
     accountAddress: address,
   });
-  if (ECLIPTIC.address !== tokenContract)
+  if (REGISTRY.address.toLowerCase() !== tokenContract.toLowerCase())
     throw Error(`Address ${address} is not a ERC-6551 contract`)
   return formUrbitID(tokenId);
 }
@@ -210,7 +210,7 @@ export async function awaitReceipt(
   let receipt = undefined;
   while (receipt === undefined && attempts++ < MAX_ATTEMPTS) {
     try {
-      receipt = await waitForTransactionReceipt(wallet.wagmi, {hash, timeout: 20000});
+      receipt = await waitForTransactionReceipt(wallet.wagmi, {hash, confirmations: 4, timeout: 20000});
     } catch (error) {
       try {
         receipt = await getTransactionReceipt(wallet.wagmi, {hash});

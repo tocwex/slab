@@ -7,11 +7,6 @@
                 "type": "address"
             },
             {
-                "internalType": "address",
-                "name": "azimuthContract",
-                "type": "address"
-            },
-            {
                 "internalType": "uint256",
                 "name": "fee",
                 "type": "uint256"

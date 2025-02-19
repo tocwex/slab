@@ -86,7 +86,10 @@ export default function IDPage(): React.ReactNode {
   }, [router]);
 
   const { mutate: safeCreateMutate, status: safeCreateStatus } = useSafeCreateMutation();
-  const { mutate: syCreateMutate, status: syCreateStatus } = useSyndicateCreateMutation(routeID);
+  const { mutate: syCreateMutate, status: syCreateStatus } = useSyndicateCreateMutation(
+    routeID,
+    { onSuccess: () => goNewSyndicate() },
+  );
 
   const onCreateSafe = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
     const fields = parseForm(event, {
@@ -102,12 +105,9 @@ export default function IDPage(): React.ReactNode {
         managers: managerNames.map(forceUrbitID),
         reset: false,
       });
-      // NOTE: We specify 'onSuccess' at the call level so that it doesn't override
-      // the 'useSyndicateCreateMutation' internal 'onSuccess' (which resets the local
-      // cache of safes)
-      fields && syCreateMutate(fields, {onSuccess: () => goNewSyndicate()});
+      fields && syCreateMutate(fields);
     }
-  }, [managerNames, deploymentSafe, syCreateMutate, goNewSyndicate]);
+  }, [managerNames, deploymentSafe, syCreateMutate]);
 
   const SyndicateManager = useCallback(({
     managerNames,
