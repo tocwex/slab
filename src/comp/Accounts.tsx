@@ -88,9 +88,6 @@ export function TokenboundAccountInfo({
   const localTokens = useLocalTokens();
   const sendFormRef = useRef<HTMLFormElement>(null);
 
-  // console.log(Object.values(tbAccount?.holdings ?? {}).map(({token}) => token.name));
-  // console.log(Object.values(localTokens ?? {}).map(token => token.name));
-
   const { mutate: tbCreateMutate, status: tbCreateStatus } = useTokenboundCreateMutation(urbitID);
   const { mutate: tbSendMutate, status: tbSendStatus } = useTokenboundSendMutation(
     urbitID,

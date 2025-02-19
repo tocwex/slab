@@ -19,12 +19,9 @@ export function useTokensAddMutation(
   const queryKey: QueryKey = useMemo(() => [
     APP.TAG, "local", "tokens", wallet?.chainID,
   ], [wallet?.chainID]);
-  const tbaKey: QueryKey = useMemo(() => [
-    APP.TAG, "tokenbound", "account", wallet?.chainID,
-  ], [wallet?.chainID]);
 
   const queryClient = useQueryClient();
-  return useBasicMutation([queryKey, tbaKey], {
+  return useBasicMutation([queryKey], {
     mutationFn: async ({address}: {
       address: Address,
     }) => {

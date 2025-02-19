@@ -45,13 +45,21 @@ export function rateLimit(maxRequests: number, perSeconds: number): (func: any) 
   };
 }
 
+export function encodeList<U>(list: U[]): string {
+  return String(list.sort());
+}
+
+export function decodeList<U>(str: string, sip?: (s: string) => U): U[] {
+  const stringToU = sip ?? ((val: string): U => (val as U));
+  return str.split(",").map(stringToU);
+}
+
 export function encodeSet<U>(set: Set<U>): string {
-  return String(Array.from(set).sort());
+  return encodeList(Array.from(set));
 }
 
 export function decodeSet<U>(str: string, sip?: (s: string) => U): Set<U> {
-  const stringToU = sip ?? ((val: string): U => (val as U));
-  return new Set(str.split(",").map(stringToU));
+  return new Set(decodeList(str, sip));
 }
 
 export function trimAddress(address: string): string {

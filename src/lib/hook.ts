@@ -23,7 +23,7 @@ export function useBasicMutation<
     },
     onSettled: async () => {
       for (const key of keys) {
-        await client.invalidateQueries({ queryKey: key, refetchType: 'all' });
+        await client.invalidateQueries({ queryKey: key });
       }
     },
   };

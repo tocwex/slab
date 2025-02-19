@@ -5,7 +5,7 @@ import type {
   TokenboundAccount, SafeAccount, UrbitAccount, UrbitNetworkLayer,
   SafeResponse, SafeOwners, SafeArchive,
 } from '@/type/slab';
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useConnectWallet, useWagmiConfig } from '@web3-onboard/react';
 import {
@@ -28,8 +28,9 @@ import {
 } from '@/lib/web3';
 import { useBasicMutation } from '@/lib/hook';
 import {
-  clamp, formContract, formToken, formUrbitID, includeTax,
-  isValidSyndicate, compareUrbitIDs, encodeSet, decodeSet,
+  clamp, formContract, formToken, formUrbitID,
+  includeTax, isValidSyndicate, compareUrbitIDs,
+  encodeList, decodeList, encodeSet, decodeSet,
 } from '@/lib/util';
 import { update as updateLocal } from '@/dat/local';
 import { APP, ABI, ACCOUNT, CONTRACT, MATH, ERROR } from '@/dat/const';
@@ -65,21 +66,31 @@ export function useSyndicateExecMutation(
       return transactionHash;
     },
     onSettled: async (_, __, {txHash}, ___) => {
-      // TODO: Invalidate based on the type of transaction being performed
-      await queryClient.invalidateQueries({ queryKey: queryKey, refetchType: 'all' });
-      await queryClient.invalidateQueries({ queryKey: syKey, refetchType: 'all' });
-      await queryClient.invalidateQueries({ queryKey: taxKey, refetchType: 'all' });
       if (!!wallet && !!tbClient) {
         const safeClient = new SafeApiKit({chainId: wallet.chain});
         const safeRawTx = await safeClient.getTransaction(txHash);
         const safeRawData = ((safeRawTx?.data || "0x0") as Address);
-        const safeTx = await decodeProposal(wallet, safeRawData);
-        if (safeTx.type === "transfer") {
-          const urbitID = await fetchUrbitID(wallet, tbClient, safeTx.to);
+        const slabTx = await decodeProposal(wallet, safeRawData);
+
+        // NOTE: Always refetch this syndicate's safe information first so
+        // dependent data (e.g. taxes, depending on token address) works
+        await queryClient.invalidateQueries({ queryKey: syKey });
+        if (slabTx.type === "transfer") {
+          const urbitID = await fetchUrbitID(wallet, tbClient, slabTx.to);
           await queryClient.invalidateQueries({queryKey: [
             APP.TAG, "tokenbound", "account", wallet.chainID, urbitID.id,
-          ], refetchType: 'all'});
+          ]});
+        } else if (slabTx.type === "launch") {
+          await queryClient.invalidateQueries({ queryKey: taxKey });
+        } else if (slabTx.type === "mint") {
+          for (const transfer of slabTx.transfers) {
+            const urbitID = await fetchUrbitID(wallet, tbClient, transfer.to);
+            await queryClient.invalidateQueries({queryKey: [
+              APP.TAG, "safe", "syndicates", wallet?.chainID, urbitID.id,
+            ]});
+          }
         }
+        await queryClient.invalidateQueries({ queryKey: queryKey });
       }
     },
     ...options,
@@ -337,7 +348,7 @@ export function useSyndicateCreateMutation(
   ], [wallet?.chainID]);
 
   const queryClient = useQueryClient();
-  return useBasicMutation([queryKey], {
+  return useBasicMutation([queryKey, localKey], {
     mutationFn: async ({safe, managers, reset}: {
       safe: Address,
       managers: UrbitID[],
@@ -354,10 +365,8 @@ export function useSyndicateCreateMutation(
       });
       const { transactionHash } = await awaitReceipt(wallet, transferTransaction);
 
-      return transactionHash;
-    },
-    onSuccess: async (_, {managers, safe}, __) => {
-      if (!wallet || !tbClient) throw Error(ERROR.INVALID_QUERY);
+      // NOTE: Probably more appropriate in dependent 'onSuccess', but that
+      // makes the UI update behavior a bit more wonky.
       const owners: Address[] = await Promise.all(managers.map((urbitID) => (
         fetchTBAddress(wallet, tbClient, urbitID)
       )));
@@ -370,14 +379,15 @@ export function useSyndicateCreateMutation(
         newArchive[tbKey] = oldOwners;
         return newArchive;
       });
-      queryClient.invalidateQueries({ queryKey: localKey, refetchType: 'all' });
+
+      return transactionHash;
     },
     onSettled: async (_, __, {managers}, ___) => {
-      await queryClient.invalidateQueries({ queryKey: queryKey, refetchType: 'all' });
+      await queryClient.invalidateQueries({ queryKey: queryKey });
       for (const managerID of managers) {
         await queryClient.invalidateQueries({queryKey: [
           APP.TAG, "safe", "syndicates", wallet?.chainID, managerID.id,
-        ], refetchType: 'all'});
+        ]});
       }
     },
     ...options,
@@ -394,7 +404,7 @@ export function useSafeCreateMutation(
   ], [wallet?.chainID]);
 
   const queryClient = useQueryClient();
-  return useMutation({
+  return useBasicMutation([localKey], {
     mutationFn: async ({managers, threshold}: {
       managers: UrbitID[],
       threshold: number,
@@ -404,13 +414,9 @@ export function useSafeCreateMutation(
         fetchTBAddress(wallet, tbClient, urbitID)
       )));
       const safeAddress = await createSafe(wallet, tbClient, owners, threshold);
-      return safeAddress;
-    },
-    onSuccess: async (safeAddress, {managers}, _) => {
-      if (!wallet || !tbClient) throw Error(ERROR.INVALID_QUERY);
-      const owners: Address[] = await Promise.all(managers.map((urbitID) => (
-        fetchTBAddress(wallet, tbClient, urbitID)
-      )));
+
+      // NOTE: Probably more appropriate in dependent 'onSuccess', but that
+      // makes the UI update behavior a bit more wonky.
       const tbContract = formContract(wallet.chain, "TOKENBOUND");
       const tbKey: ChainAddress = `${wallet.chain}:${tbContract.address}`;
       await updateLocal("safes", (oldArchive: SafeArchive | undefined) => {
@@ -422,7 +428,8 @@ export function useSafeCreateMutation(
         newArchive[tbKey] = newOwners;
         return newArchive;
       });
-      queryClient.invalidateQueries({ queryKey: localKey, refetchType: 'all' });
+
+      return safeAddress;
     },
     ...options,
   });
@@ -464,10 +471,10 @@ export function useTokenboundSendMutation(
       return transactionHash;
     },
     onSettled: async (_, __, {recipient}, ___) => {
-      await queryClient.invalidateQueries({ queryKey: queryKey, refetchType: 'all' });
+      await queryClient.invalidateQueries({ queryKey: queryKey });
       await queryClient.invalidateQueries({queryKey: [
         APP.TAG, "tokenbound", "account", wallet?.chainID, formUrbitID(recipient).id,
-      ], refetchType: 'all'});
+      ]});
     },
     ...options,
   });
@@ -594,8 +601,9 @@ export function useTokenboundAccount(urbitID: UrbitID): Loadable<TokenboundAccou
   const tbClient = useTokenboundClient();
   const localTokens = useLocalTokens();
   const queryKey: QueryKey = useMemo(() => [
-    APP.TAG, "tokenbound", "account", wallet?.chainID, urbitID.id,
-  ], [wallet?.chainID, urbitID.id]);
+    APP.TAG, "tokenbound", "account",
+    wallet?.chainID, urbitID.id, encodeList(Object.keys(localTokens ?? {})),
+  ], [wallet?.chainID, urbitID.id, localTokens]);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKey,
