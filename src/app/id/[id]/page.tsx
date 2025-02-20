@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { TokenboundAccountInfo } from '@/comp/Accounts';
 import { SafeFrame } from '@/comp/Frames';
-import { RecipientInput, RecipientTBAInput } from '@/comp/Forms';
+import { RecipientInput, RecipientLauncherInput } from '@/comp/Forms';
 import { TinyLoadingIcon } from '@/comp/Icons';
 import { SingleSelector, SingleSelection } from '@/comp/Selector';
 import { useRouteUrbitID } from '@/hook/app';
@@ -127,7 +127,8 @@ export default function IDPage(): React.ReactNode {
 
     return (
       <div {...props} className="w-full flex flex-row justify-between items-center gap-2">
-        <RecipientTBAInput name={`manager-${id}`} required
+        <RecipientLauncherInput name={`manager-${id}`} required
+          accepts="urbit"
           value={value}
           onChange={e => setManagerNames(managerNames.toSpliced(realID, 1, e.target.value))}
         />

@@ -6,8 +6,8 @@ import { formUrbitID } from '@/lib/util';
 import { REGEX } from '@/dat/const';
 
 export function CurrencyInput({
-  className="input-lg",
   placeholder="currency amount",
+  className="input-lg",
   ...props
 }: Omit<
   React.ComponentProps<"input">,
@@ -45,8 +45,8 @@ export function TextInput({
 }
 
 export function RecipientInput({
+  placeholder="urbit id or address",
   className="input-lg",
-  placeholder="urbit id", // TODO: or address
   ...props
 }: Omit<
   React.ComponentProps<"input">,
@@ -54,7 +54,7 @@ export function RecipientInput({
 >): React.ReactNode {
   return (
     <TextInput
-      pattern={REGEX.AZIMUTH.POINT}
+      pattern={REGEX.RECIPIENT}
       className={className}
       placeholder={placeholder}
       {...props}
@@ -62,15 +62,22 @@ export function RecipientInput({
   );
 }
 
-export function RecipientTBAInput({
+export function RecipientLauncherInput({
   value,
+  accepts="urbit",
   className="input-sm",
-  placeholder="urbit id", // TODO: or address
   ...props
-}: Omit<
+}: {
+  accepts: "urbit" | "any";
+} & Omit<
   React.ComponentProps<"input">,
-  "type" | "pattern" | "autoComplete" | "autoCorrect" | "autoCapitalize" | "spellCheck"
+  "type" | "placeholder" | "pattern" | "autoComplete" | "autoCorrect" | "autoCapitalize" | "spellCheck"
 >): React.ReactNode {
+  const [pattern, placeholder] = useMemo(() => (
+    (accepts === "urbit")
+      ? [REGEX.AZIMUTH.POINT, "urbit id"]
+      : [REGEX.RECIPIENT, "urbit id or address"]
+  ), [accepts]);
   const urbitID = useMemo(() => formUrbitID(String(value)), [value]);
   const urbitAccount = useUrbitAccount(urbitID);
   const tbAccount = useTokenboundAccount(urbitID);
@@ -78,7 +85,8 @@ export function RecipientTBAInput({
 
   return (
     <div className="flex flex-row">
-      <RecipientInput
+      <TextInput
+        pattern={pattern}
         className={className}
         placeholder={placeholder}
         value={value}
@@ -87,15 +95,20 @@ export function RecipientTBAInput({
       <button type="button"
         className="button-sm"
         onClick={tbCreateMutate}
-        disabled={
-          !tbAccount
-          || !!tbAccount.deployed
-          || !urbitAccount
-          || (urbitAccount.layer !== "l1")
-          || (tbCreateStatus === "pending")
+        disabled={(
+            !((accepts === "any") && String(value).match(REGEX.ADDRESS))
+          ) || (
+            !tbAccount
+            || !!tbAccount.deployed
+            || !urbitAccount
+            || (urbitAccount.layer !== "l1")
+            || (tbCreateStatus === "pending")
+          )
         }
       >
-        {!urbitID.id ? (
+        {((accepts === "any") && String(value).match(REGEX.ADDRESS)) ? (
+          "✔"
+        ) : !urbitID.id ? (
           "❓"
         ) : (tbAccount === undefined || urbitAccount === undefined) ? (
           <TinyLoadingIcon />

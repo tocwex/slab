@@ -24,7 +24,8 @@ import { useWalletMeta, useTokenboundClient } from '@/hook/wallet';
 import { useLocalTokens, useTokensAddMutation } from '@/hook/local';
 import {
   createSafe, signTBSafeTx, fetchSafeAccount, fetchUrbitAccount,
-  fetchTBAddress, fetchToken, fetchUrbitID, decodeProposal, awaitReceipt,
+  fetchRecipient, fetchTBAddress, fetchToken, fetchUrbitID,
+  decodeProposal, awaitReceipt,
 } from '@/lib/web3';
 import { useBasicMutation } from '@/lib/hook';
 import {
@@ -152,7 +153,7 @@ export function useSyndicateMintMutation(
         return bigAmountWTax;
       });
       const recipientAddresses: Address[] = await Promise.all(recipients.map((recipient) => (
-        fetchTBAddress(wallet, tbClient, recipient)
+        fetchRecipient(wallet, tbClient, recipient)
       )));
 
       const tbMintTransaction = await tbClient.prepareExecution({
@@ -290,10 +291,10 @@ export function useSyndicateSendMutation(
       if (!wallet || !tbClient || !idAccount || !syAccount || !sySafe)
         throw Error(ERROR.INVALID_QUERY);
       const TOKEN: Token = await fetchToken(wallet, symbol);
-      const recipientAddress = await fetchTBAddress(wallet, tbClient, recipient);
+      const toAddress = await fetchRecipient(wallet, tbClient, recipient);
       const tbTransferTransaction = await ((symbol === "ETH") ? tbClient.prepareExecution({
         account: syAccount.address,
-        to: recipientAddress,
+        to: toAddress,
         value: parseEther(amount),
         data: "0x",
       }) : tbClient.prepareExecution({
@@ -303,7 +304,7 @@ export function useSyndicateSendMutation(
         data: encodeFunctionData({
           abi: TOKEN.abi,
           functionName: "transfer",
-          args: [recipientAddress, parseUnits(amount, TOKEN.decimals)],
+          args: [toAddress, parseUnits(amount, TOKEN.decimals)],
         }),
       }));
 
@@ -456,15 +457,15 @@ export function useTokenboundSendMutation(
     }) => {
       if (!wallet || !tbClient || !tbAccount) throw Error(ERROR.INVALID_QUERY);
       const TOKEN = await fetchToken(wallet, symbol);
-      const tbAddress = await fetchTBAddress(wallet, tbClient, recipient);
+      const toAddress = await fetchRecipient(wallet, tbClient, recipient);
       const txHash = await ((symbol === "ETH") ? tbClient.transferETH({
         account: tbAccount.address,
         amount: Number(amount),
-        recipientAddress: tbAddress,
+        recipientAddress: toAddress,
       }) : tbClient.transferERC20({
         account: tbAccount.address,
         amount: Number(amount),
-        recipientAddress: tbAddress,
+        recipientAddress: toAddress,
         erc20tokenAddress: TOKEN.address,
         erc20tokenDecimals: TOKEN.decimals,
       }));

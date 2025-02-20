@@ -168,6 +168,18 @@ export async function fetchUrbitAccount(
   return { layer, owner };
 }
 
+export async function fetchRecipient(
+  wallet: WalletMeta,
+  tbClient: TokenboundClient,
+  recipient: number | string | UrbitID,
+): Promise<Address> {
+  if (typeof recipient === "string" && recipient.startsWith("0x")) {
+    return Promise.resolve((recipient as Address));
+  } else {
+    return fetchTBAddress(wallet, tbClient, recipient);
+  }
+}
+
 export async function fetchTBAddress(
   wallet: WalletMeta,
   tbClient: TokenboundClient,

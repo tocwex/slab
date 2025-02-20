@@ -9,7 +9,7 @@ import {
   SafeFrame, AddressFrame, UrbitIDFrame, TBAFrame,
 } from '@/comp/Frames';
 import {
-  CurrencyInput, TextInput, RecipientInput, RecipientTBAInput,
+  CurrencyInput, TextInput, RecipientInput, RecipientLauncherInput,
 } from '@/comp/Forms';
 import {
   TinyLoadingIcon, TextLoadingIcon,
@@ -273,7 +273,8 @@ export function SyndicateAccountInfo({
     return (
       <div {...props} className="w-full flex flex-row justify-between items-center gap-1">
         <div className="flex flex-col gap-1">
-          <RecipientTBAInput name={`recipient-${id}`} required
+          <RecipientLauncherInput name={`recipient-${id}`} required
+            accepts="any"
             value={value}
             onChange={e => setMintData(
               mintData.toSpliced(realID, 1, [mintData[realID][0], e.target.value])
@@ -330,10 +331,12 @@ export function SyndicateAccountInfo({
   const onMint = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
     const fields = parseForm(event, {
       amounts: mintData.map(([a, r]) => a),
-      recipients: mintData.map(([a, r]) => r).map(formUrbitID),
+      recipients: mintData.map(([a, r]) => r).map((recipient) => (
+        recipient.match(REGEX.ADDRESS)
+          ? recipient
+          : formUrbitID(recipient)
+      )),
     });
-    // FIXME: We do this after parsing the form for better user alerts
-    mintData.map(([a, r]) => r).map(forceUrbitID);
     fields && syMintMutate(fields);
   }, [syMintMutate, mintData]);
 

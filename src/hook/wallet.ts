@@ -28,6 +28,7 @@ export function useUrbitTBAs(account: Address): Loadable<Record<Address, UrbitID
 
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKey,
+    enabled: !!wallet && !!tbClient && !!urbitIDs,
     queryFn: async () => {
       if (!wallet || !tbClient || !urbitIDs) throw Error(ERROR.INVALID_QUERY);
       const tbAddresses: Record<Address, UrbitID> = {};
@@ -37,10 +38,6 @@ export function useUrbitTBAs(account: Address): Loadable<Record<Address, UrbitID
       }
       return tbAddresses;
     },
-    enabled: !!wallet && !!tbClient && !!urbitIDs,
-    staleTime: Infinity,
-    retryOnMount: false,
-    refetchOnMount: false,
   });
 
   return isLoading ? undefined
@@ -61,6 +58,8 @@ export function useUrbitIDs(account: Address): Loadable<UrbitID[]> {
 
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKey,
+    enabled: !!wallet,
+    staleTime: 10 * 60 * 1000,
     queryFn: async () => {
       if (!wallet) throw Error(ERROR.INVALID_QUERY);
       const azimuth: Contract = formContract(wallet.chain, "AZP");
@@ -72,10 +71,6 @@ export function useUrbitIDs(account: Address): Loadable<UrbitID[]> {
       });
       return (points as number[]).map(formUrbitID).sort(compareUrbitIDs);
     },
-    enabled: !!wallet,
-    staleTime: 10 * 60 * 1000,
-    retryOnMount: false,
-    refetchOnMount: false,
   });
 
   return isLoading ? undefined
@@ -91,6 +86,7 @@ export function useTokenboundClient(): Loadable<TokenboundClient> {
 
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKey,
+    enabled: !!wallet,
     queryFn: async () => {
       if (!wallet) throw Error(ERROR.INVALID_QUERY);
       const walletClient = await getWalletClient(wallet.wagmi);
@@ -100,10 +96,6 @@ export function useTokenboundClient(): Loadable<TokenboundClient> {
         implementationAddress: formContract(wallet.chain, "TOKENBOUND").address,
       });
     },
-    enabled: !!wallet,
-    staleTime: Infinity,
-    retryOnMount: false,
-    refetchOnMount: false,
   });
 
   return isLoading ? undefined
