@@ -18,8 +18,8 @@ export default function NewPage(): React.ReactNode {
   const walletTBAs = useWalletUrbitTBAs();
   const syMultisig = useSafeAccount(routeID);
   const walletOwnerTBAs: Record<Address, UrbitID> = useMemo(() => {
-    const tbas: Record<Address, UrbitID> = walletTBAs ?? {};
-    const owners: Address[] = ((syMultisig?.owners ?? []) as Address[]);
+    const tbas: Record<Address, UrbitID> = walletTBAs || {};
+    const owners: Address[] = (((syMultisig || null)?.owners || []) as Address[]);
     const ownerTBAs = Array.from(new Set(owners).intersection(new Set(Object.keys(tbas))));
     return Object.fromEntries(ownerTBAs.map((tba) => ([tba, tbas[tba]])));
   }, [walletTBAs, syMultisig]);

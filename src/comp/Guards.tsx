@@ -83,7 +83,7 @@ export function RouteUIDOwnerGuard({
   const urbitIDs = useWalletUrbitIDs();
 
   const isRouteIDHolder: boolean = useMemo(() => (
-    (urbitIDs ?? []).map(({id}) => id).includes(routeID?.id ?? "")
+    (urbitIDs || []).map(({id}) => id).includes(routeID?.id ?? "")
   ), [routeID, urbitIDs]);
 
   return (

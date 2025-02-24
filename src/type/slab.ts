@@ -4,7 +4,7 @@ import type { WagmiConfig } from '@web3-onboard/core';
 import { Abi } from 'abitype';
 
 export type Nullable<T> = T | null;
-export type Loadable<T> = T | null | undefined;
+export type Loadable<T> = T | false | null | undefined;
 export type Version = `${string}.${string}.${string}`;
 
 export type Address = `0x${string}`;
@@ -31,7 +31,7 @@ export interface WalletMeta {
 
 export type UrbitClan = 'galaxy' | 'star' | 'planet' | 'moon' | 'comet';
 export interface UrbitID {
-  id: string;
+  id: string; // NOTE: Using string the number can BigInt scale
   patp: string;
   clan: UrbitClan;
 }

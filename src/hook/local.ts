@@ -56,7 +56,7 @@ export function useLocalTokens(): Loadable<TokenMap> {
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKey,
     enabled: !!wallet,
-    queryFn: async () => {
+    queryFn: async (): Promise<TokenMap> => {
       if (!wallet) throw Error(ERROR.INVALID_QUERY);
       const localTokens = (((await getLocal("tokens")) ?? {}) as TokenArchive);
       return ((localTokens?.[`${wallet.chain}`] ?? {}) as TokenMap);
@@ -77,7 +77,7 @@ export function useLocalSafes(): Loadable<SafeOwners> {
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKey,
     enabled: !!wallet,
-    queryFn: async () => {
+    queryFn: async (): Promise<SafeOwners> => {
       if (!wallet) throw Error(ERROR.INVALID_QUERY);
       const localArchive = (((await getLocal("safes")) ?? {}) as SafeArchive);
       const tbContract = formContract(wallet.chain, "TOKENBOUND");

@@ -47,7 +47,7 @@ export default function Home(): React.ReactNode {
             placeholder="Select Urbit ID"
             isClearable={false}
             styles={{container: (s) => ({...s, width: "200px"})}}
-            options={(urbitIDs ?? []).map(({id, patp, clan}: UrbitID) => (
+            options={((urbitIDs || null) ?? []).map(({id, patp, clan}: UrbitID) => (
               { value: patp, label: patp }
             ))}
           />

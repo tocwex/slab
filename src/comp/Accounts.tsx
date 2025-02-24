@@ -241,7 +241,7 @@ export function SyndicateAccountInfo({
   const mintTotal = useMemo(() => {
     const mintBigInts = mintData.map(([amount, recipient]) => coerceBigInt(amount));
     const mintTotal = mintBigInts.reduce((mintValue, [mintBigInt, mintDecimals]) => {
-      const mintShift = (syAccount?.token?.decimals ?? 18) - mintDecimals;
+      const mintShift = ((syAccount || null)?.token?.decimals ?? 18) - mintDecimals;
       return mintValue + (mintBigInt * BigInt(10) ** BigInt(mintShift));
     }, BigInt(0));
     return mintTotal;
@@ -332,7 +332,7 @@ export function SyndicateAccountInfo({
     const fields = parseForm(event, {
       amounts: mintData.map(([a, r]) => a),
       recipients: mintData.map(([a, r]) => r).map((recipient) => (
-        recipient.match(REGEX.ADDRESS)
+        recipient.match(REGEX.ETHEREUM.ADDRESS)
           ? recipient
           : formUrbitID(recipient)
       )),
@@ -398,9 +398,11 @@ export function SyndicateAccountInfo({
             <h2 className="text-2xl">
               Syndicate Token
             </h2>
-            {(syAccount === undefined || twSyndicateTax === undefined) ? (
+            {(twSyndicateTax === undefined) ? (
               <TinyLoadingIcon />
-            ) : (syAccount === null || twSyndicateTax === null) ? (
+            ) : (twSyndicateTax === null) ? (
+              <div>error</div>
+            ) : (twSyndicateTax === false) ? (
               <div>error</div>
             ) : (syAccount.token !== undefined) ? (
               <>
@@ -518,6 +520,8 @@ export function SyndicateAccountInfo({
             {(syProposals === undefined || twDeployerTax === undefined || twSyndicateTax === undefined) ? (
               <TinyLoadingIcon />
             ) : (syProposals === null || twDeployerTax === null || twSyndicateTax === null) ? (
+              <div>error</div>
+            ) : (syProposals === false || twDeployerTax === false || twSyndicateTax === false) ? (
               <div>error</div>
             ) : (syProposals.length === 0) ? (
               <div>(no proposals found)</div>
@@ -691,7 +695,7 @@ export function AddTokenModule(): React.ReactNode {
       `}>
         <TextInput name="address" required
           placeholder="erc20 token address"
-          pattern={REGEX.ADDRESS}
+          pattern={REGEX.ETHEREUM.ADDRESS}
         />
         <button type="button"
           disabled={(addTokenStatus === "pending")}

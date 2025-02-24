@@ -30,11 +30,11 @@ import {
 import { useBasicMutation } from '@/lib/hook';
 import {
   clamp, formContract, formToken, formUrbitID,
-  includeTax, isValidSyndicate, compareUrbitIDs,
+  includeTax, isValidSyndicate, isValidUrbitID, compareUrbitIDs,
   encodeList, decodeList, encodeSet, decodeSet,
 } from '@/lib/util';
 import { update as updateLocal } from '@/dat/local';
-import { APP, ABI, ACCOUNT, CONTRACT, MATH, ERROR } from '@/dat/const';
+import { APP, ABI, ACCOUNT, CONTRACT, MATH, REGEX, ERROR } from '@/dat/const';
 
 export function useSyndicateExecMutation(
   urbitSyndicate: UrbitID,
@@ -517,8 +517,9 @@ export function useSafeProposals(urbitSyndicate: UrbitID): Loadable<SafeResponse
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKey,
     enabled: !!wallet && !!tbClient,
-    queryFn: async () => {
+    queryFn: async (): Promise<SafeResponse[] | false> => {
       if (!wallet || !tbClient) throw Error(ERROR.INVALID_QUERY);
+      if (!isValidUrbitID(urbitSyndicate)) return false;
       const REGISTRY: Token = formToken(wallet.chain, "REGISTRY");
       const safeAddress = ((await readContract(wallet.wagmi, {
         abi: REGISTRY.abi,
@@ -545,6 +546,7 @@ export function useSafeProposals(urbitSyndicate: UrbitID): Loadable<SafeResponse
 
   return isLoading ? undefined
     : isError ? null
+    : !data ? false
     : (data as SafeResponse[]);
 }
 
@@ -558,7 +560,7 @@ export function useSafeSyndicates(urbitID: UrbitID): Loadable<UrbitID[]> {
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKey,
     enabled: !!wallet && !!tbClient,
-    queryFn: async () => {
+    queryFn: async (): Promise<UrbitID[] | false> => {
       if (!wallet || !tbClient) throw Error(ERROR.INVALID_QUERY);
       const azimuth: Contract = formContract(wallet.chain, "AZP");
       const safeClient = new SafeApiKit({chainId: wallet.chain});
@@ -595,6 +597,7 @@ export function useSafeSyndicates(urbitID: UrbitID): Loadable<UrbitID[]> {
 
   return isLoading ? undefined
     : isError ? null
+    : !data ? false
     : (data as UrbitID[]);
 }
 
@@ -609,9 +612,10 @@ export function useTokenboundAccount(urbitID: UrbitID): Loadable<TokenboundAccou
 
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKey,
-    enabled: !!wallet && !!tbClient && !!localTokens && !!urbitID.id,
-    queryFn: async () => {
+    enabled: !!wallet && !!tbClient && !!localTokens,
+    queryFn: async (): Promise<TokenboundAccount | false> => {
       if (!wallet || !tbClient || !localTokens) throw Error(ERROR.INVALID_QUERY);
+      if (!isValidUrbitID(urbitID)) return false;
       // console.log(`querying for ${queryKey}`);
       const tbAddress = await fetchTBAddress(wallet, tbClient, urbitID);
       const tbIsDeployed: boolean = await tbClient.checkAccountDeployment({
@@ -662,6 +666,7 @@ export function useTokenboundAccount(urbitID: UrbitID): Loadable<TokenboundAccou
 
   return isLoading ? undefined
     : isError ? null
+    : !data ? false
     : (data as TokenboundAccount);
 }
 
@@ -674,8 +679,9 @@ export function useSafeAccount(urbitID: UrbitID): Loadable<SafeAccount> {
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKey,
     enabled: !!wallet,
-    queryFn: async () => {
+    queryFn: async (): Promise<SafeAccount | false> => {
       if (!wallet) throw Error(ERROR.INVALID_QUERY);
+      if (!isValidUrbitID(urbitID)) return false;
       const REGISTRY: Token = formToken(wallet.chain, "REGISTRY");
       const safeAddress = ((await readContract(wallet.wagmi, {
         abi: REGISTRY.abi,
@@ -693,6 +699,7 @@ export function useSafeAccount(urbitID: UrbitID): Loadable<SafeAccount> {
 
   return isLoading ? undefined
     : isError ? null
+    : !data ? false
     : (data as SafeAccount);
 }
 
@@ -705,8 +712,9 @@ export function useUrbitAccount(urbitID: UrbitID): Loadable<UrbitAccount> {
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKey,
     enabled: !!wallet,
-    queryFn: async () => {
+    queryFn: async (): Promise<UrbitAccount | false> => {
       if (!wallet) throw Error(ERROR.INVALID_QUERY);
+      if (!isValidUrbitID(urbitID)) return false;
       const urbitAccount = await fetchUrbitAccount(wallet, urbitID);
       return urbitAccount;
     },
@@ -714,6 +722,7 @@ export function useUrbitAccount(urbitID: UrbitID): Loadable<UrbitAccount> {
 
   return isLoading ? undefined
     : isError ? null
+    : !data ? false
     : (data as UrbitAccount);
 }
 
@@ -727,8 +736,9 @@ export function useSyndicateTax(urbitID: UrbitID): Loadable<Tax> {
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKey,
     enabled: !!wallet && !!idAccount,
-    queryFn: async () => {
+    queryFn: async (): Promise<Tax | false> => {
       if (!wallet || !idAccount) throw Error(ERROR.INVALID_QUERY);
+      if (!isValidUrbitID(urbitID)) return false;
       let syndicateFee: bigint = BigInt(0);
       let syndicateTo: Address = formContract(wallet.chain, "NULL").address;
 
@@ -754,6 +764,7 @@ export function useSyndicateTax(urbitID: UrbitID): Loadable<Tax> {
 
   return isLoading ? undefined
     : isError ? null
+    : !data ? false
     : (data as Tax);
 }
 
@@ -766,7 +777,7 @@ export function useDeployerTax(): Loadable<Tax> {
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKey,
     enabled: !!wallet,
-    queryFn: async () => {
+    queryFn: async (): Promise<Tax> => {
       if (!wallet) throw Error(ERROR.INVALID_QUERY);
       const DEPLOY_V1: Contract = formContract(wallet.chain, "DEPLOYER_V1");
       const deployFee = ((await readContract(wallet.wagmi, {
@@ -792,6 +803,33 @@ export function useDeployerTax(): Loadable<Tax> {
     : (data as Tax);
 }
 
+export function useRecipientAddress(value: string): Loadable<Address> {
+  const wallet = useWalletMeta();
+  const tbClient = useTokenboundClient();
+  // FIXME: Should share state between values like {0, "~zod"}
+  const queryKey: QueryKey = useMemo(() => [
+    APP.TAG, "recipient", wallet?.chainID, String(value),
+  ], [wallet?.chainID, value]);
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: queryKey,
+    enabled: !!wallet && !!tbClient,
+    queryFn: async (): Promise<Address | false> => {
+      if (!wallet || !tbClient) throw Error(ERROR.INVALID_QUERY);
+      if (!value.match(REGEX.RECIPIENT)) return false;
+      const NULL: Token = formToken(wallet.chain, "NULL");
+      const recipientAddress = await fetchRecipient(wallet, tbClient, value);
+      if (recipientAddress === NULL.address) return false;
+      return recipientAddress;
+    },
+  });
+
+  return isLoading ? undefined
+    : isError ? null
+    : !data ? false
+    : (data as Address);
+}
+
 export function useTokenboundUrbitID(address: Address): Loadable<UrbitID> {
   const wallet = useWalletMeta();
   const tbClient = useTokenboundClient();
@@ -802,8 +840,9 @@ export function useTokenboundUrbitID(address: Address): Loadable<UrbitID> {
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKey,
     enabled: !!wallet && !!tbClient,
-    queryFn: async () => {
+    queryFn: async (): Promise<UrbitID | false> => {
       if (!wallet || !tbClient) throw Error(ERROR.INVALID_QUERY);
+      if (!address.match(REGEX.ETHEREUM.ADDRESS)) return false;
       const urbitID = await fetchUrbitID(wallet, tbClient, address);
       return urbitID;
     },
@@ -811,5 +850,6 @@ export function useTokenboundUrbitID(address: Address): Loadable<UrbitID> {
 
   return isLoading ? undefined
     : isError ? null
+    : !data ? false
     : (data as UrbitID);
 }

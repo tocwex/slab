@@ -7,15 +7,18 @@ import type {
 import { TokenboundClient } from '@tokenbound/sdk';
 import Safe, { getSafeAddressFromDeploymentTx } from '@safe-global/protocol-kit';
 import {
-  getAccount, readContract, signMessage,
+  getAccount, readContract, signMessage, getEnsAddress,
   sendTransaction, getTransactionReceipt, waitForTransactionReceipt,
 } from '@web3-onboard/wagmi';
 import {
   keccak256, pad, decodeFunctionData,
   encodePacked, numberToHex,
 } from 'viem';
-import { getChainMeta, formContract, formToken, formUrbitID } from '@/lib/util';
-import { ABI, ACCOUNT, SAFE } from '@/dat/const';
+import { normalize } from 'viem/ens'
+import {
+  getChainMeta, formContract, formToken, formUrbitID, forceUrbitID,
+} from '@/lib/util';
+import { ABI, ACCOUNT, SAFE, REGEX } from '@/dat/const';
 
 export async function createSafe(
   wallet: WalletMeta,
@@ -173,11 +176,24 @@ export async function fetchRecipient(
   tbClient: TokenboundClient,
   recipient: number | string | UrbitID,
 ): Promise<Address> {
-  if (typeof recipient === "string" && recipient.startsWith("0x")) {
+  if (typeof recipient === "string" && recipient.match(REGEX.ETHEREUM.ADDRESS)) {
     return Promise.resolve((recipient as Address));
+  } else if (typeof recipient === "string" && recipient.match(REGEX.ETHEREUM.DOMAIN)) {
+    return fetchENSAddress(wallet, recipient);
   } else {
     return fetchTBAddress(wallet, tbClient, recipient);
   }
+}
+
+export async function fetchENSAddress(
+  wallet: WalletMeta,
+  domain: string,
+): Promise<Address> {
+  const NULL: Token = formToken(wallet.chain, "NULL");
+  const ensAddress = await getEnsAddress(wallet.wagmi, {
+    name: normalize(domain),
+  });
+  return (ensAddress === null) ? NULL.address : (ensAddress as Address);
 }
 
 export async function fetchTBAddress(
@@ -188,7 +204,7 @@ export async function fetchTBAddress(
   const REGISTRY = formContract(wallet.chain, "REGISTRY");
   const urbitID: UrbitID = !(typeof urbit === "number" || typeof urbit === "string")
     ? urbit
-    : formUrbitID(urbit);
+    : forceUrbitID(urbit);
 
   const address: Address = await tbClient.getAccount({
     tokenContract: REGISTRY.address,
@@ -216,24 +232,29 @@ export async function awaitReceipt(
   wallet: WalletMeta,
   hash: Address,
 ): Promise<TransactionReceipt> {
-  const MAX_ATTEMPTS: number = 5;
+  // const MAX_ATTEMPTS: number = 5;
+  // let attempts: number = 0;
+  // let receipt = undefined;
+  // while (receipt === undefined && attempts++ < MAX_ATTEMPTS) {
+  //   try {
+  //     receipt = await waitForTransactionReceipt(wallet.wagmi, {hash, confirmations: 4, timeout: 20000});
+  //   } catch (error) {
+  //     try {
+  //       receipt = await getTransactionReceipt(wallet.wagmi, {hash});
+  //     } catch (error) {
+  //       // NOTE: no-op; just try again
+  //     }
+  //   }
+  // }
+  // if (receipt === undefined) {
+  //   throw new Error(`Unable to detect confirmation for transaction '${hash}'`);
+  // }
 
-  let attempts: number = 0;
-  let receipt = undefined;
-  while (receipt === undefined && attempts++ < MAX_ATTEMPTS) {
-    try {
-      receipt = await waitForTransactionReceipt(wallet.wagmi, {hash, confirmations: 4, timeout: 20000});
-    } catch (error) {
-      try {
-        receipt = await getTransactionReceipt(wallet.wagmi, {hash});
-      } catch (error) {
-        // NOTE: no-op; just try again
-      }
-    }
-  }
-  if (receipt === undefined) {
-    throw new Error(`Unable to detect confirmation for transaction '${hash}'`);
-  }
+  const receipt = await waitForTransactionReceipt(wallet.wagmi, {
+    hash: hash,
+    confirmations: 4,
+    timeout: 60000,
+  });
 
   return receipt;
 }

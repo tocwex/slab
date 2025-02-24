@@ -187,7 +187,7 @@ export function TBAFrame({
 }): React.ReactNode {
   const urbitID = useTokenboundUrbitID(address);
   return short ? (
-    <AddressFrame address={address} short={urbitID?.patp ?? true} className={className} />
+    <AddressFrame address={address} short={(urbitID || null)?.patp ?? true} className={className} />
   ) : (
     <div className="inline-flex flex-row gap-1 items-center text-nowrap">
       {(!!urbitID) && (

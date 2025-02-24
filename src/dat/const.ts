@@ -107,54 +107,63 @@ export const SAFE = Object.freeze({
 // FIXME: These expressions are good, but still a bit permissive (e.g. "dozzod"
 // is allowed when it ought not be); see more information here:
 // https://github.com/urbit/urbit-ob/blob/master/src/internal/co.js
-const URBIT_PREFIXES: string[] = (`
-  dozmarbinwansamlitsighidfidlissogdirwacsabwissib\
-  rigsoldopmodfoglidhopdardorlorhodfolrintogsilmir\
-  holpaslacrovlivdalsatlibtabhanticpidtorbolfosdot\
-  losdilforpilramtirwintadbicdifrocwidbisdasmidlop\
-  rilnardapmolsanlocnovsitnidtipsicropwitnatpanmin\
-  ritpodmottamtolsavposnapnopsomfinfonbanmorworsip\
-  ronnorbotwicsocwatdolmagpicdavbidbaltimtasmallig\
-  sivtagpadsaldivdactansidfabtarmonranniswolmispal\
-  lasdismaprabtobrollatlonnodnavfignomnibpagsopral\
-  bilhaddocridmocpacravripfaltodtiltinhapmicfanpat\
-  taclabmogsimsonpinlomrictapfirhasbosbatpochactid\
-  havsaplindibhosdabbitbarracparloddosbortochilmac\
-  tomdigfilfasmithobharmighinradmashalraglagfadtop\
-  mophabnilnosmilfopfamdatnoldinhatnacrisfotribhoc\
-  nimlarfitwalrapsarnalmoslandondanladdovrivbacpol\
-  laptalpitnambonrostonfodponsovnocsorlavmatmipfip\
-`.replaceAll(" ", "").replaceAll("\n", "").match(/.{1,3}/g) as string[]);
-const URBIT_SUFFIXES: string[] = (`
-  zodnecbudwessevpersutletfulpensytdurwepserwylsun\
-  rypsyxdyrnuphebpeglupdepdysputlughecryttyvsydnex\
-  lunmeplutseppesdelsulpedtemledtulmetwenbynhexfeb\
-  pyldulhetmevruttylwydtepbesdexsefwycburderneppur\
-  rysrebdennutsubpetrulsynregtydsupsemwynrecmegnet\
-  secmulnymtevwebsummutnyxrextebfushepbenmuswyxsym\
-  selrucdecwexsyrwetdylmynmesdetbetbeltuxtugmyrpel\
-  syptermebsetdutdegtexsurfeltudnuxruxrenwytnubmed\
-  lytdusnebrumtynseglyxpunresredfunrevrefmectedrus\
-  bexlebduxrynnumpyxrygryxfeptyrtustyclegnemfermer\
-  tenlusnussyltecmexpubrymtucfyllepdebbermughuttun\
-  bylsudpemdevlurdefbusbeprunmelpexdytbyttyplevmyl\
-  wedducfurfexnulluclennerlexrupnedlecrydlydfenwel\
-  nydhusrelrudneshesfetdesretdunlernyrsebhulryllud\
-  remlysfynwerrycsugnysnyllyndyndemluxfedsedbecmun\
-  lyrtesmudnytbyrsenwegfyrmurtelreptegpecnelnevfes\
-`.replaceAll(" ", "").replaceAll("\n", "").match(/.{1,3}/g) as string[]);
+// const URBIT_PREFIXES: string[] = (`
+//   dozmarbinwansamlitsighidfidlissogdirwacsabwissib\
+//   rigsoldopmodfoglidhopdardorlorhodfolrintogsilmir\
+//   holpaslacrovlivdalsatlibtabhanticpidtorbolfosdot\
+//   losdilforpilramtirwintadbicdifrocwidbisdasmidlop\
+//   rilnardapmolsanlocnovsitnidtipsicropwitnatpanmin\
+//   ritpodmottamtolsavposnapnopsomfinfonbanmorworsip\
+//   ronnorbotwicsocwatdolmagpicdavbidbaltimtasmallig\
+//   sivtagpadsaldivdactansidfabtarmonranniswolmispal\
+//   lasdismaprabtobrollatlonnodnavfignomnibpagsopral\
+//   bilhaddocridmocpacravripfaltodtiltinhapmicfanpat\
+//   taclabmogsimsonpinlomrictapfirhasbosbatpochactid\
+//   havsaplindibhosdabbitbarracparloddosbortochilmac\
+//   tomdigfilfasmithobharmighinradmashalraglagfadtop\
+//   mophabnilnosmilfopfamdatnoldinhatnacrisfotribhoc\
+//   nimlarfitwalrapsarnalmoslandondanladdovrivbacpol\
+//   laptalpitnambonrostonfodponsovnocsorlavmatmipfip\
+// `.replaceAll(" ", "").replaceAll("\n", "").match(/.{1,3}/g) as string[]);
+// const URBIT_SUFFIXES: string[] = (`
+//   zodnecbudwessevpersutletfulpensytdurwepserwylsun\
+//   rypsyxdyrnuphebpeglupdepdysputlughecryttyvsydnex\
+//   lunmeplutseppesdelsulpedtemledtulmetwenbynhexfeb\
+//   pyldulhetmevruttylwydtepbesdexsefwycburderneppur\
+//   rysrebdennutsubpetrulsynregtydsupsemwynrecmegnet\
+//   secmulnymtevwebsummutnyxrextebfushepbenmuswyxsym\
+//   selrucdecwexsyrwetdylmynmesdetbetbeltuxtugmyrpel\
+//   syptermebsetdutdegtexsurfeltudnuxruxrenwytnubmed\
+//   lytdusnebrumtynseglyxpunresredfunrevrefmectedrus\
+//   bexlebduxrynnumpyxrygryxfeptyrtustyclegnemfermer\
+//   tenlusnussyltecmexpubrymtucfyllepdebbermughuttun\
+//   bylsudpemdevlurdefbusbeprunmelpexdytbyttyplevmyl\
+//   wedducfurfexnulluclennerlexrupnedlecrydlydfenwel\
+//   nydhusrelrudneshesfetdesretdunlernyrsebhulryllud\
+//   remlysfynwerrycsugnysnyllyndyndemluxfedsedbecmun\
+//   lyrtesmudnytbyrsenwegfyrmurtelreptegpecnelnevfes\
+// `.replaceAll(" ", "").replaceAll("\n", "").match(/.{1,3}/g) as string[]);
+// const URBIT_GALAXY_REGEX: string =
+//   `(${URBIT_SUFFIXES.map(s => `(${s})`).join("|")})`;
+// const URBIT_STAR_REGEX: string =
+//   `((${URBIT_PREFIXES.map(s => `(${s})`).join("|")})${URBIT_GALAXY_REGEX})`;
+// FIXME: These expressions are slightly worse than the above, but
+// are way simpler and faster to use as <input> regex patterns.
 const URBIT_GALAXY_REGEX: string =
-  `(${URBIT_SUFFIXES.map(s => `(${s})`).join("|")})`;
+  `[bdfhlmnprstwz][eouy][bcdfglmnprstvx]`;
 const URBIT_STAR_REGEX: string =
-  `((${URBIT_PREFIXES.map(s => `(${s})`).join("|")})${URBIT_GALAXY_REGEX})`;
+  `[bdfhlmnprstw][aio][bcdfglmnprstvz]${URBIT_GALAXY_REGEX}`;
 const URBIT_PLANET_REGEX: string =
   `(${URBIT_STAR_REGEX}-${URBIT_STAR_REGEX})`;
 const URBIT_POINT_REGEX: string =
   `(${URBIT_GALAXY_REGEX}|${URBIT_STAR_REGEX}|${URBIT_PLANET_REGEX})`;
+
 const ETHEREUM_ADDRESS_REGEX: string = `(0x[0-9a-fA-F]{40})`;
+// NOTE: https://stackoverflow.com/a/30007882
+const ETHEREUM_DOMAIN_REGEX: string =
+  `((?:[a-z0-9](?:[a-z0-9\\-]{0,61}[a-z0-9])?\.)+eth)`;
 
 export const REGEX = Object.freeze({
-  ADDRESS: ETHEREUM_ADDRESS_REGEX,
   AZIMUTH: (Object.freeze({
     GALAXY: `~${URBIT_GALAXY_REGEX}`,
     STAR: `~${URBIT_STAR_REGEX}`,
@@ -164,14 +173,21 @@ export const REGEX = Object.freeze({
     POINT: `~${URBIT_POINT_REGEX}`,
     // IDENTITY: ...
   }) as {[point: string]: string;}),
-  RECIPIENT: `${ETHEREUM_ADDRESS_REGEX}|(~${URBIT_POINT_REGEX})`,
+  ETHEREUM: (Object.freeze({
+    ADDRESS: ETHEREUM_ADDRESS_REGEX,
+    DOMAIN: ETHEREUM_DOMAIN_REGEX,
+    RECIPIENT: `(${ETHEREUM_ADDRESS_REGEX}|${ETHEREUM_DOMAIN_REGEX})`,
+  }) as {[point: string]: string;}),
   SYNDICATE: (Object.freeze({
     // NOTE: https://stackoverflow.com/a/60782571
     NAME: "^(?!\\s)(?![\\s\\S]*\\s$)[0-9a-zA-Z ~\\-]{1,50}$",
     TOKEN: "^[0-9A-Z~\\-]{1,16}$",
   }) as {[param: string]: string;}),
+  DOMAIN: "^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$",
+  RECIPIENT: `((~${URBIT_POINT_REGEX})|${ETHEREUM_ADDRESS_REGEX}|${ETHEREUM_DOMAIN_REGEX})`,
 });
 
 export const ERROR = Object.freeze({
   INVALID_QUERY: "Query was invoked without proper preconditions.",
+  INVALID_URBIT: "Query was invoked on an invalid Urbit ID.",
 });

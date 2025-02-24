@@ -64,7 +64,7 @@ export default function IDPage(): React.ReactNode {
   }, [wallet, tbClient, managerNames, setManagerTBAs]);
 
   const deploymentSafe: Address | undefined = useMemo(() => (
-    localSafes?.[encodeSet(new Set(managerTBAs))]
+    (localSafes || null)?.[encodeSet(new Set(managerTBAs))]
   ), [localSafes, managerTBAs]);
 
   const addManager = useCallback(() => (
@@ -160,7 +160,7 @@ export default function IDPage(): React.ReactNode {
             placeholder="Select Syndicate"
             isClearable={false}
             styles={{container: (s) => ({...s, width: "200px"})}}
-            options={(routeSyndicates ?? []).map(({id, patp, clan}: UrbitID) => (
+            options={(routeSyndicates || []).map(({id, patp, clan}: UrbitID) => (
               { value: patp, label: patp }
             ))}
           />
@@ -227,7 +227,7 @@ export default function IDPage(): React.ReactNode {
             !deploymentSafe ? (
               <button type="button"
                 disabled={
-                  !tbAccount?.deployed
+                  !((tbAccount || null)?.deployed)
                   || managerTBAs.some(tba => tba === null)
                   || (safeCreateStatus === "pending")
                 }
@@ -246,7 +246,10 @@ export default function IDPage(): React.ReactNode {
               </button>
             ) : (
               <button type="button"
-                disabled={!tbAccount?.deployed || (syCreateStatus === "pending")}
+                disabled={
+                  !((tbAccount || null)?.deployed)
+                  || (syCreateStatus === "pending")
+                }
                 onClick={onCreateSyndicate}
                 className="mt-4 button-lg"
               >

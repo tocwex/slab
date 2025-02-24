@@ -151,6 +151,13 @@ export function hasClanBoon(urbit: UrbitID, clan: UrbitClan): boolean {
   return CLAN_INDEX[urbit.clan] <= CLAN_INDEX[clan];
 }
 
+export function isValidUrbitID(urbit: number | string | UrbitID): boolean {
+  const urbitID: UrbitID = !(typeof urbit === "number" || typeof urbit === "string")
+    ? urbit
+    : formUrbitID(urbit);
+  return !!urbitID.id;
+}
+
 export function isValidSyndicate(urbit: UrbitID): boolean {
   return APP.DEBUG || hasClanBoon(urbit, "star");
 }

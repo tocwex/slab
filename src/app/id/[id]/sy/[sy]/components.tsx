@@ -20,7 +20,9 @@ export function SyndicateRouteWrapper({
   const tbAccount = useTokenboundAccount(routeID);
   const syndMultisig = useSafeAccount(routeSyndicate);
   const isRouteSyndicateHolder: boolean = useMemo(() => (
-    (syndMultisig?.owners ?? []).includes(String(tbAccount?.address))
+    ((syndMultisig || null)?.owners ?? []).includes(
+      String((tbAccount || null)?.address)
+    )
   ), [tbAccount, syndMultisig]);
 
   return (

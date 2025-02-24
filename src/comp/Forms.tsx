@@ -1,8 +1,12 @@
 "use client";
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { TinyLoadingIcon } from '@/comp/Icons';
-import { useTokenboundAccount, useUrbitAccount, useTokenboundCreateMutation } from '@/hook/web3';
+import {
+  useTokenboundAccount, useUrbitAccount, useRecipientAddress,
+  useTokenboundCreateMutation,
+} from '@/hook/web3';
 import { formUrbitID } from '@/lib/util';
+import { isValidUrbitID } from '@/lib/util';
 import { REGEX } from '@/dat/const';
 
 export function CurrencyInput({
@@ -45,7 +49,7 @@ export function TextInput({
 }
 
 export function RecipientInput({
-  placeholder="urbit id or address",
+  placeholder="urbit id/ens domain/address",
   className="input-lg",
   ...props
 }: Omit<
@@ -68,59 +72,71 @@ export function RecipientLauncherInput({
   className="input-sm",
   ...props
 }: {
+  value: string;
   accepts: "urbit" | "any";
 } & Omit<
   React.ComponentProps<"input">,
-  "type" | "placeholder" | "pattern" | "autoComplete" | "autoCorrect" | "autoCapitalize" | "spellCheck"
+  "value" | "type" | "placeholder" | "pattern" | "autoComplete" | "autoCorrect" | "autoCapitalize" | "spellCheck"
 >): React.ReactNode {
   const [pattern, placeholder] = useMemo(() => (
     (accepts === "urbit")
       ? [REGEX.AZIMUTH.POINT, "urbit id"]
-      : [REGEX.RECIPIENT, "urbit id or address"]
+      : [REGEX.RECIPIENT, "urbit id/ens domain/address"]
   ), [accepts]);
-  const urbitID = useMemo(() => formUrbitID(String(value)), [value]);
+  const urbitID = useMemo(() => formUrbitID(value), [value]);
+
   const urbitAccount = useUrbitAccount(urbitID);
   const tbAccount = useTokenboundAccount(urbitID);
+  const recipientAddress = useRecipientAddress(value);
   const { mutate: tbCreateMutate, status: tbCreateStatus } = useTokenboundCreateMutation(urbitID);
+
+  // FIXME: Clean this up so that it's more legible
+  const status: "loading" | "error" | "invalid" | "valid" | "done" = useMemo(() => (
+    !!value?.match(REGEX.AZIMUTH.POINT) ? (
+      (urbitAccount === undefined || tbAccount === undefined) ? "loading"
+      : (urbitAccount === null || tbAccount === null) ? "error"
+      : (urbitAccount === false || tbAccount === false) ? "invalid"
+      : (urbitAccount.layer !== "l1") ? "invalid"
+      : (!tbAccount.deployed) ? "valid"
+      : "done"
+    ) : (accepts === "urbit") ? (
+      "invalid"
+    ) : !!value?.match(REGEX.ETHEREUM.ADDRESS) ? (
+      "done"
+    ) : !!value?.match(REGEX.ETHEREUM.DOMAIN) ? (
+      (recipientAddress === undefined) ? "loading"
+      : (recipientAddress === null) ? "error"
+      : (recipientAddress === false) ? "invalid"
+      : "done"
+    ) : (
+      "invalid"
+    )
+  ), [value, accepts, urbitAccount, tbAccount, recipientAddress]);
 
   return (
     <div className="flex flex-row">
       <TextInput
-        pattern={pattern}
-        className={className}
-        placeholder={placeholder}
         value={value}
+        pattern={pattern}
+        placeholder={placeholder}
+        className={className}
         {...props}
       />
       <button type="button"
         className="button-sm"
         onClick={tbCreateMutate}
-        disabled={(
-            !((accepts === "any") && String(value).match(REGEX.ADDRESS))
-          ) || (
-            !tbAccount
-            || !!tbAccount.deployed
-            || !urbitAccount
-            || (urbitAccount.layer !== "l1")
-            || (tbCreateStatus === "pending")
-          )
+        disabled={
+          !!status.match("(loading)|(invalid)|(done)")
+          || (tbCreateStatus === "pending")
         }
       >
-        {((accepts === "any") && String(value).match(REGEX.ADDRESS)) ? (
-          "✔"
-        ) : !urbitID.id ? (
-          "❓"
-        ) : (tbAccount === undefined || urbitAccount === undefined) ? (
+        {(status === "loading" || tbCreateStatus === "pending") ? (
           <TinyLoadingIcon />
-        ) : (tbAccount === null || urbitAccount === null) ? (
-          "🔌"
-        ) : (tbCreateStatus === "pending") ? (
-          <TinyLoadingIcon />
-        ) : (tbCreateStatus === "error") ? (
+        ) : (status === "error" || tbCreateStatus === "error") ? (
           "❌"
-        ) : (urbitAccount.layer !== "l1") ? (
+        ) : (status === "invalid") ? (
           "🚫"
-        ) : !tbAccount?.deployed ? (
+        ) : (status === "valid") ? (
           "🚀"
         ) : (
           "✔"
