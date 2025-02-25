@@ -17,7 +17,7 @@ import { useLocalSafes } from '@/hook/local';
 import { useWalletMeta, useTokenboundClient } from '@/hook/wallet';
 import { fetchUrbitAccount, fetchTBAddress } from '@/lib/web3';
 import {
-  formUrbitID, forceUrbitID, isValidSyndicate,
+  formUrbitID, isValidUrbitID, isValidSyndicate,
   encodeSet, decodeSet, parseForm,
 } from '@/lib/util';
 import { REGEX } from '@/dat/const';
@@ -39,10 +39,10 @@ export default function IDPage(): React.ReactNode {
     const setNewTBAs = async () => {
       if (!!wallet && !!tbClient) {
         const newTBAs = await Promise.all(managerNames.map((manager: string, idx: number) => {
-          const managerID = formUrbitID(manager);
-          if (!managerID.id) {
+          if (!isValidUrbitID(manager)) {
             return Promise.resolve(null);
           } else {
+            const managerID = formUrbitID(manager);
             return Promise.all([
               fetchTBAddress(wallet, tbClient, managerID),
               fetchUrbitAccount(wallet, managerID),
@@ -93,7 +93,7 @@ export default function IDPage(): React.ReactNode {
 
   const onCreateSafe = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
     const fields = parseForm(event, {
-      managers: managerNames.map(forceUrbitID),
+      managers: managerNames.map(formUrbitID),
       threshold: 1,
     });
     fields && safeCreateMutate(fields);
@@ -102,7 +102,7 @@ export default function IDPage(): React.ReactNode {
     if (!!deploymentSafe) {
       const fields = parseForm(event, {
         safe: deploymentSafe,
-        managers: managerNames.map(forceUrbitID),
+        managers: managerNames.map(formUrbitID),
         reset: false,
       });
       fields && syCreateMutate(fields);

@@ -15,9 +15,7 @@ import {
   encodePacked, numberToHex,
 } from 'viem';
 import { normalize } from 'viem/ens'
-import {
-  getChainMeta, formContract, formToken, formUrbitID, forceUrbitID,
-} from '@/lib/util';
+import { getChainMeta, formContract, formToken, formUrbitID } from '@/lib/util';
 import { ABI, ACCOUNT, SAFE, REGEX } from '@/dat/const';
 
 export async function createSafe(
@@ -204,7 +202,7 @@ export async function fetchTBAddress(
   const REGISTRY = formContract(wallet.chain, "REGISTRY");
   const urbitID: UrbitID = !(typeof urbit === "number" || typeof urbit === "string")
     ? urbit
-    : forceUrbitID(urbit);
+    : formUrbitID(urbit);
 
   const address: Address = await tbClient.getAccount({
     tokenContract: REGISTRY.address,
@@ -226,6 +224,16 @@ export async function fetchUrbitID(
   if (REGISTRY.address.toLowerCase() !== tokenContract.toLowerCase())
     throw Error(`Address ${address} is not a ERC-6551 contract`)
   return formUrbitID(tokenId);
+}
+
+export async function fetchAzimuthEcliptic(wallet: WalletMeta): Promise<Address> {
+  const AZIMUTH: Contract = formContract(wallet.chain, "AZP");
+  const azimuthEcliptic = ((await readContract(wallet.wagmi, {
+    abi: AZIMUTH.abi,
+    address: AZIMUTH.address,
+    functionName: "owner",
+  })) as Address);
+  return azimuthEcliptic;
 }
 
 export async function awaitReceipt(

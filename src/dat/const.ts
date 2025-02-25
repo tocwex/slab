@@ -66,14 +66,14 @@ export const CONTRACT = Object.freeze({
   AZP: Object.freeze({ // Azimuth
     ADDRESS: (Object.freeze({
       ETHEREUM: "0x223c067f8cf28ae173ee5cafea60ca44c335fecb",
-      SEPOLIA: "0x6EB93da65d19a3e4501210C1B289A0734487ed84",
+      SEPOLIA: "0xc982929e336c366DCf8312589b5EbaaBc8Dd36Ad",
     }) as {[network: string]: `0x${string}`;}),
     ABI: ABI.AZIMUTH,
   }),
   ECL: Object.freeze({ // Ecliptic
     ADDRESS: (Object.freeze({
       ETHEREUM: "0x33EeCbf908478C10614626A9D304bfe18B78DD73",
-      SEPOLIA: "0xf81109BE13862261234c24659aF412Fe70a683e4",
+      SEPOLIA: "0x7ecf516D01bA166351EBb441dA1E3839D2C0e1A2",
     }) as {[network: string]: `0x${string}`;}),
     NAME: "Azimuth Points",
     SYMBOL: "AZP",

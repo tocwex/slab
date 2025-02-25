@@ -25,7 +25,7 @@ import { useLocalTokens, useTokensAddMutation } from '@/hook/local';
 import {
   createSafe, signTBSafeTx, fetchSafeAccount, fetchUrbitAccount,
   fetchRecipient, fetchTBAddress, fetchToken, fetchUrbitID,
-  decodeProposal, awaitReceipt,
+  fetchAzimuthEcliptic, decodeProposal, awaitReceipt,
 } from '@/lib/web3';
 import { useBasicMutation } from '@/lib/hook';
 import {
@@ -808,7 +808,7 @@ export function useRecipientAddress(value: string): Loadable<Address> {
   const tbClient = useTokenboundClient();
   // FIXME: Should share state between values like {0, "~zod"}
   const queryKey: QueryKey = useMemo(() => [
-    APP.TAG, "recipient", wallet?.chainID, String(value),
+    APP.TAG, "recipient", wallet?.chainID, value,
   ], [wallet?.chainID, value]);
 
   const { data, isLoading, isError } = useQuery({
@@ -852,4 +852,28 @@ export function useTokenboundUrbitID(address: Address): Loadable<UrbitID> {
     : isError ? null
     : !data ? false
     : (data as UrbitID);
+}
+
+// NOTE: Not in use yet because it's much faster to just cache the current
+// Ecliptic address; may be used in the future to determine if cached value
+// is out of date
+export function useAzimuthEcliptic(): Loadable<Address> {
+  const wallet = useWalletMeta();
+  const queryKey: QueryKey = useMemo(() => [
+    APP.TAG, "ecliptic", wallet?.chainID,
+  ], [wallet?.chainID]);
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: queryKey,
+    enabled: !!wallet,
+    queryFn: async (): Promise<Address> => {
+      if (!wallet) throw Error(ERROR.INVALID_QUERY);
+      const azimuthEcliptic = fetchAzimuthEcliptic(wallet);
+      return azimuthEcliptic;
+    },
+  });
+
+  return isLoading ? undefined
+    : isError ? null
+    : (data as Address);
 }

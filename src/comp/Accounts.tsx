@@ -25,7 +25,7 @@ import {
 import { useLocalTokens, useTokensAddMutation } from '@/hook/local';
 import {
   trimAddress, hasClanBoon, parseForm, formUrbitID,
-  coerceBigInt, applyTax, includeTax, forceUrbitID,
+  coerceBigInt, applyTax, includeTax,
   formatTax, formatToken, formatFloat, formatUint,
 } from '@/lib/util';
 import { formatUnits } from 'viem';

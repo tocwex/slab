@@ -155,7 +155,7 @@ export function isValidUrbitID(urbit: number | string | UrbitID): boolean {
   const urbitID: UrbitID = !(typeof urbit === "number" || typeof urbit === "string")
     ? urbit
     : formUrbitID(urbit);
-  return !!urbitID.id;
+  return !!urbitID.patp;
 }
 
 export function isValidSyndicate(urbit: UrbitID): boolean {
@@ -230,10 +230,4 @@ export function formUrbitID(value: number | string): UrbitID {
     clan = ob.clan(patp);
   }
   return ({id, patp, clan});
-}
-
-export function forceUrbitID(value: number | string): UrbitID {
-  const urbitID = formUrbitID(value);
-  if (!urbitID.id) throw Error(`Cannot derive Urbit ID from value '${value}'`);
-  return urbitID;
 }

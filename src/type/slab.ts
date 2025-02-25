@@ -31,7 +31,7 @@ export interface WalletMeta {
 
 export type UrbitClan = 'galaxy' | 'star' | 'planet' | 'moon' | 'comet';
 export interface UrbitID {
-  id: string; // NOTE: Using string the number can BigInt scale
+  id: string; // NOTE: using 'string' to simplify serialization
   patp: string;
   clan: UrbitClan;
 }
