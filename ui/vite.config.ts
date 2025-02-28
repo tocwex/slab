@@ -11,12 +11,20 @@ export default ({ mode }) => {
     ? (d => `${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()}`)(new Date(Date.now()))
     : packageJson.version;
   const SHIP_URL = process.env.SHIP_URL || process.env.VITE_SHIP_URL || 'http://localhost:8080';
+  const ENV = loadEnv(mode, process.cwd(), '');
 
   return defineConfig({
+    // base: "/apps/slab/",
     plugins: [
       urbitPlugin({ base: 'slab', target: SHIP_URL }),
       react({ include: /\.((t|j)sx?)|(s?css)$|(html?)/ }),
     ],
+    // FIXME: The `@safe-global` packages use `process.env.*` (NodeJS accessors),
+    // which isn't supported in embedded Vite by default.
+    // See: https://dev.to/whchi/how-to-use-processenv-in-vite-ho9
+    define: {
+      'process.env': ENV,
+    },
     server: {
       host: 'localhost',
       port: 3000,
@@ -24,6 +32,25 @@ export default ({ mode }) => {
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url)),
+      },
+    },
+    build: {
+      sourcemap: false,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'lodash': ['lodash.merge'],
+            'urbit': ['@urbit/api', '@urbit/http-api', '@urbit/sigil-js', 'urbit-ob'],
+            '@safe-global/api-kit': ['@safe-global/api-kit'],
+            '@safe-global/protocol-kit': ['@safe-global/protocol-kit'],
+            '@tanstack/react-query': ['@tanstack/react-query'],
+            '@tokenbound/sdk': ['@tokenbound/sdk'],
+            '@wagmi/core': ['@wagmi/core'],
+            '@web3-onboard/injected-wallets': ['@web3-onboard/injected-wallets'],
+            '@web3-onboard/react': ['@web3-onboard/react'],
+            '@web3-onboard/wagmi': ['@web3-onboard/wagmi'],
+          },
+        },
       },
     },
   });

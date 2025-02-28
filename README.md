@@ -19,7 +19,8 @@ nvm install 22
 nvm use 22
 cd ./ui
 npm install
-echo "VITE_SHIP_URL=http://127.0.0.1:8080" > .env.local
+echo "VITE_SHIP_URL=http://127.0.0.1:8080" >> .env.local
+echo "VITE_ALCHEMY_KEY=…" >> .env.local
 ```
 
 Subsequently, run the following commands to download [durploy] create a new
@@ -79,12 +80,12 @@ front-end build, run the following commands:
 cd ./ui
 npm run build
 cd ..
-./durploy desk -g zod gapp ./ui/dist/
+./durploy desk -g zod gapp ./ui/dist
 cp "$(ls -dtr1 "${XDG_CACHE_HOME:-$HOME/.cache}/durploy/glob"/* | tail -1)" ./meta/glob
 ./meta/exec/release -l 1.2.3 "$(ls -dtr1 ./meta/glob/* | tail -1)"
 ./durploy desk zod gapp ./desk/full/
 # run this in zod's dojo to make sure the new glob is being used
-# :docket [%kick %gapp]
+# :docket [%kick %slab]
 ```
 
 

@@ -1,9 +1,13 @@
 import type { CommonPositions } from '@web3-onboard/core/dist/types';
+import Urbit from '@urbit/http-api';
 import { QueryClient } from '@tanstack/react-query'
 import { init as web3Init } from '@web3-onboard/react';
 import wagmi from '@web3-onboard/wagmi'
 import injectedModule from '@web3-onboard/injected-wallets'
 import { APP, BLOCKCHAIN } from '@/dat/const';
+
+export const URBIT = new Urbit("", "", window.desk);
+URBIT.ship = window.ship;
 
 export const REACT_QUERY = new QueryClient({
   defaultOptions: {
