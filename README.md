@@ -24,14 +24,14 @@ echo "VITE_ALCHEMY_KEY=…" >> .env.local
 ```
 
 Subsequently, run the following commands to download [durploy] create a new
-[fake `~zod`][fakezod] with the `%gapp` desk:
+[fake `~zod`][fakezod] with the `%slab` desk:
 
 ```bash
 curl -LO https://raw.githubusercontent.com/sidnym-ladrut/durploy/release/durploy
 chmod u+x ./durploy
 ./durploy ship zod
 # In a different terminal:
-./durploy desk zod gapp ./desk/full/
+./durploy desk zod slab ./desk/full/
 ```
 
 ### Development Workflows
@@ -42,7 +42,7 @@ In order to continuously test back-end code changes as they're made, run the
 following commands:
 
 ```bash
-./durploy desk -w zod gapp ./desk/full/
+./durploy desk -w zod slab ./desk/full/
 ```
 
 #### Front-end Workflows
@@ -80,10 +80,10 @@ front-end build, run the following commands:
 cd ./ui
 npm run build
 cd ..
-./durploy desk -g zod gapp ./ui/dist
+./durploy desk -g zod slab ./ui/dist
 cp "$(ls -dtr1 "${XDG_CACHE_HOME:-$HOME/.cache}/durploy/glob"/* | tail -1)" ./meta/glob
 ./meta/exec/release -l 1.2.3 "$(ls -dtr1 ./meta/glob/* | tail -1)"
-./durploy desk zod gapp ./desk/full/
+./durploy desk zod slab ./desk/full/
 # run this in zod's dojo to make sure the new glob is being used
 # :docket [%kick %slab]
 ```

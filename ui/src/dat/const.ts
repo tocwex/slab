@@ -4,6 +4,9 @@ export const ABI = _ABI;
 
 export const APP = Object.freeze({
   TAG: "%slab",
+  URL: (typeof import.meta.env.BASE_URL !== "string")
+    ? "/"
+    : import.meta.env.BASE_URL,
   VERSION: import.meta.env.PACKAGE_VERSION,
   DEBUG: import.meta.env.MODE === "development",
 });

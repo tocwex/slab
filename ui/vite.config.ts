@@ -14,7 +14,7 @@ export default ({ mode }) => {
   const ENV = loadEnv(mode, process.cwd(), '');
 
   return defineConfig({
-    // base: "/apps/slab/",
+    base: "/apps/slab/",
     plugins: [
       urbitPlugin({ base: 'slab', target: SHIP_URL }),
       react({ include: /\.((t|j)sx?)|(s?css)$|(html?)/ }),

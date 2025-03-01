@@ -3,49 +3,49 @@
   font-style: normal;
   font-weight: 100;
   font-display: swap;
-  src: url("./file/font/UrbitSans-UltraThin.woff2") format("woff2");
+  src: url("./file/font/urbitsans-ultrathin.woff2") format("woff2");
 }
 @font-face {
   font-family: "Urbit Sans";
   font-style: normal;
   font-weight: 200;
   font-display: swap;
-  src: url("./file/font/UrbitSans-Thin.woff2") format("woff2");
+  src: url("./file/font/urbitsans-thin.woff2") format("woff2");
 }
 @font-face {
   font-family: "Urbit Sans";
   font-style: normal;
   font-weight: 300;
   font-display: swap;
-  src: url("./file/font/UrbitSans-Light.woff2") format("woff2");
+  src: url("./file/font/urbitsans-light.woff2") format("woff2");
 }
 @font-face {
   font-family: "Urbit Sans";
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url("./file/font/UrbitSans-Regular.woff2") format("woff2");
+  src: url("./file/font/urbitsans-regular.woff2") format("woff2");
 }
 @font-face {
   font-family: "Urbit Sans";
   font-style: normal;
   font-weight: 500;
   font-display: swap;
-  src: url("./file/font/UrbitSans-Medium.woff2") format("woff2");
+  src: url("./file/font/urbitsans-medium.woff2") format("woff2");
 }
 @font-face {
   font-family: "Urbit Sans";
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url("./file/font/UrbitSans-SemiBold.woff2") format("woff2");
+  src: url("./file/font/urbitsans-semibold.woff2") format("woff2");
 }
 @font-face {
   font-family: "Urbit Sans";
   font-style: normal;
   font-weight: 700 900;
   font-display: swap;
-  src: url("./file/font/UrbitSans-Bold.woff2") format("woff2");
+  src: url("./file/font/urbitsans-bold.woff2") format("woff2");
 }
 
 @font-face {
@@ -53,49 +53,49 @@
   font-style: normal;
   font-weight: 100;
   font-display: swap;
-  src: url("./file/font/UrbitSansMono-UltraThin.woff2") format("woff2");
+  src: url("./file/font/urbitsansmono-ultrathin.woff2") format("woff2");
 }
 @font-face {
   font-family: "Urbit Sans Mono";
   font-style: normal;
   font-weight: 200;
   font-display: swap;
-  src: url("./file/font/UrbitSansMono-Thin.woff2") format("woff2");
+  src: url("./file/font/urbitsansmono-thin.woff2") format("woff2");
 }
 @font-face {
   font-family: "Urbit Sans Mono";
   font-style: normal;
   font-weight: 300;
   font-display: swap;
-  src: url("./file/font/UrbitSansMono-Light.woff2") format("woff2");
+  src: url("./file/font/urbitsansmono-light.woff2") format("woff2");
 }
 @font-face {
   font-family: "Urbit Sans Mono";
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url("./file/font/UrbitSansMono-Regular.woff2") format("woff2");
+  src: url("./file/font/urbitsansmono-regular.woff2") format("woff2");
 }
 @font-face {
   font-family: "Urbit Sans Mono";
   font-style: normal;
   font-weight: 500;
   font-display: swap;
-  src: url("./file/font/UrbitSansMono-Medium.woff2") format("woff2");
+  src: url("./file/font/urbitsansmono-medium.woff2") format("woff2");
 }
 @font-face {
   font-family: "Urbit Sans Mono";
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url("./file/font/UrbitSansMono-SemiBold.woff2") format("woff2");
+  src: url("./file/font/urbitsansmono-semibold.woff2") format("woff2");
 }
 @font-face {
   font-family: "Urbit Sans Mono";
   font-style: normal;
   font-weight: 700 900;
   font-display: swap;
-  src: url("./file/font/UrbitSansMono-Bold.woff2") format("woff2");
+  src: url("./file/font/urbitsansmono-bold.woff2") format("woff2");
 }
 
 @font-face {
@@ -103,33 +103,33 @@
   font-style: normal;
   font-weight: 100 300;
   font-display: swap;
-  src: url("./file/font/NotoEmoji-Light.woff2") format("woff2");
+  src: url("./file/font/notoemoji-light.woff2") format("woff2");
 }
 @font-face {
   font-family: "Noto Emoji";
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url("./file/font/NotoEmoji-Regular.woff2") format("woff2");
+  src: url("./file/font/notoemoji-regular.woff2") format("woff2");
 }
 @font-face {
   font-family: "Noto Emoji";
   font-style: normal;
   font-weight: 500;
   font-display: swap;
-  src: url("./file/font/NotoEmoji-Medium.woff2") format("woff2");
+  src: url("./file/font/notoemoji-medium.woff2") format("woff2");
 }
 @font-face {
   font-family: "Noto Emoji";
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url("./file/font/NotoEmoji-SemiBold.woff2") format("woff2");
+  src: url("./file/font/notoemoji-semibold.woff2") format("woff2");
 }
 @font-face {
   font-family: "Noto Emoji";
   font-style: normal;
   font-weight: 700 900;
   font-display: swap;
-  src: url("./file/font/NotoEmoji-Bold.woff2") format("woff2");
+  src: url("./file/font/notoemoji-bold.woff2") format("woff2");
 }

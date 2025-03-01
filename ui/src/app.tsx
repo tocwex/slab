@@ -4,6 +4,7 @@ import { HeroFrame, LoadingFrame } from '@/comp/Frames';
 import { QueryClientProvider } from '@tanstack/react-query'
 import { Web3OnboardProvider } from '@web3-onboard/react';
 import { URBIT, REACT_QUERY, WEB3ONBOARD } from '@/dat/apis';
+import { APP } from '@/dat/const';
 
 export default function App() {
   const [apps, setApps] = useState<Charges>();
@@ -21,7 +22,7 @@ export default function App() {
       <Web3OnboardProvider web3Onboard={WEB3ONBOARD}>
         <main className="relative">
           <div className="absolute top-4 left-4">
-            <a href="/apps/slab/" className="button-lg">
+            <a href={APP.URL} className="button-lg">
               HOME
             </a>
           </div>
