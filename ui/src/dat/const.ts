@@ -7,7 +7,7 @@ export const APP = Object.freeze({
   URL: (typeof import.meta.env.BASE_URL !== "string")
     ? "/"
     : import.meta.env.BASE_URL,
-  VERSION: import.meta.env.PACKAGE_VERSION,
+  VERSION: import.meta.env.VITE_PACKAGE_VERSION,
   DEBUG: import.meta.env.MODE === "development",
 });
 
@@ -25,8 +25,10 @@ export const BLOCKCHAIN = Object.freeze({
     11155111: "sepETH",
   }) as {[network: number]: string;}),
   RPC: (Object.freeze({
-    ETHEREUM: `https://eth-mainnet.g.alchemy.com/v2/${import.meta.env.ALCHEMY_KEY}`,
-    SEPOLIA: `https://eth-sepolia.g.alchemy.com/v2/${import.meta.env.ALCHEMY_KEY}`,
+    ETHEREUM: `https://eth-mainnet.g.alchemy.com/v2/${import.meta.env.VITE_ALCHEMY_KEY}`,
+    SEPOLIA: `https://eth-sepolia.g.alchemy.com/v2/${import.meta.env.VITE_ALCHEMY_KEY}`,
+    // ETHEREUM: "https://eth-mainnet.public.blastapi.io",
+    // SEPOLIA: "https://eth-sepolia.public.blastapi.io",
   }) as {[network: string]: string;}),
 });
 

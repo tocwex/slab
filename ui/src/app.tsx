@@ -1,51 +1,70 @@
-import React, { useEffect, useState } from 'react';
-import { Charge, Charges, ChargeUpdateInitial, scryCharges } from '@urbit/api';
-import { HeroFrame, LoadingFrame } from '@/comp/Frames';
+import type { UrbitID } from "@/type/slab";
+import React, { FormEvent, useCallback, useMemo } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query'
 import { Web3OnboardProvider } from '@web3-onboard/react';
+import { HeroFrame, LoadingFrame, AddressFrame } from '@/comp/Frames';
+import { ConnectedWalletGuard } from '@/comp/Guards';
+import { SingleSelector, SingleSelection } from '@/comp/Selector';
+import { useWalletMeta, useWalletUrbitIDs } from '@/hook/wallet';
+import { toTitleCase } from '@/lib/util';
 import { URBIT, REACT_QUERY, WEB3ONBOARD } from '@/dat/apis';
 import { APP } from '@/dat/const';
 
-export default function App() {
-  const [apps, setApps] = useState<Charges>();
+// TODO: App router in here; make a dedicated module for 'InnerHome'
 
-  useEffect(() => {
-    async function init() {
-      const charges = (await URBIT.scry<ChargeUpdateInitial>(scryCharges)).initial;
-      setApps(charges);
-    }
-    init();
-  }, []);
-
+export default function Home(): React.ReactNode {
   return (
     <QueryClientProvider client={REACT_QUERY}>
       <Web3OnboardProvider web3Onboard={WEB3ONBOARD}>
-        <main className="relative">
-          <div className="absolute top-4 left-4">
-            <a href={APP.URL} className="button-lg">
-              HOME
-            </a>
-          </div>
-          <div className="max-w-3xl mx-auto flex flex-col justify-center items-center">
-            <div className="max-w-md space-y-6 py-20">
-              <LoadingFrame status={apps} title={`Urbit Apps on ~${URBIT.ship}`} size="md">
-                <HeroFrame title={`Urbit Apps on ~${URBIT.ship}`} size="md">
-                  <ul className="space-y-4">
-                    {Object.entries(apps ?? {}).map(([desk, app]: [string, Charge]) => (
-                      <li key={desk} className="flex items-center space-x-3 text-sm leading-tight">
-                        <div className="flex-1">
-                          <strong>{app.title || desk}</strong>
-                          {app.info && <p>{app.info}</p>}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </HeroFrame>
-              </LoadingFrame>
-            </div>
-          </div>
-        </main>
+        <ConnectedWalletGuard>
+          <InnerHome />
+        </ConnectedWalletGuard>
       </Web3OnboardProvider>
     </QueryClientProvider>
+  );
+}
+
+function InnerHome(): React.ReactNode {
+  const wallet = useWalletMeta();
+  const urbitIDs = useWalletUrbitIDs();
+
+  const goUrbitID = useCallback((selection: SingleSelection) => {
+    if (!!selection) {
+      console.log(selection.value);
+    }
+  }, []);
+
+  return (
+    <LoadingFrame status={urbitIDs && ((urbitIDs ?? []).length > 0)} error={
+      (!!wallet) && (
+        (urbitIDs === null) ? (
+          <h4 className="font-medium">
+            <span>Unable to fetch Web3 wallet details for </span>
+            <AddressFrame address={wallet.address} />
+            <span>; please try again.</span>
+          </h4>
+        ) : (
+          <h4 className="font-medium">
+            <span>Web3 wallet </span>
+            <AddressFrame address={wallet.address} />
+            <span> doesn't own an Urbit ID on chain </span>
+            <span className="font-bold">{toTitleCase(wallet.chainID)}</span>
+            <span>; please connect another.</span>
+          </h4>
+        )
+      )
+    }>
+      <HeroFrame>
+        <SingleSelector
+          onChange={goUrbitID}
+          placeholder="Select Urbit ID"
+          isClearable={false}
+          styles={{container: (s) => ({...s, width: "200px"})}}
+          options={((urbitIDs || null) ?? []).map(({id, patp, clan}: UrbitID) => (
+            { value: patp, label: patp }
+          ))}
+        />
+      </HeroFrame>
+    </LoadingFrame>
   );
 }
