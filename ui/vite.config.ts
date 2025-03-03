@@ -1,6 +1,7 @@
 import packageJson from './package.json';
 import { loadEnv, defineConfig } from 'vite';
 import react from '@vitejs/plugin-react'
+import { TanStackRouterVite as routerPlugin } from '@tanstack/router-plugin/vite'
 import { fileURLToPath } from 'url';
 import { urbitPlugin } from '@urbit/vite-plugin-urbit';
 
@@ -17,6 +18,7 @@ export default ({ mode }) => {
     base: "/apps/slab/",
     plugins: [
       urbitPlugin({ base: 'slab', target: SHIP_URL }),
+      routerPlugin({ target: 'react', routesDirectory: './src/app', autoCodeSplitting: true }),
       react({ include: /\.((t|j)sx?)|(s?css)$|(html?)/ }),
     ],
     // FIXME: The `@safe-global` packages use `process.env.*` (NodeJS accessors),

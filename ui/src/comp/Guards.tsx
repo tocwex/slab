@@ -2,7 +2,7 @@ import type { UrbitID } from "@/type/slab";
 import React, { useEffect, useMemo, useCallback } from 'react';
 import { useConnectWallet } from '@web3-onboard/react';
 import { LoadingFrame, AddressFrame, UrbitIDFrame } from '@/comp/Frames';
-import { useGoHome, useRouteUrbitParam } from '@/hook/app';
+import { useGoHome, useRouteParams, useRouteUrbitParam } from '@/hook/app';
 import { useWalletMeta, useWalletUrbitIDs } from '@/hook/wallet';
 import { toTitleCase, formUrbitID } from '@/lib/util';
 
@@ -47,7 +47,7 @@ export function RouteUIDValidGuard({
   children: React.ReactNode;
 }>): React.ReactNode {
   const [{wallet, connecting}, connect, disconnect] = useConnectWallet();
-  // TODO: Need to use the raw value for "param" here
+  const params = useRouteParams();
   const routeID: UrbitID | null = useRouteUrbitParam(param);
 
   return (
@@ -55,7 +55,7 @@ export function RouteUIDValidGuard({
       <div className="flex flex-col gap-2 items-center text-center">
         <h4 className="font-medium">
           <span>Attempting to access </span>
-          <span className="font-bold">{"TODO"}</span>
+          <span className="font-bold">{params?.[param] ?? "<unknown>"}</span>
           <span>, which isn't a valid Urbit ID.</span>
         </h4>
         <h4 className="font-medium">

@@ -1,15 +1,21 @@
 import type { Nullable, UrbitID } from '@/type/slab';
 import { useMemo, useCallback } from 'react';
-// import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useMatches, useNavigate } from '@tanstack/react-router';
 import { formUrbitID } from '@/lib/util';
 
+export function useRouteParams(): Record<string, any> {
+  return useMatches({ select: (matches) => matches.reduce(
+    (acc, nex) => ({...acc, ...nex.params}),
+    {},
+  )});
+}
+
 export function useRouteUrbitParam(param: string): Nullable<UrbitID> {
-  // const params = useParams();
-  // const routeID: UrbitID | null = useMemo(() => (
-  //   !(params?.[param]) ? null : formUrbitID(String(params?.[param]))
-  // ), [params?.[param]]);
-  // return routeID;
-  return null;
+  const params = useRouteParams();
+  const routeID: UrbitID | null = useMemo(() => (
+    !(params?.[param]) ? null : formUrbitID(String(params?.[param]))
+  ), [params?.[param]]);
+  return routeID;
 }
 
 export function useRouteUrbitID(): Nullable<UrbitID> {
@@ -21,12 +27,11 @@ export function useRouteUrbitSyndicate(): Nullable<UrbitID> {
 }
 
 export function useRedirect(link: string): () => void {
-  // const router = useRouter();
-  // const redirect = useCallback(() => (
-  //   router.push(link)
-  // ), [router]);
-  // return redirect;
-  return () => {};
+  const navigate = useNavigate();
+  const redirect = useCallback(() => (
+    navigate({ to: link })
+  ), [navigate]);
+  return redirect;
 }
 
 export function useGoHome(): () => void {
@@ -34,10 +39,9 @@ export function useGoHome(): () => void {
 }
 
 export function useGoBack(): () => void {
-  // const router = useRouter();
-  // const goBack = useCallback(() => (
-  //   router.back()
-  // ), [router]);
-  // return goBack;
-  return () => {};
+  const router = useRouter();
+  const goBack = useCallback(() => (
+    router.history.back()
+  ), [router]);
+  return goBack;
 }

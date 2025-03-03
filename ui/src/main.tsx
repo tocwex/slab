@@ -1,12 +1,28 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import App from './app';
+import { RouterProvider, createRouter } from '@tanstack/react-router'
+// Import the generated route tree
+import { routeTree } from './routeTree.gen'
 import './fonts.css';
 import './index.css';
 
-const container = (document.getElementById('app') as HTMLElement);
-createRoot(container).render(
+// Create a new router instance
+const router = createRouter({
+  routeTree,
+  basepath: '/apps/slab/',
+});
+
+// Register the router instance for type safety
+declare module '@tanstack/react-router' {
+  interface Register {
+    router: typeof router
+  }
+}
+
+// Render the app
+const rootElement = (document.getElementById('app') as HTMLElement);
+createRoot(rootElement).render(
   <React.StrictMode>
-    <App />
-  </React.StrictMode>
+    <RouterProvider router={router} />
+  </React.StrictMode>,
 );
