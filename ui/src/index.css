@@ -47,6 +47,10 @@ input:user-invalid {
   @apply border-red-500;
 }
 
+:is(button, [type='button'], [type='reset'], [type='submit']):enabled {
+  @apply hover:cursor-pointer;
+}
+
 :is(button, [type='button'], [type='reset'], [type='submit']):disabled {
   @apply bg-white/20;
 }

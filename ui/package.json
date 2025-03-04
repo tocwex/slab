@@ -49,7 +49,10 @@
   },
   "overrides": {
     "usehooks-ts": {
-      "react": "^19"
+      "react": "19.0.0"
+    },
+    "@web3-onboard/react": {
+      "@web3-onboard/core": "2.23.0"
     }
   }
 }

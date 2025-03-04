@@ -47,7 +47,7 @@ export const CONTRACT = Object.freeze({
   REGISTRY: Object.freeze({ // ~tocwex.syndiate token registry
     ADDRESS: (Object.freeze({
       ETHEREUM: "0x0000000000000000000000000000000000000000", // TODO: Add real address
-      SEPOLIA: "0x8c53afd9cba39a496333e6d050e584c8f37bb269",
+      SEPOLIA: "0x16cb961f8b0fa8c81a773e67912d6d7ccf45ac12",
     }) as {[network: string]: `0x${string}`;}),
     NAME: "Azimuth Points",
     SYMBOL: "AZP",
@@ -57,7 +57,7 @@ export const CONTRACT = Object.freeze({
   DEPLOYER_V1: Object.freeze({ // ~tocwex.syndiate token deployer (v1)
     ADDRESS: (Object.freeze({
       ETHEREUM: "0x0000000000000000000000000000000000000000", // TODO: Add real address
-      SEPOLIA: "0xcbf081e9bab6ba8fc7cc01344a1fcfc2fbe8198d",
+      SEPOLIA: "0x1182da34265ae09c347c93636663ecebad147c5e",
     }) as {[network: string]: `0x${string}`;}),
     ABI: ABI.TOCWEX_DEPLOYER_V1,
   }),
@@ -170,18 +170,18 @@ const ETHEREUM_DOMAIN_REGEX: string =
 
 export const REGEX = Object.freeze({
   AZIMUTH: (Object.freeze({
-    GALAXY: `~${URBIT_GALAXY_REGEX}`,
-    STAR: `~${URBIT_STAR_REGEX}`,
-    PLANET: `~${URBIT_PLANET_REGEX}`,
+    GALAXY: `^~${URBIT_GALAXY_REGEX}$`,
+    STAR: `^~${URBIT_STAR_REGEX}$`,
+    PLANET: `^~${URBIT_PLANET_REGEX}$`,
     // MOON: ...
     // COMET: ...
-    POINT: `~${URBIT_POINT_REGEX}`,
+    POINT: `^~${URBIT_POINT_REGEX}$`,
     // IDENTITY: ...
   }) as {[point: string]: string;}),
   ETHEREUM: (Object.freeze({
-    ADDRESS: ETHEREUM_ADDRESS_REGEX,
-    DOMAIN: ETHEREUM_DOMAIN_REGEX,
-    RECIPIENT: `(${ETHEREUM_ADDRESS_REGEX}|${ETHEREUM_DOMAIN_REGEX})`,
+    ADDRESS: `^${ETHEREUM_ADDRESS_REGEX}$`,
+    DOMAIN: `^${ETHEREUM_DOMAIN_REGEX}$`,
+    RECIPIENT: `^(${ETHEREUM_ADDRESS_REGEX}|${ETHEREUM_DOMAIN_REGEX})$`,
   }) as {[point: string]: string;}),
   SYNDICATE: (Object.freeze({
     // NOTE: https://stackoverflow.com/a/60782571
@@ -189,7 +189,7 @@ export const REGEX = Object.freeze({
     TOKEN: "^[0-9A-Z~\\-]{1,16}$",
   }) as {[param: string]: string;}),
   DOMAIN: "^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$",
-  RECIPIENT: `((~${URBIT_POINT_REGEX})|${ETHEREUM_ADDRESS_REGEX}|${ETHEREUM_DOMAIN_REGEX})`,
+  RECIPIENT: `^((~${URBIT_POINT_REGEX})|${ETHEREUM_ADDRESS_REGEX}|${ETHEREUM_DOMAIN_REGEX})$`,
 });
 
 export const ERROR = Object.freeze({
