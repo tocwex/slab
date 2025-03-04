@@ -40,6 +40,30 @@ export default ({ mode }) => {
       sourcemap: false,
       rollupOptions: {
         output: {
+          // NOTE: Unlike Vite 4-, Vite 5 hashes with capital letters by
+          // default, which Urbit will not accept
+          hashCharacters: "base36",
+          assetFileNames: ({ names, originalFileNames, source }: {
+            names: string[];             // raw file names
+            originalFileNames: string[]; // paths (relative to src)
+            source: string | Uint8Array; // source bytes (for hashing)
+          }) => {
+            return !names?.[0]
+              ? `assets/[name]-[hash][extname]`
+              : `assets/${(names?.[0].split('.')[0]).toLowerCase()}-[hash][extname]`;
+          },
+          chunkFileNames: ({ name, moduleIds }: {
+            name: string;        // module path
+            moduleIds: string[]; // contents (absolute paths)
+          }) => {
+            return `${name.toLowerCase()}-[hash].js`;
+          },
+          entryFileNames: ({ name, moduleIds }: {
+            name: string;        // module path
+            moduleIds: string[]; // contents (absolute paths)
+          }) => {
+            return `${name.toLowerCase()}.js`;
+          },
           manualChunks: {
             'lodash': ['lodash.merge'],
             'urbit': ['@urbit/api', '@urbit/http-api', '@urbit/sigil-js', 'urbit-ob'],
