@@ -20,9 +20,8 @@ export const Route = createRootRoute({
       <HeadContent />
       <QueryClientProvider client={REACT_QUERY}>
         <Web3OnboardProvider web3Onboard={WEB3ONBOARD}>
-          {/* TODO: Make this float */}
-          <div className="absolute top-4 left-4">
-            <Link to="/" className="button-lg">
+          <div className="fixed z-40 top-4 left-4 w-[80px] h-[56px]">
+            <Link to="/" className="head">
               HOME
             </Link>
           </div>

@@ -55,7 +55,11 @@ input:user-invalid {
 }
 
 .main {
-  @apply flex flex-col gap-4 py-2 px-4 justify-center items-center;
+  @apply flex flex-col gap-4 py-4 px-4 justify-center items-center;
+}
+
+.head {
+  @apply flex justify-center items-center p-3 border border-gray-500 text-xl bg-white text-black rounded-2xl;
 }
 
 .input-sm {

@@ -58,6 +58,11 @@ export const WEB3ONBOARD = web3Init({
   },
   theme: {
     "--w3o-font-family": "'Urbit Sans', sans-serif",
+    "--w3o-border-radius": "var(--radius-2xl)",
+    "--w3o-text-color": "var(--color-black)",
+    "--w3o-background-color": "var(--color-white)",
+    "--w3o-border-color": "var(--color-gray-500)",
+    // "--w3o-action-color": "var(--color-black)",
   },
   accountCenter: (() => {
     const config = {
