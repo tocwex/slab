@@ -1,5 +1,6 @@
 import React from 'react';
 import { createRootRoute, HeadContent, Link, Outlet } from '@tanstack/react-router';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { HeroFrame } from '@/comp/Frames';
 import { QueryClientProvider } from '@tanstack/react-query'
 import { Web3OnboardProvider } from '@web3-onboard/react';
@@ -20,7 +21,7 @@ export const Route = createRootRoute({
       <HeadContent />
       <QueryClientProvider client={REACT_QUERY}>
         <Web3OnboardProvider web3Onboard={WEB3ONBOARD}>
-          <div className="fixed z-40 top-4 left-4 w-[80px] h-[56px]">
+          <div className="fixed z-40 top-4 left-4">
             <Link to="/" className="head">
               HOME
             </Link>
@@ -28,6 +29,7 @@ export const Route = createRootRoute({
           <div className="max-w-3xl mx-auto flex flex-col justify-center items-center">
             <Outlet />
           </div>
+          <ReactQueryDevtools initialIsOpen={false} />
         </Web3OnboardProvider>
       </QueryClientProvider>
     </>

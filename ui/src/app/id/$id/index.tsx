@@ -15,8 +15,7 @@ import { useLocalSafes } from '@/hook/local';
 import { useWalletMeta, useTokenboundClient } from '@/hook/wallet';
 import { fetchUrbitAccount, fetchTBAddress } from '@/lib/web3';
 import {
-  formUrbitID, isValidUrbitID, isValidSyndicate,
-  encodeSet, decodeSet, parseForm,
+  formUrbitID, isValidUrbitID, isValidSyndicate, encodeList, parseForm,
 } from '@/lib/util';
 import { REGEX } from '@/dat/const';
 import * as ob from "urbit-ob";
@@ -68,7 +67,7 @@ export const Route = createFileRoute('/id/$id/')({
     }, [wallet, tbClient, managerNames, setManagerTBAs]);
 
     const deploymentSafe: Address | undefined = useMemo(() => (
-      (localSafes || null)?.[encodeSet(new Set(managerTBAs))]
+      (localSafes || null)?.[encodeList(managerTBAs)]
     ), [localSafes, managerTBAs]);
 
     const addManager = useCallback(() => (

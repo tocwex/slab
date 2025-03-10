@@ -29,9 +29,8 @@ import {
 } from '@/lib/web3';
 import { useBasicMutation } from '@/lib/hook';
 import {
-  clamp, formContract, formToken, formUrbitID,
+  clamp, encodeList, formContract, formToken, formUrbitID,
   includeTax, isValidSyndicate, isValidUrbitID, compareUrbitIDs,
-  encodeList, decodeList, encodeSet, decodeSet,
 } from '@/lib/util';
 import { update as updateLocal } from '@/dat/local';
 import { APP, ABI, ACCOUNT, CONTRACT, MATH, REGEX, ERROR } from '@/dat/const';
@@ -61,9 +60,9 @@ export function useSyndicateExecMutation(
       const safeClient = new SafeApiKit({chainId: wallet.chain});
 
       const safeTransaction = await safeClient.getTransaction(txHash);
+      // console.log(safeTransaction);
       const executeTxResponse = await safeAccount.executeTransaction(safeTransaction);
       const { transactionHash } = await awaitReceipt(wallet, (executeTxResponse.hash as Address));
-
       return transactionHash;
     },
     onSettled: async (_, __, {txHash}, ___) => {
@@ -76,20 +75,24 @@ export function useSyndicateExecMutation(
         // NOTE: Always refetch this syndicate's safe information first so
         // dependent data (e.g. taxes, depending on token address) works
         await queryClient.invalidateQueries({ queryKey: syKey });
-        if (slabTx.type === "transfer") {
-          const urbitID = await fetchUrbitID(wallet, tbClient, slabTx.to);
-          await queryClient.invalidateQueries({queryKey: [
-            APP.TAG, "tokenbound", "account", wallet.chainID, urbitID.id,
-          ]});
-        } else if (slabTx.type === "launch") {
-          await queryClient.invalidateQueries({ queryKey: taxKey });
-        } else if (slabTx.type === "mint") {
-          for (const transfer of slabTx.transfers) {
-            const urbitID = await fetchUrbitID(wallet, tbClient, transfer.to);
-            await queryClient.invalidateQueries({queryKey: [
+        try {
+          if (slabTx.type === "transfer") {
+            const urbitID = await fetchUrbitID(wallet, tbClient, slabTx.to);
+            await queryClient.invalidateQueries({ queryKey: [
               APP.TAG, "tokenbound", "account", wallet.chainID, urbitID.id,
-            ]});
+            ] });
+          } else if (slabTx.type === "launch") {
+            await queryClient.invalidateQueries({ queryKey: taxKey });
+          } else if (slabTx.type === "mint") {
+            for (const transfer of slabTx.transfers) {
+              const urbitID = await fetchUrbitID(wallet, tbClient, transfer.to);
+              await queryClient.invalidateQueries({ queryKey: [
+                APP.TAG, "tokenbound", "account", wallet.chainID, urbitID.id,
+              ] });
+            }
           }
+        } catch (error) {
+          // no-op
         }
         await queryClient.invalidateQueries({ queryKey: queryKey });
       }
@@ -377,7 +380,7 @@ export function useSyndicateCreateMutation(
       await updateLocal("safes", (oldArchive: SafeArchive | undefined) => {
         const newArchive: SafeArchive = (oldArchive ?? {});
         const oldOwners: SafeOwners = (newArchive?.[tbKey] ?? {});
-        delete oldOwners[encodeSet(new Set<Address>(owners))];
+        delete oldOwners[encodeList(owners)];
         newArchive[tbKey] = oldOwners;
         return newArchive;
       });
@@ -385,7 +388,8 @@ export function useSyndicateCreateMutation(
       return transactionHash;
     },
     onSettled: async (_, __, {managers}, ___) => {
-      await queryClient.invalidateQueries({ queryKey: queryKey });
+      await queryClient.invalidateQueries({ queryKey: queryKey, refetchType: "all" });
+      await queryClient.invalidateQueries({ queryKey: localKey, refetchType: "all" });
       for (const managerID of managers) {
         await queryClient.invalidateQueries({queryKey: [
           APP.TAG, "safe", "syndicates", wallet?.chainID, managerID.id,
@@ -425,7 +429,7 @@ export function useSafeCreateMutation(
         const newArchive: SafeArchive = (oldArchive ?? {});
         const oldOwners: SafeOwners = (newArchive?.[tbKey] ?? {});
         const newOwners: SafeOwners = {...oldOwners, ...({
-          [encodeSet(new Set<Address>(owners))]: safeAddress,
+          [encodeList(owners)]: safeAddress,
         })};
         newArchive[tbKey] = newOwners;
         return newArchive;
@@ -616,7 +620,7 @@ export function useTokenboundAccount(urbitID: UrbitID): Loadable<TokenboundAccou
     queryFn: async (): Promise<TokenboundAccount | false> => {
       if (!wallet || !tbClient || !localTokens) throw Error(ERROR.INVALID_QUERY);
       if (!isValidUrbitID(urbitID)) return false;
-      // console.log(`querying for ${queryKey}`);
+      // console.log(`querying ${queryKey}`);
       const tbAddress = await fetchTBAddress(wallet, tbClient, urbitID);
       const tbIsDeployed: boolean = await tbClient.checkAccountDeployment({
         accountAddress: tbAddress,
@@ -730,8 +734,9 @@ export function useSyndicateTax(urbitID: UrbitID): Loadable<Tax> {
   const wallet = useWalletMeta();
   const idAccount = useTokenboundAccount(urbitID);
   const queryKey: QueryKey = useMemo(() => [
-    APP.TAG, "tax", "syndicate", wallet?.chainID, urbitID.id,
-  ], [wallet?.chainID, urbitID.id]);
+    APP.TAG, "tax", "syndicate",
+    wallet?.chainID, urbitID.id, (idAccount || {})?.token?.address,
+  ], [wallet?.chainID, urbitID.id, (idAccount || {})?.token?.address]);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKey,
@@ -739,6 +744,7 @@ export function useSyndicateTax(urbitID: UrbitID): Loadable<Tax> {
     queryFn: async (): Promise<Tax | false> => {
       if (!wallet || !idAccount) throw Error(ERROR.INVALID_QUERY);
       if (!isValidUrbitID(urbitID)) return false;
+      // console.log(`querying ${queryKey}`);
       let syndicateFee: bigint = BigInt(0);
       let syndicateTo: Address = formContract(wallet.chain, "NULL").address;
 

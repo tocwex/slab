@@ -220,7 +220,7 @@ export function formToken(chain: bigint, symbol: string): Token {
 
 export function formUrbitID(value: number | string): UrbitID {
   let [id, patp, clan]: [string, string, UrbitClan] = ["", "", "comet"];
-  if (typeof value === "number" || !isNaN((value as unknown as number))) {
+  if (typeof value === "number" || (!!value && !isNaN((value as unknown as number)))) {
     id = String(value);
     patp = ob.patp(id);
     clan = ob.clan(patp);

@@ -79,6 +79,7 @@ export function useLocalSafes(): Loadable<SafeOwners> {
     enabled: !!wallet,
     queryFn: async (): Promise<SafeOwners> => {
       if (!wallet) throw Error(ERROR.INVALID_QUERY);
+      // console.log(`querying ${queryKey}`);
       const localArchive = (((await getLocal("safes")) ?? {}) as SafeArchive);
       const tbContract = formContract(wallet.chain, "TOKENBOUND");
       const tbKey: ChainAddress = `${wallet.chain}:${tbContract.address}`;

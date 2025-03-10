@@ -22,7 +22,7 @@ import {
 import { useLocalTokens, useTokensAddMutation } from '@/hook/local';
 import {
   trimAddress, hasClanBoon, parseForm, formUrbitID,
-  coerceBigInt, applyTax, includeTax,
+  coerceBigInt, applyTax, includeTax, isValidUrbitID,
   formatTax, formatToken, formatFloat, formatUint,
 } from '@/lib/util';
 import { formatUnits } from 'viem';
@@ -326,11 +326,7 @@ export function SyndicateAccountInfo({
   const onMint = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
     const fields = parseForm(event, {
       amounts: mintData.map(([a, r]) => a),
-      recipients: mintData.map(([a, r]) => r).map((recipient) => (
-        recipient.match(REGEX.ETHEREUM.ADDRESS)
-          ? recipient
-          : formUrbitID(recipient)
-      )),
+      recipients: mintData.map(([a, r]) => r),
     });
     fields && syMintMutate(fields);
   }, [syMintMutate, mintData]);
@@ -361,10 +357,12 @@ export function SyndicateAccountInfo({
                 options={[
                   { value: 'ETH', label: 'ethereum' },
                   { value: 'USDC', label: 'usdc' },
-                  ...(!syAccount.token ? [] : [
-                    { value: syAccount.token.address, label: syAccount.token.name },
-                  ]),
-                  ...(Object.entries(localTokens).map(
+                  ...((Object.entries({
+                    ...localTokens,
+                    ...(!syAccount.token ? {} : {
+                      [syAccount.token.address]: syAccount.token
+                    }),
+                  }) as [string, Token][]).map(
                     ([addr, token]: [string, Token]) => ({
                       value: addr,
                       label: token.name,

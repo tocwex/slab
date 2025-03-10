@@ -63,7 +63,7 @@ input:user-invalid {
 }
 
 .head {
-  @apply flex justify-center items-center p-3 border border-gray-500 text-xl bg-white text-black rounded-2xl;
+  @apply flex justify-center items-center px-4.5 py-3.5 border border-gray-500 text-xl bg-white text-black rounded-2xl;
 }
 
 .input-sm {

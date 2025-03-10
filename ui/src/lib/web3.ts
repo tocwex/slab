@@ -260,8 +260,8 @@ export async function awaitReceipt(
 
   const receipt = await waitForTransactionReceipt(wallet.wagmi, {
     hash: hash,
-    confirmations: 4,
-    timeout: 60000,
+    confirmations: 3,
+    timeout: 3 * 60 * 1000,
   });
 
   return receipt;

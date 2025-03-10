@@ -31,6 +31,6 @@ export function useBasicMutation<
 
   return useMutation(
     {...basicOptions, ...options},
-    queryClient,
+    client,
   );
 }
