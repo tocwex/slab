@@ -20,9 +20,9 @@
     "@urbit/api": "2.2",
     "@urbit/http-api": "^2.3.0",
     "@urbit/sigil-js": "^2.2.0",
-    "@web3-onboard/core": "2.23.0",
-    "@web3-onboard/injected-wallets": "^2.11.2",
-    "@web3-onboard/react": "^2.10.0",
+    "@web3-onboard/core": "2.24.0",
+    "@web3-onboard/injected-wallets": "^2.11.3",
+    "@web3-onboard/react": "^2.11.0",
     "@web3-onboard/wagmi": "2.0.1",
     "idb-keyval": "^6.2.1",
     "lodash.merge": "^4.6.2",
@@ -53,7 +53,7 @@
       "react": "19.0.0"
     },
     "@web3-onboard/react": {
-      "@web3-onboard/core": "2.23.0"
+      "@web3-onboard/core": "2.24.0"
     }
   }
 }

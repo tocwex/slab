@@ -1,0 +1,22 @@
+diff --git a/node_modules/@web3-onboard/core/dist/index-10054806.js b/node_modules/@web3-onboard/core/dist/index-10054806.js
+index 38f2099..b926b0a 100644
+--- a/node_modules/@web3-onboard/core/dist/index-10054806.js
++++ b/node_modules/@web3-onboard/core/dist/index-10054806.js
+@@ -2762,7 +2762,7 @@ async function getProvider(chain) {
+         const { createPublicClient, http } = await import('viem');
+         const publicProvider = createPublicClient({
+             chain: viemChain,
+-            transport: http()
++            transport: http(chain.rpcUrl)
+         });
+         viemProviders[chain.rpcUrl] = publicProvider;
+     }
+@@ -2963,7 +2963,7 @@ async function getEns(address, chain) {
+         });
+         let ens = null;
+         if (name) {
+-            const { labelhash, normalize } = await import('./index-021f6a62.js').then(function (n) { return n.i; });
++            const { i: {labelhash, normalize} } = await import('./index-021f6a62.js');
+             const normalizedName = normalize(name);
+             const ensResolver = await provider.getEnsResolver({
+                 name: normalizedName

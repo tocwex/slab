@@ -31,7 +31,7 @@ export default ({ mode }) => {
     },
     plugins: [
       urbitPlugin({ base: 'slab', target: SHIP_URL }),
-      routerPlugin({ target: 'react', routesDirectory: './src/app', autoCodeSplitting: false }),
+      routerPlugin({ target: 'react', routesDirectory: './src/app', autoCodeSplitting: true }),
       react({ include: /\.((t|j)sx?)|(s?css)$|(html?)/ }),
     ],
     build: {
