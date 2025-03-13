@@ -16,31 +16,28 @@ export default ({ mode }) => {
 
   return defineConfig({
     base: "/apps/slab/",
-    plugins: [
-      urbitPlugin({ base: 'slab', target: SHIP_URL }),
-      routerPlugin({ target: 'react', routesDirectory: './src/app', autoCodeSplitting: true }),
-      react({ include: /\.((t|j)sx?)|(s?css)$|(html?)/ }),
-    ],
+    server: { host: 'localhost', port: 3000, },
+    preview: { host: 'localhost', port: 4000, },
     // FIXME: The `@safe-global` packages use `process.env.*` (NodeJS accessors),
     // which isn't supported in embedded Vite by default.
     // See: https://dev.to/whchi/how-to-use-processenv-in-vite-ho9
     define: {
       'process.env': ENV,
     },
-    server: {
-      host: 'localhost',
-      port: 3000,
-    },
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url)),
       },
     },
+    plugins: [
+      urbitPlugin({ base: 'slab', target: SHIP_URL }),
+      routerPlugin({ target: 'react', routesDirectory: './src/app', autoCodeSplitting: false }),
+      react({ include: /\.((t|j)sx?)|(s?css)$|(html?)/ }),
+    ],
     build: {
-      sourcemap: false,
       rollupOptions: {
         output: {
-          // NOTE: Unlike Vite 4-, Vite 5 hashes with capital letters by
+          // NOTE: Unlike Vite 4-, Vite 5+ hashes with capital letters by
           // default, which Urbit will not accept
           hashCharacters: "base36",
           assetFileNames: ({ names, originalFileNames, source }: {

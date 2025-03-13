@@ -478,9 +478,9 @@ export function useTokenboundSendMutation(
     },
     onSettled: async (_, __, {recipient}, ___) => {
       await queryClient.invalidateQueries({ queryKey: queryKey });
-      await queryClient.invalidateQueries({queryKey: [
+      await queryClient.invalidateQueries({ queryKey: [
         APP.TAG, "tokenbound", "account", wallet?.chainID, formUrbitID(recipient).id,
-      ]});
+      ], refetchType: "all" });
     },
     ...options,
   });

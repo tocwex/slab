@@ -55,6 +55,16 @@ cd ./ui
 npm run dev
 ```
 
+To test the bundled version of the front-end code, run these commands instead:
+
+```bash
+cd ./ui
+# must be run every time changes are made
+npm run build
+# can be run passively
+npm run serve
+```
+
 Also, be sure to authenticate via both the NPM web portal (default:
 `127.0.0.1:3000`) and the development ship's web portal ([fake `~zod`][fakezod]
 default: `127.0.0.1:8080`) using the output of the Urbit `+code` command as
@@ -78,7 +88,7 @@ front-end build, run the following commands:
 
 ```bash
 cd ./ui
-npm run build
+npm run build:prod
 cd ..
 ./durploy desk -g zod slab ./ui/dist
 cp "$(ls -dtr1 "${XDG_CACHE_HOME:-$HOME/.cache}/durploy/glob"/* | tail -1)" ./meta/glob

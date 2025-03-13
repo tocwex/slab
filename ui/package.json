@@ -4,8 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
     "serve": "vite preview",
+    "build": "tsc && vite build --mode development --minify false",
+    "build:prod": "tsc && vite build --mode production",
     "tsc": "tsc --noEmit",
     "test": "tsc --noEmit",
     "postinstall": "patch-package"
@@ -19,7 +20,6 @@
     "@urbit/api": "2.2",
     "@urbit/http-api": "^2.3.0",
     "@urbit/sigil-js": "^2.2.0",
-    "@wagmi/core": "^2.10.4",
     "@web3-onboard/core": "2.23.0",
     "@web3-onboard/injected-wallets": "^2.11.2",
     "@web3-onboard/react": "^2.10.0",
@@ -46,7 +46,7 @@
     "postcss": "^8.5.2",
     "tailwindcss": "^4.0.6",
     "typescript": "^5",
-    "vite": "^5.4.8"
+    "vite": "^6.2.1"
   },
   "overrides": {
     "usehooks-ts": {
