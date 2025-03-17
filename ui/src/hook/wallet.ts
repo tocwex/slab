@@ -10,8 +10,8 @@ import { useConnectWallet, useWagmiConfig } from '@web3-onboard/react'
 import { readContract, getWalletClient } from '@web3-onboard/wagmi';
 import { TokenboundClient } from '@tokenbound/sdk';
 import { hexToBigInt } from 'viem';
-import { fetchTBAddress } from '@/lib/web3';
-import { formContract, formUrbitID, compareUrbitIDs } from '@/lib/util';
+import { fetchTBAddress, compareAPIUrbitIDs } from '@/lib/web3';
+import { formContract, formUrbitID } from '@/lib/util';
 import { APP, ACCOUNT, BLOCKCHAIN, CONTRACT, ERROR } from '@/dat/const';
 
 export function useWalletUrbitTBAs(): Loadable<Record<Address, UrbitID>> {
@@ -70,7 +70,7 @@ export function useUrbitIDs(account: Address): Loadable<UrbitID[]> {
         functionName: "getOwnedPoints",
         args: [account],
       });
-      return (points as number[]).map(formUrbitID).sort(compareUrbitIDs);
+      return (points as number[]).map(formUrbitID).sort(compareAPIUrbitIDs);
     },
   });
 

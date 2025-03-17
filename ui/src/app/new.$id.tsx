@@ -10,11 +10,11 @@ import { SingleSelector, SingleSelection } from '@/comp/Selector';
 import * as ob from "urbit-ob";
 
 export const Route = createFileRoute('/new/$id')({
-  head: ({ params }) => ({
-    meta: [
-      { title: `%slab | ${params?.id ?? '<unknown>'} -> syndicate` },
-    ],
-  }),
+  // head: ({ params }) => ({
+  //   meta: [
+  //     { title: `%slab | ${params?.id ?? '<unknown>'} -> syndicate` },
+  //   ],
+  // }),
   component: (): React.ReactNode => {
     const navigate = useNavigate();
     const routeID: UrbitID = (useRouteUrbitID() as UrbitID);

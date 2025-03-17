@@ -15,7 +15,8 @@ import {
   encodePacked, numberToHex,
 } from 'viem';
 import { normalize } from 'viem/ens'
-import { getChainMeta, formContract, formToken, formUrbitID } from '@/lib/util';
+import { getChainMeta, formContract, formToken, formUrbitID, compareUrbitIDs } from '@/lib/util';
+import { URBIT } from '@/dat/apis';
 import { ABI, ACCOUNT, SAFE, REGEX } from '@/dat/const';
 
 export async function createSafe(
@@ -365,4 +366,12 @@ export async function decodeProposal(
   }
 
   return transaction;
+}
+
+export function compareAPIUrbitIDs(a: UrbitID, b: UrbitID): number {
+  const baseCmp: number = compareUrbitIDs(a, b);
+  const apiCmp: number = ((cmp) => (cmp(a) - cmp(b)))((u: UrbitID): number => (
+    Number(u.patp !== `~${URBIT.ship}`)
+  ));
+  return [apiCmp, baseCmp].find((n) => (n !== 0)) ?? 0;
 }

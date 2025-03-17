@@ -25,12 +25,12 @@ import { useLocalTokens, useTokensAddMutation } from '@/hook/local';
 import {
   createSafe, signTBSafeTx, fetchSafeAccount, fetchUrbitAccount,
   fetchRecipient, fetchTBAddress, fetchToken, fetchUrbitID,
-  fetchAzimuthEcliptic, decodeProposal, awaitReceipt,
+  fetchAzimuthEcliptic, decodeProposal, awaitReceipt, compareAPIUrbitIDs,
 } from '@/lib/web3';
 import { useBasicMutation } from '@/lib/hook';
 import {
   clamp, encodeList, formContract, formToken, formUrbitID,
-  includeTax, isValidSyndicate, isValidUrbitID, compareUrbitIDs,
+  includeTax, isValidSyndicate, isValidUrbitID
 } from '@/lib/util';
 import { update as updateLocal } from '@/dat/local';
 import { APP, ABI, ACCOUNT, CONTRACT, MATH, REGEX, ERROR } from '@/dat/const';
@@ -391,9 +391,9 @@ export function useSyndicateCreateMutation(
       await queryClient.invalidateQueries({ queryKey: queryKey, refetchType: "all" });
       await queryClient.invalidateQueries({ queryKey: localKey, refetchType: "all" });
       for (const managerID of managers) {
-        await queryClient.invalidateQueries({queryKey: [
+        await queryClient.invalidateQueries({ queryKey: [
           APP.TAG, "safe", "syndicates", wallet?.chainID, managerID.id,
-        ]});
+        ], refetchType: "all" });
       }
     },
     ...options,
@@ -595,7 +595,7 @@ export function useSafeSyndicates(urbitID: UrbitID): Loadable<UrbitID[]> {
         }
       }
 
-      return urbitSyndicates.sort(compareUrbitIDs);
+      return urbitSyndicates.sort(compareAPIUrbitIDs);
     },
   });
 

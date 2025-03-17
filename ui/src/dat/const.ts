@@ -46,7 +46,7 @@ export const ACCOUNT = Object.freeze({
 export const CONTRACT = Object.freeze({
   REGISTRY: Object.freeze({ // ~tocwex.syndiate token registry
     ADDRESS: (Object.freeze({
-      ETHEREUM: "0x0000000000000000000000000000000000000000", // TODO: Add real address
+      ETHEREUM: "0x0000000000000000000000000000000000000000",
       SEPOLIA: "0x16cb961f8b0fa8c81a773e67912d6d7ccf45ac12",
     }) as {[network: string]: `0x${string}`;}),
     NAME: "Azimuth Points",
@@ -56,15 +56,15 @@ export const CONTRACT = Object.freeze({
   }),
   DEPLOYER_V1: Object.freeze({ // ~tocwex.syndiate token deployer (v1)
     ADDRESS: (Object.freeze({
-      ETHEREUM: "0x0000000000000000000000000000000000000000", // TODO: Add real address
+      ETHEREUM: "0x0000000000000000000000000000000000000000",
       SEPOLIA: "0x1182da34265ae09c347c93636663ecebad147c5e",
     }) as {[network: string]: `0x${string}`;}),
     ABI: ABI.TOCWEX_DEPLOYER_V1,
   }),
   TOKENBOUND: Object.freeze({ // tokenbound
     ADDRESS: (Object.freeze({
-      ETHEREUM: "0x0000000000000000000000000000000000000000", // TODO: Add real address
-      SEPOLIA: "0x5Ee3b4196a20aec5EECDdf57d5AB24dF3cEAdFBe",
+      ETHEREUM: "0x83B3Ef42d9D933051c2664ca2aF8b01FB312b4c9",
+      SEPOLIA: "0x83B3Ef42d9D933051c2664ca2aF8b01FB312b4c9",
     }) as {[network: string]: `0x${string}`;}),
     ABI: ABI.TOKENBOUND,
   }),

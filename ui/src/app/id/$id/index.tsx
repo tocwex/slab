@@ -21,11 +21,11 @@ import { REGEX } from '@/dat/const';
 import * as ob from "urbit-ob";
 
 export const Route = createFileRoute('/id/$id/')({
-  head: ({ params }) => ({
-    meta: [
-      { title: `%slab | ${params?.id ?? '<unknown>'} user` },
-    ],
-  }),
+  // head: ({ params }) => ({
+  //   meta: [
+  //     { title: `%slab | ${params?.id ?? '<unknown>'} user` },
+  //   ],
+  // }),
   component: (): React.ReactNode => {
     const navigate = useNavigate();
     const routeID: UrbitID = (useRouteUrbitID() as UrbitID);
@@ -227,7 +227,14 @@ export const Route = createFileRoute('/id/$id/')({
                 </div>
               </>
             )}
-            {/* TODO: Add notice that TBA must be deployed first */}
+            {!((tbAccount || null)?.deployed) && (
+              <div className="flex flex-col items-center gap-2 max-w-72">
+                <p className="max-w-72">
+                  Please note that you must deploy a TBA for this Urbit ID before
+                  creating an associated syndicate.
+                </p>
+              </div>
+            )}
             {!!localSafes && (
               !deploymentSafe ? (
                 <button type="button"

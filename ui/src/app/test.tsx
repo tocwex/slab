@@ -6,11 +6,11 @@ import { LoadingFrame } from '@/comp/Frames';
 import { REACT_QUERY, WEB3ONBOARD, URBIT } from '@/dat/apis';
 
 export const Route = createFileRoute('/test')({
-  head: ({ params }) => ({
-    meta: [
-      { title: `%slab | test page` },
-    ],
-  }),
+  // head: ({ params }) => ({
+  //   meta: [
+  //     { title: `%slab | test page` },
+  //   ],
+  // }),
   component: (): React.ReactNode => {
     const [apps, setApps] = useState<Charges>();
 
