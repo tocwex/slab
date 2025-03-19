@@ -1,9 +1,9 @@
 :~  title+'slab'
     info+'A tool for forming and managing syndicates, the building blocks of the web3 economy.'
     color+0x11.1111
-    version+[0 0 0]
+    version+[0 0 1]
     website+'https://github.com/tocwex/slab'
     license+'GNU GPLv3'
     base+'slab'
-    glob-http+['https://ladrut.xyz/slab/v0.0.0.glob' 0vf6ri3.f4t0r.o6n6f.e519u.pggea]
+    glob-http+['https://ladrut.xyz/slab/v0.0.1.glob' 0v6.jfqc4.1dip2.gaigs.8n4r5.v2pq9]
 ==
