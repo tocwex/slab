@@ -29,7 +29,8 @@ import {
 } from '@/lib/web3';
 import { useBasicMutation } from '@/lib/hook';
 import {
-  clamp, encodeList, formContract, formToken, formUrbitID,
+  clamp, resolve, encodeList,
+  formContract, formToken, formUrbitID,
   includeTax, isValidSyndicate, isValidUrbitID
 } from '@/lib/util';
 import { update as updateLocal } from '@/dat/local';
@@ -74,15 +75,18 @@ export function useSyndicateExecMutation(
 
         // NOTE: Always refetch this syndicate's safe information first so
         // dependent data (e.g. taxes, depending on token address) works
-        await queryClient.invalidateQueries({ queryKey: syKey });
+        await queryClient.invalidateQueries({
+          queryKey: syKey,
+          refetchType: (slabTx.type === "terminate") ? "none" : "active",
+        });
         try {
-          if (slabTx.type === "transfer") {
+          if (slabTx.type === "launch") {
+            await queryClient.invalidateQueries({ queryKey: taxKey });
+          } else if (slabTx.type === "transfer") {
             const urbitID = await fetchUrbitID(wallet, tbClient, slabTx.to);
             await queryClient.invalidateQueries({ queryKey: [
               APP.TAG, "tokenbound", "account", wallet.chainID, urbitID.id,
             ] });
-          } else if (slabTx.type === "launch") {
-            await queryClient.invalidateQueries({ queryKey: taxKey });
           } else if (slabTx.type === "mint") {
             for (const transfer of slabTx.transfers) {
               const urbitID = await fetchUrbitID(wallet, tbClient, transfer.to);
@@ -90,11 +94,36 @@ export function useSyndicateExecMutation(
                 APP.TAG, "tokenbound", "account", wallet.chainID, urbitID.id,
               ] });
             }
+          } else if (slabTx.type === "terminate") {
+            await queryClient.invalidateQueries({ queryKey: [
+              APP.TAG, "wallet", "urbit-ids", wallet.chainID, slabTx.to.toLowerCase(),
+            ], refetchType: "all" });
+            await queryClient.invalidateQueries({ queryKey: [
+              APP.TAG, "wallet", "urbit-tbas", wallet.chainID, slabTx.to.toLowerCase(),
+            ], refetchType: "all" });
+            await queryClient.invalidateQueries({ queryKey: [
+              APP.TAG, "safe", "account", wallet.chainID, urbitSyndicate.id,
+            ], refetchType: "all" });
+            if (!!sySafe) {
+              const safeInfo = await safeClient.getSafeInfo((sySafe.address as Address));
+              for (const owner of safeInfo.owners) {
+                const urbitID = await fetchUrbitID(wallet, tbClient, (owner as Address));
+                await queryClient.invalidateQueries({ queryKey: [
+                  APP.TAG, "safe", "syndicates", wallet.chainID, urbitID.id,
+                ], refetchType: "all" });
+              }
+            }
           }
         } catch (error) {
+          // TODO: Consider changing this to invalidate all safe information
+          // so that everything updates, even in the case of an error
           // no-op
+          console.log(error);
         }
-        await queryClient.invalidateQueries({ queryKey: queryKey });
+        await queryClient.invalidateQueries({
+          queryKey: queryKey,
+          refetchType: (slabTx.type === "terminate") ? "none" : "active",
+        });
       }
     },
     ...options,
@@ -182,6 +211,134 @@ export function useSyndicateMintMutation(
           to: tbMintTransaction.to,
           data: tbMintTransaction.data,
           value: tbMintTransaction.value.toString(),
+        }],
+      });
+      const safeTxHash = await safeAccount.getTransactionHash(safeTransaction);
+      const safeTxSign = await signTBSafeTx(wallet, idAccount.address, safeTxHash);
+
+      const safeClient = new SafeApiKit({chainId: wallet.chain});
+      await safeClient.proposeTransaction({
+        safeAddress: sySafe.address,
+        safeTransactionData: safeTransaction.data,
+        safeTxHash: safeTxHash,
+        senderAddress: idAccount.address,
+        senderSignature: safeTxSign,
+      });
+
+      return (safeTxSign as Address);
+    },
+    ...options,
+  });
+}
+
+export function useSyndicateTerminateMutation(
+  urbitID: UrbitID,
+  urbitSyndicate: UrbitID,
+  options?: UseMutationOptions<Address, unknown, any, unknown>,
+) {
+  const wallet = useWalletMeta();
+  const tbClient = useTokenboundClient();
+  const idAccount = useTokenboundAccount(urbitID);
+  const syAccount = useTokenboundAccount(urbitSyndicate);
+  const sySafe = useSafeAccount(urbitSyndicate);
+  const queryKey: QueryKey = useMemo(() => [
+    APP.TAG, "safe", "proposals", wallet?.chainID, urbitSyndicate.id,
+  ], [wallet?.chainID, urbitSyndicate.id]);
+
+  return useBasicMutation([queryKey], {
+    mutationFn: async ({recipient, breach}: {
+      recipient: Address,
+      breach: boolean;
+    }) => {
+      if (!wallet || !tbClient || !idAccount || !syAccount || !sySafe)
+        throw Error(ERROR.INVALID_QUERY);
+      if (!!syAccount.token)
+        throw Error("Cannot terminate a syndicate that has a token");
+
+      const ECLIPTIC: Token = formToken(wallet.chain, "ECL");
+      const toAddress = await fetchRecipient(wallet, tbClient, recipient);
+      const terminateTransaction = {
+        to: ECLIPTIC.address,
+        value: BigInt(0).toString(),
+        data: encodeFunctionData({
+          abi: ECLIPTIC.abi,
+          functionName: "transferPoint",
+          args: [Number(urbitSyndicate.id), toAddress, breach],
+        }),
+      };
+
+      const safeAccount: Safe = await fetchSafeAccount(wallet, (sySafe.address as Address));
+      const safeTransaction = await safeAccount.createTransaction({
+        transactions: [{
+          operation: OperationType.Call,
+          to: terminateTransaction.to,
+          data: terminateTransaction.data,
+          value: terminateTransaction.value.toString(),
+        }],
+      });
+      const safeTxHash = await safeAccount.getTransactionHash(safeTransaction);
+      const safeTxSign = await signTBSafeTx(wallet, idAccount.address, safeTxHash);
+
+      const safeClient = new SafeApiKit({chainId: wallet.chain});
+      await safeClient.proposeTransaction({
+        safeAddress: sySafe.address,
+        safeTransactionData: safeTransaction.data,
+        safeTxHash: safeTxHash,
+        senderAddress: idAccount.address,
+        senderSignature: safeTxSign,
+      });
+
+      return (safeTxSign as Address);
+    },
+    ...options,
+  });
+}
+
+export function useSyndicateDissolveMutation(
+  urbitID: UrbitID,
+  urbitSyndicate: UrbitID,
+  options?: UseMutationOptions<Address, unknown, any, unknown>,
+) {
+  const wallet = useWalletMeta();
+  const tbClient = useTokenboundClient();
+  const idAccount = useTokenboundAccount(urbitID);
+  const syAccount = useTokenboundAccount(urbitSyndicate);
+  const sySafe = useSafeAccount(urbitSyndicate);
+  const queryKey: QueryKey = useMemo(() => [
+    APP.TAG, "safe", "proposals", wallet?.chainID, urbitSyndicate.id,
+  ], [wallet?.chainID, urbitSyndicate.id]);
+
+  return useBasicMutation([queryKey], {
+    mutationFn: async () => {
+      if (!wallet || !tbClient || !idAccount || !syAccount || !sySafe)
+        throw Error(ERROR.INVALID_QUERY);
+      if (!syAccount.token)
+        throw Error("Cannot dissolve a syndicate that has no token");
+
+      const DEPLOY_V1: Contract = formContract(wallet.chain, "DEPLOYER_V1");
+      const tbDissolveTransaction = await tbClient.prepareExecution({
+        account: syAccount.address,
+        to: syAccount.token.address,
+        value: BigInt(0),
+        data: encodeFunctionData({
+          abi: ABI.TOCWEX_TOKEN_V1,
+          functionName: "dissolveSyndicate",
+        }),
+      });
+
+      // "submit transaction to safe" params:
+      //   wallet
+      //   transaction
+      //   sySafeAddress
+      //   idAccountAddress
+
+      const safeAccount: Safe = await fetchSafeAccount(wallet, (sySafe.address as Address));
+      const safeTransaction = await safeAccount.createTransaction({
+        transactions: [{
+          operation: OperationType.Call,
+          to: tbDissolveTransaction.to,
+          data: tbDissolveTransaction.data,
+          value: tbDissolveTransaction.value.toString(),
         }],
       });
       const safeTxHash = await safeAccount.getTransactionHash(safeTransaction);
@@ -353,10 +510,10 @@ export function useSyndicateCreateMutation(
 
   const queryClient = useQueryClient();
   return useBasicMutation([queryKey, localKey], {
-    mutationFn: async ({safe, managers, reset}: {
+    mutationFn: async ({safe, managers, breach}: {
       safe: Address,
       managers: UrbitID[],
-      reset: boolean,
+      breach: boolean,
     }) => {
       if (!wallet || !tbClient) throw Error(ERROR.INVALID_QUERY);
       // TODO: Use Azimuth to get latest Ecliptic
@@ -366,7 +523,7 @@ export function useSyndicateCreateMutation(
         abi: ECLIPTIC.abi,
         address: ECLIPTIC.address,
         functionName: "transferPoint",
-        args: [Number(urbitID.id), safe, reset],
+        args: [Number(urbitID.id), safe, breach],
       });
       const { transactionHash } = await awaitReceipt(wallet, transferTransaction);
 

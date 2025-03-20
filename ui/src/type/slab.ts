@@ -36,14 +36,9 @@ export interface UrbitID {
   clan: UrbitClan;
 }
 
-export type SlabTransactionType = 'transfer' | 'launch' | 'mint' | 'other';
+export type SlabTransactionType = 'transfer' | 'mint' | 'launch' | 'dissolve' | 'terminate' | 'other';
 export interface SlabTransferTransaction extends Transfer {
   type: 'transfer';
-  token: Token;
-}
-export interface SlabLaunchTransaction {
-  type: 'launch';
-  amount: bigint;
   token: Token;
 }
 export interface SlabMintTransaction {
@@ -51,13 +46,29 @@ export interface SlabMintTransaction {
   transfers: Transfer[];
   token: Token;
 }
+export interface SlabLaunchTransaction {
+  type: 'launch';
+  amount: bigint;
+  token: Token;
+}
+export interface SlabDissolveTransaction {
+  type: 'dissolve';
+}
+export interface SlabTerminateTransaction {
+  type: 'terminate';
+  point: number;
+  to: Address;
+  reset: boolean;
+}
 export interface SlabOtherTransaction {
   type: 'other';
 }
 export type SlabTransaction =
   SlabTransferTransaction
-  | SlabLaunchTransaction
   | SlabMintTransaction
+  | SlabLaunchTransaction
+  | SlabDissolveTransaction
+  | SlabTerminateTransaction
   | SlabOtherTransaction;
 
 export interface Contract {

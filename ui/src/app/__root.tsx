@@ -4,7 +4,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { HeroFrame } from '@/comp/Frames';
 import { QueryClientProvider } from '@tanstack/react-query'
 import { Web3OnboardProvider } from '@web3-onboard/react';
-import { REACT_QUERY, WEB3ONBOARD } from '@/dat/apis';
+import { REACT_QUERY, WEB3ONBOARD, URBIT } from '@/dat/apis';
 
 export const Route = createRootRoute({
   head: () => ({
@@ -39,6 +39,13 @@ export const Route = createRootRoute({
             </div>
             <div className="max-w-3xl mx-auto flex flex-col justify-center items-center">
               <Outlet />
+            </div>
+            {/* TODO: Include Urbit desk version; include for "development mode" */}
+            <div className={`
+              fixed z-40 bottom-0 w-full flex justify-center
+              bg-red-500 py-1 px-2 font-bold text-sm text-black
+            `}>
+              ⚠ BETA BUILD ⚠
             </div>
             <ReactQueryDevtools initialIsOpen={false} />
           </Web3OnboardProvider>

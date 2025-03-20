@@ -95,3 +95,11 @@ input:user-invalid {
 .button-lg {
   @apply flex items-center justify-center px-4 py-1.5 rounded-full border border-white font-bold text-white whitespace-nowrap;
 }
+
+.buttoff-sm {
+  @apply flex items-center justify-center px-2 py-0.5 border border-red-500 font-bold text-red-500 whitespace-nowrap;
+}
+
+.buttoff-lg {
+  @apply flex items-center justify-center px-4 py-1.5 rounded-full border border-red-500 font-bold text-red-500 whitespace-nowrap;
+}

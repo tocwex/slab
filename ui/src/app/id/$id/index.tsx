@@ -108,7 +108,7 @@ export const Route = createFileRoute('/id/$id/')({
         const fields = parseForm(event, {
           safe: deploymentSafe,
           managers: managerNames.map(formUrbitID),
-          reset: false,
+          breach: false,
         });
         fields && syCreateMutate(fields);
       }
@@ -217,7 +217,7 @@ export const Route = createFileRoute('/id/$id/')({
                     dragons here.
                   </p>
                   <div className="flex flex-row items-center gap-2">
-                    <input type="checkbox" name="reset" />
+                    <input type="checkbox" name="breach" />
                     <span>reset on creation?</span>
                   </div>
                 </div>

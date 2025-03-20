@@ -1,7 +1,7 @@
 import type { UrbitID } from "@/type/slab";
 import React, { useMemo } from 'react';
 import { createFileRoute, Outlet } from '@tanstack/react-router';
-import { useRouteParams } from '@/hook/app';
+import { useRouteParams, useRedirect } from '@/hook/app';
 import { useSafeAccount, useTokenboundAccount } from '@/hook/web3';
 import { RouteUIDValidGuard } from '@/comp/Guards';
 import { LoadingFrame, UrbitIDFrame } from '@/comp/Frames';
@@ -14,13 +14,14 @@ export const Route = createFileRoute('/id/$id/sy')({
     const routeID: UrbitID = useMemo(() => formUrbitID(params?.id ?? ""), [params?.id]);
     const routeSyndicate: UrbitID = useMemo(() => formUrbitID(params?.sy ?? ""), [params?.sy]);
 
+    const goID = useRedirect(`/id/${routeID.patp}`);
     const tbAccount = useTokenboundAccount(routeID);
-    const syndMultisig = useSafeAccount(routeSyndicate);
+    const syMultisig = useSafeAccount(routeSyndicate);
     const isRouteSyndicateHolder: boolean = useMemo(() => (
-      ((syndMultisig || null)?.owners ?? []).includes(
+      ((syMultisig || null)?.owners ?? []).includes(
         String((tbAccount || null)?.address)
       )
-    ), [tbAccount, syndMultisig]);
+    ), [tbAccount, syMultisig]);
 
     return (
       <RouteUIDValidGuard param="sy">
@@ -36,15 +37,19 @@ export const Route = createFileRoute('/id/$id/sy')({
             </h4>
           </div>
         }>
-          <LoadingFrame status={tbAccount && syndMultisig} error={
+          <LoadingFrame status={tbAccount && syMultisig} action={
+            <button type="button" onClick={goID} className="button-lg">
+              ← To ID
+            </button>
+          } error={
             <div className="flex flex-col gap-2 items-center text-center">
               <h4 className="font-medium">
-                <span>Unable to load Syndicate for </span>
+                <span>Unable to load syndicate for </span>
                 <UrbitIDFrame urbitID={routeSyndicate} />
                 <span>.</span>
               </h4>
               <h4 className="font-medium">
-                <span>Either the Urbit ID isn't a Syndicate or there were network errors.</span>
+                <span>Either the Urbit ID isn't a syndicate or there were network errors.</span>
               </h4>
             </div>
           }>
@@ -53,7 +58,7 @@ export const Route = createFileRoute('/id/$id/sy')({
                 <h4 className="font-medium">
                   <span>Urbit ID </span>
                   <UrbitIDFrame urbitID={routeID} />
-                  <span> is not a signer for Syndicate </span>
+                  <span> is not a signer for syndicate </span>
                   <UrbitIDFrame urbitID={routeSyndicate} />
                   <span>.</span>
                 </h4>

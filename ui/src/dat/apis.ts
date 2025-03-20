@@ -46,7 +46,7 @@ export const WEB3ONBOARD = web3Init({
   appMetadata: {
     name: "%slab",
     icon: iconURL,
-    description: "A tool for launching and maintaining syndicates.",
+    description: "A syndicate launchpad and management dashboard.",
     // gettingStartedGuide: "https://docs.tocwexsyndicate.com/",
     // explore: "https://tocwexsyndicate.com/",
   },

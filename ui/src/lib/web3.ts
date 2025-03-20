@@ -1,7 +1,7 @@
 import type { WagmiConfig } from '@web3-onboard/core';
 import type { EIP1193Provider, TransactionReceipt } from 'viem';
 import type {
-  Address, Contract, Transfer, Token, UrbitNetworkLayer,
+  Nullable, Address, Contract, Transfer, Token, UrbitNetworkLayer,
   UrbitID, UrbitAccount, WalletMeta, SlabTransaction,
 } from '@/type/slab';
 import { TokenboundClient } from '@tokenbound/sdk';
@@ -273,96 +273,126 @@ export async function decodeProposal(
   data: Address,
 ): Promise<SlabTransaction> {
   const NULL: Token = formToken(wallet.chain, "NULL");
-  let transaction: SlabTransaction = { type: "other" };
 
+  const decodeFunctions: ((c: Address, d: Address) => Promise<SlabTransaction | undefined>)[] = [
+    async (contract: Address, data: Address) => { // ERC20
+      const { functionName: func, args: args } = decodeFunctionData({
+        abi: ABI.ERC20,
+        data: data,
+      });
+      if (func === "transfer") {
+        const [to, amount] = (args as [Address, bigint]);
+        const token = await fetchToken(wallet, contract);
+        if (token.address !== NULL.address) {
+          return {
+            type: "transfer",
+            to: to,
+            amount: amount,
+            token: token,
+          };
+        }
+      }
+    }, async (contract: Address, data: Address) => { // TOCWEX token
+      const { functionName: func, args: args } = decodeFunctionData({
+        abi: ABI.TOCWEX_TOKEN_V1,
+        data: data,
+      });
+      if (func === "mint") {
+        const [mintAddress, mintAmount] = (args as [Address, bigint]);
+        const mintToken = await fetchToken(wallet, contract);
+        return {
+          type: "mint",
+          token: mintToken,
+          transfers: [{
+            to: mintAddress,
+            amount: mintAmount,
+          }],
+        };
+      } else if (func === "batchMint") {
+        const [mintAddresses, mintAmounts] = (args as [Address[], bigint[]]);
+        const mintToken = await fetchToken(wallet, contract);
+        return {
+          type: "mint",
+          token: mintToken,
+          transfers: mintAddresses.map((address, index): Transfer => ({
+            to: address,
+            amount: mintAmounts[index],
+          })),
+        };
+      } else if (func === "dissolveSyndicate") {
+        return {
+          type: "dissolve",
+        };
+      }
+    }, async (contract: Address, data: Address) => { // TOCWEX deployer
+      const { functionName: func, args: args } = decodeFunctionData({
+        abi: ABI.TOCWEX_DEPLOYER_V1,
+        data: data,
+      });
+      if (func === "deploySyndicate") {
+        const [, , tkInitSupply, tkMaxSupply, , tkName, tkSymbol] =
+          (args as [Address, string, bigint, bigint, number, string, string]);
+        return ({
+          type: "launch",
+          amount: tkInitSupply,
+          token: {
+            address: NULL.address,
+            // @ts-ignore
+            abi: ABI.ERC20,
+            name: tkName,
+            symbol: tkSymbol,
+            decimals: 18,
+          },
+        } as SlabTransaction);
+      }
+    },
+  ];
+
+  let transaction: SlabTransaction = { type: "other" };
   try {
     const { functionName: tbFunc, args: tbArgs } = decodeFunctionData({
       abi: ABI.TOKENBOUND,
       data: data,
     });
     if (tbFunc === "execute") {
-      const [tbTo, tbValue, tbData, tbOp] = (tbArgs as [Address, bigint, Address, number]);
-      if (tbData === "0x") { // first: ETH transfer
+      const [tbTo, tbValue, tbData, ] = (tbArgs as [Address, bigint, Address, number]);
+      if (tbData === "0x") { // first: eth transfer
         transaction = {
           type: "transfer",
           to: tbTo,
           amount: tbValue,
           token: formToken(wallet.chain, "ETH"),
         };
-      } else {  // second: ERC20 transfer
-        try {
-          const { functionName: inFunc, args: inArgs } = decodeFunctionData({
-            abi: ABI.ERC20,
-            data: tbData,
-          });
-          if (inFunc === "transfer") {
-            const [e2To, e2Value] = (inArgs as [Address, bigint]);
-            const e2Token = await fetchToken(wallet, tbTo);
-            if (e2Token.address !== NULL.address) {
-              transaction = {
-                type: "transfer",
-                to: e2To,
-                amount: e2Value,
-                token: e2Token,
-              };
-            }
-          }
-        } catch (error) { // third: Syndicate mint
+      } else {  // second: arbitrary decoding
+        for (let i = 0; i < decodeFunctions.length && transaction.type === "other"; i++) {
+          const decodeFunction = decodeFunctions[i];
           try {
-            const { functionName: inFunc, args: inArgs } = decodeFunctionData({
-              abi: ABI.TOCWEX_TOKEN_V1,
-              data: tbData,
-            });
-            if (inFunc === "mint") {
-              const [mintAddress, mintAmount] = (inArgs as [Address, bigint]);
-              const mintToken = await fetchToken(wallet, tbTo);
-              transaction = {
-                type: "mint",
-                token: mintToken,
-                transfers: [{
-                  to: mintAddress,
-                  amount: mintAmount,
-                }],
-              };
-            } else if (inFunc === "batchMint") {
-              const [mintAddresses, mintAmounts] = (inArgs as [Address[], bigint[]]);
-              const mintToken = await fetchToken(wallet, tbTo);
-              transaction = {
-                type: "mint",
-                token: mintToken,
-                transfers: mintAddresses.map((address, index): Transfer => ({
-                  to: address,
-                  amount: mintAmounts[index],
-                })),
-              };
-            }
-          } catch (error) { // fourth: Syndicate deployment
-            const { functionName: inFunc, args: inArgs } = decodeFunctionData({
-              abi: ABI.TOCWEX_DEPLOYER_V1,
-              data: tbData,
-            });
-            if (inFunc === "deploySyndicate") {
-              const [, , tkInitSupply, tkMaxSupply, , tkName, tkSymbol] =
-                (inArgs as [Address, string, bigint, bigint, number, string, string]);
-              transaction = {
-                type: "launch",
-                amount: tkInitSupply,
-                token: {
-                  address: NULL.address,
-                  // @ts-ignore
-                  abi: ABI.ERC20,
-                  name: tkName,
-                  symbol: tkSymbol,
-                  decimals: 18,
-                },
-              };
-            }
+            const decodedTransaction = await decodeFunction(tbTo, tbData);
+            transaction = !decodedTransaction ? transaction : decodedTransaction;
+          } catch (error) {
+            // no-op
           }
         }
       }
     }
   } catch (error) {
-    // no-op
+    try { // ECLIPTIC
+      const { functionName: func, args: args } = decodeFunctionData({
+        abi: ABI.ECLIPTIC,
+        data: data,
+      });
+      if (func === "transferPoint") {
+        const [syPoint, syTo, syReset] = (args as [bigint, Address, boolean]);
+        transaction = {
+          type: "terminate",
+          point: Number(syPoint),
+          to: syTo,
+          reset: syReset,
+        };
+      }
+    } catch (error) {
+      // no-op
+    }
   }
 
   return transaction;

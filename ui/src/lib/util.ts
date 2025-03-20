@@ -22,6 +22,12 @@ export function delay(milliseconds: number): Promise<void> {
   return new Promise(res => setTimeout(res, milliseconds));
 }
 
+export function resolve<T>(promise: Promise<T>): Promise<T | undefined> {
+  return promise
+    .then((data) => (data))
+    .catch((error) => Promise.resolve(undefined));
+}
+
 // https://stackoverflow.com/a/33946793
 export function rateLimit(maxRequests: number, perSeconds: number): (func: any) => void {
   let frameStart = 0;
@@ -181,7 +187,17 @@ export function parseForm<
   if (form?.reportValidity()) {
     const formData = new FormData(form);
     formEntries = Object.fromEntries(Object.entries(defaults).map(
-      ([key, val]: [string, any]) => ([key, formData.get(key) || val])
+      ([key, val]: [string, any]) => ([
+        key,
+        (typeof val !== "boolean") ? (
+          formData.get(key) || val
+        ) : (
+          // NOTE: Handle HTML checkboxes, which are either "on" (if checked)
+          // or undefined (if not checked)
+          // (see: https://stackoverflow.com/a/33487482)
+          (formData.get(key) === undefined) ? val : !!formData.get(key)
+        )
+      ])
     ));
   }
 

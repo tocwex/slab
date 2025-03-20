@@ -17,7 +17,8 @@ import {
   useDeployerTax, useSyndicateTax,
   useTokenboundCreateMutation, useTokenboundSendMutation,
   useSyndicateSendMutation, useSyndicateSignMutation, useSyndicateExecMutation,
-  useSyndicateMintMutation, useSyndicateLaunchMutation,
+  useSyndicateMintMutation, useSyndicateLaunchMutation, useSyndicateTerminateMutation,
+  useSyndicateDissolveMutation,
 } from '@/hook/web3';
 import { useLocalTokens, useTokensAddMutation } from '@/hook/local';
 import {
@@ -37,7 +38,7 @@ export function SafeAccountInfo({
   const syAccount = useTokenboundAccount(urbitID);
 
   return (
-    <LoadingFrame title={"Multisig Information"} size="md" status={safeAccount && syAccount}>
+    <LoadingFrame title="Multisig Information" size="md" status={safeAccount && syAccount}>
       <div className="main">
         {(!!safeAccount && !!syAccount) && (
           <form className="flex flex-col gap-2">
@@ -203,8 +204,10 @@ export function SyndicateAccountInfo({
   const sendFormRef = useRef<HTMLFormElement>(null);
   const launchFormRef = useRef<HTMLFormElement>(null);
   const mintFormRef = useRef<HTMLFormElement>(null);
+  const termFormRef = useRef<HTMLFormElement>(null);
   const [useMaxSupply, setUseMaxSupply] = useState<boolean>(false);
   const [mintData, setMintData] = useState<[string, string][]>([["", ""]]);
+  const [isAdvancedShown, setIsAdvancedShown] = useState<boolean>(false);
 
   const localTokens = useLocalTokens();
   const idAccount = useTokenboundAccount(urbitID);
@@ -215,6 +218,7 @@ export function SyndicateAccountInfo({
 
   const { mutate: sySignMutate, status: sySignStatus } = useSyndicateSignMutation(urbitID, urbitSyndicate);
   const { mutate: syExecMutate, status: syExecStatus } = useSyndicateExecMutation(urbitSyndicate);
+  const { mutate: syDissolveMutate, status: syDissolveStatus } = useSyndicateDissolveMutation(urbitID, urbitSyndicate);
   const { mutate: sySendMutate, status: sySendStatus } = useSyndicateSendMutation(
     urbitID, urbitSyndicate,
     { onSuccess: () => sendFormRef.current?.reset() },
@@ -222,6 +226,10 @@ export function SyndicateAccountInfo({
   const { mutate: syLaunchMutate, status: syLaunchStatus } = useSyndicateLaunchMutation(
     urbitID, urbitSyndicate,
     { onSuccess: () => launchFormRef.current?.reset() },
+  );
+  const { mutate: syTerminateMutate, status: syTerminateStatus } = useSyndicateTerminateMutation(
+    urbitID, urbitSyndicate,
+    { onSuccess: () => termFormRef.current?.reset() },
   );
   const { mutate: syMintMutate, status: syMintStatus } = useSyndicateMintMutation(
     urbitID, urbitSyndicate,
@@ -245,6 +253,9 @@ export function SyndicateAccountInfo({
   const toggleMaxSupply = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     setUseMaxSupply(event.target.checked);
   }, [setUseMaxSupply]);
+  const toggleAdvancedShown = useCallback(() => (
+    setIsAdvancedShown(!isAdvancedShown)
+  ), [isAdvancedShown, setIsAdvancedShown]);
   const addMintDatum = useCallback(() => (
     setMintData(mintData.concat([["", ""]]))
   ), [mintData, setMintData]);
@@ -304,6 +315,12 @@ export function SyndicateAccountInfo({
     syExecMutate({txHash: (execHash as Address)});
   }, [syExecMutate]);
 
+  const onDissolve = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    // FIXME: I don't know why TSC complains if this has no argument
+    syDissolveMutate(undefined);
+  }, [syDissolveMutate]);
+
   const onSend = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
     const fields = parseForm(event, {
       token: "ETH",
@@ -330,6 +347,14 @@ export function SyndicateAccountInfo({
     });
     fields && syMintMutate(fields);
   }, [syMintMutate, mintData]);
+
+  const onTerminate = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
+    const fields = parseForm(event, {
+      recipient: "0x0",
+      breach: false,
+    });
+    fields && syTerminateMutate(fields);
+  }, [syTerminateMutate]);
 
   return (
     <LoadingFrame title={"Tokenbound Account"} size="md" status={idAccount && syAccount}>
@@ -457,6 +482,19 @@ export function SyndicateAccountInfo({
                       "Propose Mint"
                     )}
                   </button>
+                  <button type="button"
+                    disabled={(syDissolveStatus === "pending")}
+                    onClick={onDissolve}
+                    className="w-full buttoff-lg"
+                  >
+                    {(syDissolveStatus === "pending") ? (
+                      <TinyLoadingIcon />
+                    ) : (syDissolveStatus === "error") ? (
+                      "Error!"
+                    ) : (
+                      "Propose Dissolve"
+                    )}
+                  </button>
                 </form>
               </>
             ) : (
@@ -506,6 +544,54 @@ export function SyndicateAccountInfo({
               </form>
             )}
           </div>
+          <div className="flex flex-col gap-2 items-center">
+            <h2 className="text-2xl">
+              Syndicate Operations
+            </h2>
+            {(syAccount.token !== undefined) ? (
+              <div>(no operations found)</div>
+            ) : (
+              <form ref={termFormRef} className="flex flex-col items-center gap-2">
+                <RecipientInput name="recipient" required
+                  placeholder="exit address/ens"
+                />
+                <>
+                  <button type="button" onClick={toggleAdvancedShown} className="text-xl">
+                    {isAdvancedShown ? "- Hide" : "+ Show"} Advanced Options
+                  </button>
+                  <div className={`
+                    flex flex-col items-center gap-2 max-w-72
+                    ${isAdvancedShown ? "block" : "hidden"}
+                  `}>
+                    <p>
+                      Checking this box will perform a 'factory reset' and breach
+                      continuity of your urbit's networking. If you know what that
+                      means, you'll also need to set your networking keys. If you
+                      don't know what that means, turn around, because there be
+                      dragons here.
+                    </p>
+                    <div className="flex flex-row items-center gap-2">
+                      <input type="checkbox" name="breach" />
+                      <span>reset on creation?</span>
+                    </div>
+                  </div>
+                </>
+                <button type="button"
+                  disabled={(syTerminateStatus === "pending")}
+                  onClick={onTerminate}
+                  className="w-full buttoff-lg"
+                >
+                  {(syTerminateStatus === "pending") ? (
+                    <TinyLoadingIcon />
+                  ) : (syTerminateStatus === "error") ? (
+                    "Error!"
+                  ) : (
+                    "Propose Termination"
+                  )}
+                </button>
+              </form>
+            )}
+          </div>
           <div className="flex flex-col items-center gap-2">
             <h2 className="text-2xl">
               Syndicate Proposals
@@ -533,6 +619,10 @@ export function SyndicateAccountInfo({
                             `Transfer ${formatToken(transaction.amount, transaction.token)}`
                           ) : (transaction.type === "launch") ? (
                             `Launch \$${transaction.token.symbol}`
+                          ) : (transaction.type === "dissolve") ? (
+                            `Dissolve \$${syAccount.token?.symbol ?? "???"}`
+                          ) : (transaction.type === "terminate") ? (
+                            `Terminate ${urbitSyndicate.patp} Syndicate`
                           ) : (transaction.type === "mint") ? (
                             `Mint ${formatToken(
                               transaction.transfers.reduce((a, {amount: n}) => a + n, BigInt(0)),
@@ -549,6 +639,19 @@ export function SyndicateAccountInfo({
                             >
                               <TBAFrame address={transaction.to} short={true} />
                             </WideFrame>
+                          ) : (transaction.type === "dissolve") ? (
+                            <WideFrame title="Syndicate">
+                              <UrbitIDFrame urbitID={urbitSyndicate} link={false} />
+                            </WideFrame>
+                          ) : (transaction.type === "terminate") ? (
+                            <>
+                              <WideFrame title="Recipient">
+                                <TBAFrame address={transaction.to} short={true} />
+                              </WideFrame>
+                              <WideFrame title="Factory Reset?">
+                                {transaction.reset ? "Yes" : "No"}
+                              </WideFrame>
+                            </>
                           ) : (transaction.type === "launch") ? (
                             <>
                               <WideFrame title="Mint Total">
@@ -660,7 +763,7 @@ export function SyndicateAccountInfo({
   );
 }
 
-export function AddTokenModule(): React.ReactNode {
+function AddTokenModule(): React.ReactNode {
   const addFormRef = useRef<HTMLFormElement>(null);
   const [isShown, setIsShown] = useState<boolean>(false);
   const localTokens = useLocalTokens();
@@ -675,7 +778,7 @@ export function AddTokenModule(): React.ReactNode {
       address: "0x0",
     });
     fields && !!localTokens && !localTokens?.[fields.address] && addTokenMutate(fields);
-  }, [localTokens, addTokenMutate, addFormRef]);
+  }, [localTokens, addTokenMutate]);
 
   return (
     <form ref={addFormRef} className="flex flex-col items-center gap-2">
