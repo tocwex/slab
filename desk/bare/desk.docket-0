@@ -1,9 +1,10 @@
 :~  title+'slab'
     info+'A Syndicate launchpad and management dashboard.'
     color+0x11.1111
-    version+[0 0 2]
+    image+'https://github.com/tocwex/slab/raw/refs/tags/v1.0.0/meta/xtra/tile.jpeg'
+    version+[1 0 0]
     website+'https://github.com/tocwex/slab'
     license+'GNU GPLv3'
     base+'slab'
-    glob-http+['https://ladrut.xyz/slab/v0.0.2.glob' 0v2.698u8.rvppd.045s5.kks16.sa9b5]
+    glob-http+['https://raw.githubusercontent.com/tocwex/slab/v1.0.0/meta/glob/v1.0.0.glob' 0v7.o6et8.2a210.rv477.p98m2.7up7r]
 ==
