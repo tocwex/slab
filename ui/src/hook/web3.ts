@@ -73,7 +73,7 @@ export function useSyndicateExecMutation(
         const safeRawData = ((safeRawTx?.data || "0x0") as Address);
         const slabTx = await decodeProposal(wallet, safeRawData);
 
-        // NOTE: Always refetch this syndicate's safe information first so
+        // NOTE: Always refetch this Syndicate's safe information first so
         // dependent data (e.g. taxes, depending on token address) works
         await queryClient.invalidateQueries({
           queryKey: syKey,
@@ -253,7 +253,7 @@ export function useSyndicateTerminateMutation(
       if (!wallet || !tbClient || !idAccount || !syAccount || !sySafe)
         throw Error(ERROR.INVALID_QUERY);
       if (!!syAccount.token)
-        throw Error("Cannot terminate a syndicate that has a token");
+        throw Error("Cannot terminate a Syndicate that has a token");
 
       const ECLIPTIC: Token = formToken(wallet.chain, "ECL");
       const toAddress = await fetchRecipient(wallet, tbClient, recipient);
@@ -313,7 +313,7 @@ export function useSyndicateDissolveMutation(
       if (!wallet || !tbClient || !idAccount || !syAccount || !sySafe)
         throw Error(ERROR.INVALID_QUERY);
       if (!syAccount.token)
-        throw Error("Cannot dissolve a syndicate that has no token");
+        throw Error("Cannot dissolve a Syndicate that has no token");
 
       const DEPLOY_V1: Contract = formContract(wallet.chain, "DEPLOYER_V1");
       const tbDissolveTransaction = await tbClient.prepareExecution({

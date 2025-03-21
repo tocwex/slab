@@ -1,7 +1,6 @@
 # `%slab`
 
-A tool for forming and managing syndicates, the building blocks of the web3
-economy.
+A [Syndicate] launchpad and management dashboard.
 
 ## Build/Develop
 
@@ -99,6 +98,7 @@ cp "$(ls -dtr1 "${XDG_CACHE_HOME:-$HOME/.cache}/durploy/glob"/* | tail -1)" ./me
 ```
 
 
+[syndicate]: https://tocwexsyndicate.com/
 [urbit]: https://urbit.org
 [durploy]: https://github.com/sidnym-ladrut/durploy
 

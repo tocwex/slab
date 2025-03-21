@@ -12,7 +12,7 @@ export const Route = createRootRoute({
       { title: '%slab - a syndicate launchpad and management dashboard' },
       {
         name: 'description',
-        content: 'A tool for launching and maintaining syndicates.',
+        content: 'A Syndicate launchpad and management dashboard.',
       },
     ],
   }),

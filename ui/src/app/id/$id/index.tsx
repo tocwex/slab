@@ -231,7 +231,7 @@ export const Route = createFileRoute('/id/$id/')({
               <div className="flex flex-col items-center gap-2 max-w-72">
                 <p className="max-w-72">
                   Please note that you must deploy a TBA for this Urbit ID before
-                  creating an associated syndicate.
+                  creating an associated Syndicate.
                 </p>
               </div>
             )}

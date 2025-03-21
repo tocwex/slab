@@ -44,12 +44,12 @@ export const Route = createFileRoute('/id/$id/sy')({
           } error={
             <div className="flex flex-col gap-2 items-center text-center">
               <h4 className="font-medium">
-                <span>Unable to load syndicate for </span>
+                <span>Unable to load Syndicate for </span>
                 <UrbitIDFrame urbitID={routeSyndicate} />
                 <span>.</span>
               </h4>
               <h4 className="font-medium">
-                <span>Either the Urbit ID isn't a syndicate or there were network errors.</span>
+                <span>Either the Urbit ID isn't a Syndicate or there were network errors.</span>
               </h4>
             </div>
           }>
@@ -58,7 +58,7 @@ export const Route = createFileRoute('/id/$id/sy')({
                 <h4 className="font-medium">
                   <span>Urbit ID </span>
                   <UrbitIDFrame urbitID={routeID} />
-                  <span> is not a signer for syndicate </span>
+                  <span> is not a signer for Syndicate </span>
                   <UrbitIDFrame urbitID={routeSyndicate} />
                   <span>.</span>
                 </h4>
