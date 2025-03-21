@@ -46,7 +46,7 @@ export const ACCOUNT = Object.freeze({
 export const CONTRACT = Object.freeze({
   REGISTRY: Object.freeze({ // ~tocwex.syndiate token registry
     ADDRESS: (Object.freeze({
-      ETHEREUM: "0x0000000000000000000000000000000000000000",
+      ETHEREUM: "0x049A3C78aD0dE36b280eD8e79E5f647810b2eFAB",
       SEPOLIA: "0x49882e8de02e3c45b39778c7154f1fa77358c085",
     }) as {[network: string]: `0x${string}`;}),
     NAME: "Azimuth Points",
@@ -56,7 +56,7 @@ export const CONTRACT = Object.freeze({
   }),
   DEPLOYER_V1: Object.freeze({ // ~tocwex.syndiate token deployer (v1)
     ADDRESS: (Object.freeze({
-      ETHEREUM: "0x0000000000000000000000000000000000000000",
+      ETHEREUM: "0x1DfC039E89E65d907aE479318C2555e0229be6CF",
       SEPOLIA: "0x1CcED74d9AC23d34C33BA8590da2bfD467eF9DfD",
     }) as {[network: string]: `0x${string}`;}),
     ABI: ABI.TOCWEX_DEPLOYER_V1,
