@@ -1,6 +1,7 @@
 import type { SafeInfoResponse } from '@safe-global/api-kit';
 import type { SafeMultisigTransactionResponse } from '@safe-global/types-kit';
 import type { WagmiConfig } from '@web3-onboard/core';
+import type { CallData } from '@tokenbound/sdk';
 import { Abi } from 'abitype';
 
 export type Nullable<T> = T | null;
@@ -20,6 +21,8 @@ export interface Transfer {
   to: Address;
   amount: bigint; // NOTE: unitless unless relative to some token
 }
+
+export { CallData };
 
 export interface WalletMeta {
   wagmi: WagmiConfig;

@@ -165,7 +165,7 @@ export function isValidUrbitID(urbit: number | string | UrbitID): boolean {
 }
 
 export function isValidSyndicate(urbit: UrbitID): boolean {
-  return APP.DEBUG || hasClanBoon(urbit, "star");
+  return hasClanBoon(urbit, "star"); // || APP.DEBUG
 }
 
 export function getChainMeta(chain: bigint): [number, string] {

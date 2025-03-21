@@ -27,16 +27,17 @@ export const Route = createFileRoute('/id/$id/')({
   //   ],
   // }),
   component: (): React.ReactNode => {
-    const navigate = useNavigate();
-    const routeID: UrbitID = (useRouteUrbitID() as UrbitID);
-    const wallet = useWalletMeta();
-    const tbClient = useTokenboundClient();
-    const routeSyndicates = useSafeSyndicates(routeID);
-    const tbAccount = useTokenboundAccount(routeID);
-    const localSafes = useLocalSafes();
     const [managerNames, setManagerNames] = useState<string[]>([""]);
     const [managerTBAs, setManagerTBAs] = useState<(Address | null)[]>([null]);
     const [isAdvancedShown, setIsAdvancedShown] = useState<boolean>(false);
+
+    const navigate = useNavigate();
+    const urbitID: UrbitID = (useRouteUrbitID() as UrbitID);
+    const wallet = useWalletMeta();
+    const tbClient = useTokenboundClient();
+    const routeSyndicates = useSafeSyndicates(urbitID);
+    const tbAccount = useTokenboundAccount(urbitID);
+    const localSafes = useLocalSafes();
 
     useEffect(() => {
       const setNewTBAs = async () => {
@@ -82,17 +83,17 @@ export const Route = createFileRoute('/id/$id/')({
     ), [isAdvancedShown, setIsAdvancedShown]);
 
     const goNewSyndicate = useCallback(() => (
-      navigate({ to: `/new/${routeID.patp}` })
-    ), [navigate, routeID]);
+      navigate({ to: `/new/${urbitID.patp}` })
+    ), [navigate, urbitID]);
     const goUrbitID = useCallback((selection: SingleSelection) => {
       if (!!selection) {
-        navigate({ to: `/id/${routeID.patp}/sy/${selection.value}` });
+        navigate({ to: `/id/${urbitID.patp}/sy/${selection.value}` });
       }
-    }, [navigate, routeID]);
+    }, [navigate, urbitID]);
 
     const { mutate: safeCreateMutate, status: safeCreateStatus } = useSafeCreateMutation();
     const { mutate: syCreateMutate, status: syCreateStatus } = useSyndicateCreateMutation(
-      routeID,
+      urbitID,
       { onSuccess: () => goNewSyndicate() },
     );
 
@@ -151,7 +152,7 @@ export const Route = createFileRoute('/id/$id/')({
     return (
       <div className="main">
         <h1 className="text-4xl font-bold underline">
-          {routeID.patp} profile
+          {urbitID.patp} profile
         </h1>
         <form className="flex flex-col items-center gap-2">
           <h2 className="text-2xl">
@@ -171,8 +172,8 @@ export const Route = createFileRoute('/id/$id/')({
             />
           )}
         </form>
-        <TokenboundAccountInfo urbitID={routeID} />
-        {!isValidSyndicate(routeID) ? (
+        <TokenboundAccountInfo urbitID={urbitID} />
+        {!isValidSyndicate(urbitID) ? (
           <Fragment />
         ) : (
           <form className="flex flex-col items-center gap-2">

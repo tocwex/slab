@@ -1,6 +1,6 @@
 import type { QueryKey, UseMutationOptions } from '@tanstack/react-query';
 import type {
-  Loadable, Nullable, Address, ChainAddress, Tax, UrbitID,
+  Loadable, Nullable, Address, ChainAddress, Tax, CallData, UrbitID,
   Contract, Token, TokenHolding, TokenHoldings, SlabTransaction,
   TokenboundAccount, SafeAccount, UrbitAccount, UrbitNetworkLayer,
   SafeResponse, SafeOwners, SafeArchive,
@@ -14,7 +14,6 @@ import {
 import { TokenboundClient } from '@tokenbound/sdk';
 import Safe, { getSafeAddressFromDeploymentTx } from '@safe-global/protocol-kit';
 import SafeApiKit from '@safe-global/api-kit';
-import { OperationType } from '@safe-global/types-kit';
 import {
   recoverAddress, recoverMessageAddress, verifyMessage,
   formatUnits, hexToNumber, hexToBigInt, numberToHex, pad,
@@ -23,7 +22,7 @@ import {
 import { useWalletMeta, useTokenboundClient } from '@/hook/wallet';
 import { useLocalTokens, useTokensAddMutation } from '@/hook/local';
 import {
-  createSafe, signTBSafeTx, fetchSafeAccount, fetchUrbitAccount,
+  createSafe, proposeSafeTx, signSafeTx, fetchSafeAccount, fetchUrbitAccount,
   fetchRecipient, fetchTBAddress, fetchToken, fetchUrbitID,
   fetchAzimuthEcliptic, decodeProposal, awaitReceipt, compareAPIUrbitIDs,
 } from '@/lib/web3';
@@ -144,7 +143,7 @@ export function useSyndicateSignMutation(
   return useBasicMutation([queryKey], {
     mutationFn: async ({txHash}: {txHash: Address}) => {
       if (!wallet || !idAccount) throw Error(ERROR.INVALID_QUERY);
-      const txSign = await signTBSafeTx(wallet, idAccount.address, txHash);
+      const txSign = await signSafeTx(wallet, idAccount.address, txHash);
       const safeClient = new SafeApiKit({chainId: wallet.chain});
       await safeClient.confirmTransaction(txHash, txSign);
       return (txSign as Address);
@@ -187,7 +186,6 @@ export function useSyndicateMintMutation(
       const recipientAddresses: Address[] = await Promise.all(recipients.map((recipient) => (
         fetchRecipient(wallet, tbClient, recipient)
       )));
-
       const tbMintTransaction = await tbClient.prepareExecution({
         account: syAccount.address,
         to: syAccount.token.address,
@@ -204,28 +202,13 @@ export function useSyndicateMintMutation(
         }),
       });
 
-      const safeAccount: Safe = await fetchSafeAccount(wallet, (sySafe.address as Address));
-      const safeTransaction = await safeAccount.createTransaction({
-        transactions: [{
-          operation: OperationType.Call,
-          to: tbMintTransaction.to,
-          data: tbMintTransaction.data,
-          value: tbMintTransaction.value.toString(),
-        }],
-      });
-      const safeTxHash = await safeAccount.getTransactionHash(safeTransaction);
-      const safeTxSign = await signTBSafeTx(wallet, idAccount.address, safeTxHash);
-
-      const safeClient = new SafeApiKit({chainId: wallet.chain});
-      await safeClient.proposeTransaction({
-        safeAddress: sySafe.address,
-        safeTransactionData: safeTransaction.data,
-        safeTxHash: safeTxHash,
-        senderAddress: idAccount.address,
-        senderSignature: safeTxSign,
-      });
-
-      return (safeTxSign as Address);
+      const mintTxSign = await proposeSafeTx(
+        wallet,
+        tbMintTransaction,
+        (sySafe.address as Address),
+        (idAccount.address as Address),
+      );
+      return mintTxSign;
     },
     ...options,
   });
@@ -259,7 +242,7 @@ export function useSyndicateTerminateMutation(
       const toAddress = await fetchRecipient(wallet, tbClient, recipient);
       const terminateTransaction = {
         to: ECLIPTIC.address,
-        value: BigInt(0).toString(),
+        value: BigInt(0),
         data: encodeFunctionData({
           abi: ECLIPTIC.abi,
           functionName: "transferPoint",
@@ -267,28 +250,13 @@ export function useSyndicateTerminateMutation(
         }),
       };
 
-      const safeAccount: Safe = await fetchSafeAccount(wallet, (sySafe.address as Address));
-      const safeTransaction = await safeAccount.createTransaction({
-        transactions: [{
-          operation: OperationType.Call,
-          to: terminateTransaction.to,
-          data: terminateTransaction.data,
-          value: terminateTransaction.value.toString(),
-        }],
-      });
-      const safeTxHash = await safeAccount.getTransactionHash(safeTransaction);
-      const safeTxSign = await signTBSafeTx(wallet, idAccount.address, safeTxHash);
-
-      const safeClient = new SafeApiKit({chainId: wallet.chain});
-      await safeClient.proposeTransaction({
-        safeAddress: sySafe.address,
-        safeTransactionData: safeTransaction.data,
-        safeTxHash: safeTxHash,
-        senderAddress: idAccount.address,
-        senderSignature: safeTxSign,
-      });
-
-      return (safeTxSign as Address);
+      const terminateTxSign = await proposeSafeTx(
+        wallet,
+        terminateTransaction,
+        (sySafe.address as Address),
+        (idAccount.address as Address),
+      );
+      return terminateTxSign;
     },
     ...options,
   });
@@ -326,34 +294,13 @@ export function useSyndicateDissolveMutation(
         }),
       });
 
-      // "submit transaction to safe" params:
-      //   wallet
-      //   transaction
-      //   sySafeAddress
-      //   idAccountAddress
-
-      const safeAccount: Safe = await fetchSafeAccount(wallet, (sySafe.address as Address));
-      const safeTransaction = await safeAccount.createTransaction({
-        transactions: [{
-          operation: OperationType.Call,
-          to: tbDissolveTransaction.to,
-          data: tbDissolveTransaction.data,
-          value: tbDissolveTransaction.value.toString(),
-        }],
-      });
-      const safeTxHash = await safeAccount.getTransactionHash(safeTransaction);
-      const safeTxSign = await signTBSafeTx(wallet, idAccount.address, safeTxHash);
-
-      const safeClient = new SafeApiKit({chainId: wallet.chain});
-      await safeClient.proposeTransaction({
-        safeAddress: sySafe.address,
-        safeTransactionData: safeTransaction.data,
-        safeTxHash: safeTxHash,
-        senderAddress: idAccount.address,
-        senderSignature: safeTxSign,
-      });
-
-      return (safeTxSign as Address);
+      const dissolveTxSign = await proposeSafeTx(
+        wallet,
+        tbDissolveTransaction,
+        (sySafe.address as Address),
+        (idAccount.address as Address),
+      );
+      return dissolveTxSign;
     },
     ...options,
   });
@@ -401,28 +348,13 @@ export function useSyndicateLaunchMutation(
         }),
       });
 
-      const safeAccount: Safe = await fetchSafeAccount(wallet, (sySafe.address as Address));
-      const safeTransaction = await safeAccount.createTransaction({
-        transactions: [{
-          operation: OperationType.Call,
-          to: tbLaunchTransaction.to,
-          data: tbLaunchTransaction.data,
-          value: tbLaunchTransaction.value.toString(),
-        }],
-      });
-      const safeTxHash = await safeAccount.getTransactionHash(safeTransaction);
-      const safeTxSign = await signTBSafeTx(wallet, idAccount.address, safeTxHash);
-
-      const safeClient = new SafeApiKit({chainId: wallet.chain});
-      await safeClient.proposeTransaction({
-        safeAddress: sySafe.address,
-        safeTransactionData: safeTransaction.data,
-        safeTxHash: safeTxHash,
-        senderAddress: idAccount.address,
-        senderSignature: safeTxSign,
-      });
-
-      return (safeTxSign as Address);
+      const launchTxSign = await proposeSafeTx(
+        wallet,
+        tbLaunchTransaction,
+        (sySafe.address as Address),
+        (idAccount.address as Address),
+      );
+      return launchTxSign;
     },
     ...options,
   });
@@ -468,28 +400,13 @@ export function useSyndicateSendMutation(
         }),
       }));
 
-      const safeAccount: Safe = await fetchSafeAccount(wallet, (sySafe.address as Address));
-      const safeTransaction = await safeAccount.createTransaction({
-        transactions: [{
-          operation: OperationType.Call,
-          to: tbTransferTransaction.to,
-          data: tbTransferTransaction.data,
-          value: tbTransferTransaction.value.toString(),
-        }],
-      });
-      const safeTxHash = await safeAccount.getTransactionHash(safeTransaction);
-      const safeTxSign = await signTBSafeTx(wallet, idAccount.address, safeTxHash);
-
-      const safeClient = new SafeApiKit({chainId: wallet.chain});
-      await safeClient.proposeTransaction({
-        safeAddress: sySafe.address,
-        safeTransactionData: safeTransaction.data,
-        safeTxHash: safeTxHash,
-        senderAddress: idAccount.address,
-        senderSignature: safeTxSign,
-      });
-
-      return (safeTxSign as Address);
+      const transferTxSign = await proposeSafeTx(
+        wallet,
+        tbTransferTransaction,
+        (sySafe.address as Address),
+        (idAccount.address as Address),
+      );
+      return transferTxSign;
     },
     ...options,
   });

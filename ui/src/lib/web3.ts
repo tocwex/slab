@@ -1,11 +1,13 @@
 import type { WagmiConfig } from '@web3-onboard/core';
 import type { EIP1193Provider, TransactionReceipt } from 'viem';
 import type {
-  Nullable, Address, Contract, Transfer, Token, UrbitNetworkLayer,
-  UrbitID, UrbitAccount, WalletMeta, SlabTransaction,
+  Nullable, Address, Contract, Transfer, CallData, Token,
+  UrbitNetworkLayer, UrbitID, UrbitAccount, WalletMeta, SlabTransaction,
 } from '@/type/slab';
 import { TokenboundClient } from '@tokenbound/sdk';
 import Safe, { getSafeAddressFromDeploymentTx } from '@safe-global/protocol-kit';
+import SafeApiKit from '@safe-global/api-kit';
+import { OperationType } from '@safe-global/types-kit';
 import {
   getAccount, readContract, signMessage, getEnsAddress,
   sendTransaction, getTransactionReceipt, waitForTransactionReceipt,
@@ -36,7 +38,38 @@ export async function createSafe(
   return (safeAddress as Address);
 }
 
-export async function signTBSafeTx(
+export async function proposeSafeTx(
+  wallet: WalletMeta,
+  transaction: CallData,
+  safeAddress: Address,
+  signAddress: Address,
+): Promise<Address> {
+  const safeAccount: Safe = await fetchSafeAccount(wallet, safeAddress);
+  const safeTransaction = await safeAccount.createTransaction({
+    transactions: [{
+      operation: OperationType.Call,
+      to: transaction.to,
+      data: transaction.data,
+      value: transaction.value.toString(),
+    }],
+  });
+
+  const safeTxHash = await safeAccount.getTransactionHash(safeTransaction);
+  const safeTxSign = await signSafeTx(wallet, signAddress, safeTxHash);
+
+  const safeClient = new SafeApiKit({chainId: wallet.chain});
+  await safeClient.proposeTransaction({
+    safeAddress: safeAddress,
+    senderAddress: signAddress,
+    senderSignature: safeTxSign,
+    safeTransactionData: safeTransaction.data,
+    safeTxHash: safeTxHash,
+  });
+
+  return (safeTxSign as Address);
+}
+
+export async function signSafeTx(
   wallet: WalletMeta,
   tbAccount: Address,
   txHash: string,
