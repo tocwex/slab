@@ -1,7 +1,9 @@
 import type { Address, UrbitID, UrbitAccount, TokenHolding } from "@/type/slab";
 import React, { Fragment, useState, useMemo, useEffect, useCallback } from 'react';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { TokenboundAccountInfo } from '@/comp/Accounts';
+import {
+  TokenboundAccountMeta, TokenboundAccountSendModule, SyndicateTokenPropModule,
+} from '@/comp/Accounts';
 import { SafeFrame } from '@/comp/Frames';
 import { RecipientInput, RecipientLauncherInput } from '@/comp/Forms';
 import { TinyLoadingIcon } from '@/comp/Icons';
@@ -9,7 +11,9 @@ import { SingleSelector, SingleSelection } from '@/comp/Selector';
 import { useRouteUrbitID } from '@/hook/app';
 import {
   useSafeSyndicates, useUrbitAccount, useTokenboundAccount,
-  useTokenboundCreateMutation, useSafeCreateMutation, useSyndicateCreateMutation,
+  useTokenboundCreateMutation, useTokenboundSendMutation,
+  useTokenboundLaunchMutation, useTokenboundMintMutation, useTokenboundDissolveMutation,
+  useSafeCreateMutation, useSyndicateCreateMutation,
 } from '@/hook/web3';
 import { useLocalSafes } from '@/hook/local';
 import { useWalletMeta, useTokenboundClient } from '@/hook/wallet';
@@ -96,6 +100,14 @@ export const Route = createFileRoute('/id/$id/')({
       urbitID,
       { onSuccess: () => goNewSyndicate() },
     );
+    const { mutateAsync: tbSendMutate, status: tbSendStatus } =
+      useTokenboundSendMutation(urbitID);
+    const { mutateAsync: tbLaunchMutate, status: tbLaunchStatus } =
+      useTokenboundLaunchMutation(urbitID);
+    const { mutateAsync: tbMintMutate, status: tbMintStatus } =
+      useTokenboundMintMutation(urbitID);
+    const { mutateAsync: tbDissolveMutate, status: tbDissolveStatus } =
+      useTokenboundDissolveMutation(urbitID);
 
     const onCreateSafe = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
       const fields = parseForm(event, {
@@ -115,7 +127,7 @@ export const Route = createFileRoute('/id/$id/')({
       }
     }, [managerNames, deploymentSafe, syCreateMutate]);
 
-    const SyndicateManager = useCallback(({
+    const SyndicateManager = useCallback(function ({
       managerNames,
       setManagerNames,
       id,
@@ -123,7 +135,7 @@ export const Route = createFileRoute('/id/$id/')({
     }: React.ComponentProps<"div"> & {
       managerNames: string[];
       setManagerNames: (s: string[]) => void;
-    }) => {
+    }) {
       const realID = useMemo(() => Number(id ?? 0), [id]);
       const value = useMemo(() => managerNames[realID], [managerNames, realID]);
 
@@ -172,113 +184,131 @@ export const Route = createFileRoute('/id/$id/')({
             />
           )}
         </form>
-        <TokenboundAccountInfo urbitID={urbitID} />
+        <TokenboundAccountMeta urbitID={urbitID} />
+        <TokenboundAccountSendModule
+          urbitID={urbitID}
+          send={tbSendMutate}
+          status={tbSendStatus}
+        />
         {!isValidSyndicate(urbitID) ? (
           <Fragment />
         ) : (
-          <form className="flex flex-col items-center gap-2">
-            <h2 className="text-2xl">
-              Create Syndicate
-            </h2>
-            {managerNames.map((managerName: string, managerID: number) => (
-              <SyndicateManager key={managerID} id={String(managerID)}
-                managerNames={managerNames}
-                setManagerNames={setManagerNames}
+          <>
+            {!!((tbAccount || null)?.deployed) && (
+              <SyndicateTokenPropModule
+                urbitID={urbitID}
+                launch={tbLaunchMutate}
+                launchStatus={tbLaunchStatus}
+                mint={tbMintMutate}
+                mintStatus={tbMintStatus}
+                dissolve={tbDissolveMutate}
+                dissolveStatus={tbDissolveStatus}
               />
-            ))}
-            <button type="button"
-              disabled={managerNames.length >= 10}
-              onClick={addManager}
-              className="button-sm"
-            >
-              {!tbAccount ? "Connecting…" : "+ Add"}
-            </button>
-            <div className="flex flex-row items-center gap-2">
-              <input type="number" name="threshold" required
-                min="1" max={managerNames.length} step="1"
-                placeholder="N"
-                className="input-sm"
-              />
-              <span>of {managerNames.length} signers</span>
-            </div>
-            {!!deploymentSafe && (
-              <>
-                <button type="button" onClick={toggleAdvancedShown} className="text-xl">
-                  {isAdvancedShown ? "- Hide" : "+ Show"} Advanced Options
-                </button>
-                <div className={`
-                  flex flex-col items-center gap-2 max-w-72
-                  ${isAdvancedShown ? "block" : "hidden"}
-                `}>
-                  <p>
-                    Checking this box will perform a 'factory reset' and breach
-                    continuity of your urbit's networking. If you know what that
-                    means, you'll also need to set your networking keys. If you
-                    don't know what that means, turn around, because there be
-                    dragons here.
-                  </p>
-                  <div className="flex flex-row items-center gap-2">
-                    <input type="checkbox" name="breach" />
-                    <span>reset on creation?</span>
-                  </div>
-                </div>
-                <div className="inline-flex flex-row gap-2 text-xl">
-                  Multisig Available at:
-                  <SafeFrame address={deploymentSafe ?? "0x0"} />
-                </div>
-              </>
             )}
-            {!((tbAccount || null)?.deployed) && (
-              <div className="flex flex-col items-center gap-2 max-w-72">
-                <p className="max-w-72">
-                  Please note that you must deploy a TBA for this Urbit ID before
-                  creating an associated Syndicate.
-                </p>
+            <form className="flex flex-col items-center gap-2">
+              <h2 className="text-2xl">
+                Create Syndicate
+              </h2>
+              {managerNames.map((managerName: string, managerID: number) => (
+                <SyndicateManager key={managerID} id={String(managerID)}
+                  managerNames={managerNames}
+                  setManagerNames={setManagerNames}
+                />
+              ))}
+              <button type="button"
+                disabled={managerNames.length >= 10}
+                onClick={addManager}
+                className="button-sm"
+              >
+                {!tbAccount ? "Connecting…" : "+ Add"}
+              </button>
+              <div className="flex flex-row items-center gap-2">
+                <input type="number" name="threshold" required
+                  min="1" max={managerNames.length} step="1"
+                  placeholder="N"
+                  className="input-sm"
+                />
+                <span>of {managerNames.length} signers</span>
               </div>
-            )}
-            {!!localSafes && (
-              !deploymentSafe ? (
-                <button type="button"
-                  disabled={
-                    !((tbAccount || null)?.deployed)
-                    || managerTBAs.some(tba => tba === null)
-                    || (safeCreateStatus === "pending")
-                  }
-                  onClick={onCreateSafe}
-                  className="mt-4 button-lg"
-                >
-                  {!tbAccount ? (
-                    "Connecting…"
-                  ) : (safeCreateStatus === "pending") ? (
-                    <TinyLoadingIcon />
-                  ) : (safeCreateStatus === "error") ? (
-                    "Error!"
-                  ) : (
-                    "Create Multisig"
-                  )}
-                </button>
-              ) : (
-                <button type="button"
-                  disabled={
-                    !((tbAccount || null)?.deployed)
-                    || (syCreateStatus === "pending")
-                  }
-                  onClick={onCreateSyndicate}
-                  className="mt-4 button-lg"
-                >
-                  {!tbAccount ? (
-                    "Connecting…"
-                  ) : (syCreateStatus === "pending") ? (
-                    <TinyLoadingIcon />
-                  ) : (syCreateStatus === "error") ? (
-                    "Error!"
-                  ) : (
-                    "Transfer to Multisig"
-                  )}
-                </button>
-              )
-            )}
-          </form>
+              {!!deploymentSafe && (
+                <>
+                  <button type="button" onClick={toggleAdvancedShown} className="text-xl">
+                    {isAdvancedShown ? "- Hide" : "+ Show"} Advanced Options
+                  </button>
+                  <div className={`
+                    flex flex-col items-center gap-2 max-w-72
+                    ${isAdvancedShown ? "block" : "hidden"}
+                  `}>
+                    <p>
+                      Checking this box will perform a 'factory reset' and breach
+                      continuity of your urbit's networking. If you know what that
+                      means, you'll also need to set your networking keys. If you
+                      don't know what that means, turn around, because there be
+                      dragons here.
+                    </p>
+                    <div className="flex flex-row items-center gap-2">
+                      <input type="checkbox" name="breach" />
+                      <span>reset on creation?</span>
+                    </div>
+                  </div>
+                  <div className="inline-flex flex-row gap-2 text-xl">
+                    Multisig Available at:
+                    <SafeFrame address={deploymentSafe ?? "0x0"} />
+                  </div>
+                </>
+              )}
+              {!((tbAccount || null)?.deployed) && (
+                <div className="flex flex-col items-center gap-2 max-w-72">
+                  <p className="max-w-72">
+                    Please note that you must deploy a TBA for this Urbit ID before
+                    creating an associated Syndicate.
+                  </p>
+                </div>
+              )}
+              {!!localSafes && (
+                !deploymentSafe ? (
+                  <button type="button"
+                    disabled={
+                      !((tbAccount || null)?.deployed)
+                      || managerTBAs.some(tba => tba === null)
+                      || (safeCreateStatus === "pending")
+                    }
+                    onClick={onCreateSafe}
+                    className="mt-4 button-lg"
+                  >
+                    {!tbAccount ? (
+                      "Connecting…"
+                    ) : (safeCreateStatus === "pending") ? (
+                      <TinyLoadingIcon />
+                    ) : (safeCreateStatus === "error") ? (
+                      "Error!"
+                    ) : (
+                      "Create Multisig"
+                    )}
+                  </button>
+                ) : (
+                  <button type="button"
+                    disabled={
+                      !((tbAccount || null)?.deployed)
+                      || (syCreateStatus === "pending")
+                    }
+                    onClick={onCreateSyndicate}
+                    className="mt-4 button-lg"
+                  >
+                    {!tbAccount ? (
+                      "Connecting…"
+                    ) : (syCreateStatus === "pending") ? (
+                      <TinyLoadingIcon />
+                    ) : (syCreateStatus === "error") ? (
+                      "Error!"
+                    ) : (
+                      "Transfer to Multisig"
+                    )}
+                  </button>
+                )
+              )}
+            </form>
+          </>
         )}
       </div>
     );

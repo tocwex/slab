@@ -2,7 +2,7 @@ import type { UrbitID } from "@/type/slab";
 import React from 'react';
 import { createFileRoute } from '@tanstack/react-router';
 import { useRouteUrbitID, useRouteUrbitSyndicate } from '@/hook/app';
-import { SyndicateAccountInfo, SafeAccountInfo } from '@/comp/Accounts';
+import { SyndicateAccountInfo, SafeAccountMeta } from '@/comp/Accounts';
 import { ACCOUNT, REGEX } from '@/dat/const';
 
 export const Route = createFileRoute('/id/$id/sy/$sy')({
@@ -25,7 +25,7 @@ export const Route = createFileRoute('/id/$id/sy/$sy')({
             Operating as {routeID.patp}
           </h2>
         </div>
-        <SafeAccountInfo urbitID={routeSyndicate} />
+        <SafeAccountMeta urbitID={routeSyndicate} />
         <SyndicateAccountInfo urbitID={routeID} urbitSyndicate={routeSyndicate} />
       </div>
     );

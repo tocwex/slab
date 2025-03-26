@@ -20,7 +20,7 @@ import {
   parseEther, parseUnits, encodePacked, encodeFunctionData,
 } from 'viem';
 import { useWalletMeta, useTokenboundClient } from '@/hook/wallet';
-import { useLocalTokens, useTokensAddMutation } from '@/hook/local';
+import { useLocalTokens, useTokensDiffMutation } from '@/hook/local';
 import {
   createSafe, proposeSafeTx, signSafeTx, fetchSafeAccount, fetchUrbitAccount,
   fetchRecipient, fetchTBAddress, fetchToken, fetchUrbitID,
@@ -41,7 +41,9 @@ export function useSyndicateExecMutation(
 ) {
   const wallet = useWalletMeta();
   const tbClient = useTokenboundClient();
+  const syAccount = useTokenboundAccount(urbitSyndicate);
   const sySafe = useSafeAccount(urbitSyndicate);
+  const { mutate: diffTokenMutate } = useTokensDiffMutation();
   const queryKey: QueryKey = useMemo(() => [
     APP.TAG, "safe", "proposals", wallet?.chainID, urbitSyndicate.id,
   ], [wallet?.chainID, urbitSyndicate.id]);
@@ -79,9 +81,7 @@ export function useSyndicateExecMutation(
           refetchType: (slabTx.type === "terminate") ? "none" : "active",
         });
         try {
-          if (slabTx.type === "launch") {
-            await queryClient.invalidateQueries({ queryKey: taxKey });
-          } else if (slabTx.type === "transfer") {
+          if (slabTx.type === "transfer") {
             const urbitID = await fetchUrbitID(wallet, tbClient, slabTx.to);
             await queryClient.invalidateQueries({ queryKey: [
               APP.TAG, "tokenbound", "account", wallet.chainID, urbitID.id,
@@ -92,6 +92,22 @@ export function useSyndicateExecMutation(
               await queryClient.invalidateQueries({ queryKey: [
                 APP.TAG, "tokenbound", "account", wallet.chainID, urbitID.id,
               ] });
+            }
+          } else if (slabTx.type === "dissolve") {
+            if (!!syAccount && !!syAccount.token) {
+              diffTokenMutate({ remList: [syAccount.token.address] });
+            }
+          } else if (slabTx.type === "launch") {
+            await queryClient.invalidateQueries({ queryKey: taxKey });
+            { // add new token to local token list
+              const REGISTRY: Token = formToken(wallet.chain, "REGISTRY");
+              const tokenAddress: Address = ((await readContract(wallet.wagmi, {
+                abi: REGISTRY.abi,
+                address: REGISTRY.address,
+                functionName: "getSyndicateTokenAddressUsingAzimuthPoint",
+                args: [urbitSyndicate.id],
+              })) as Address);
+              diffTokenMutate({ addList: [tokenAddress] });
             }
           } else if (slabTx.type === "terminate") {
             await queryClient.invalidateQueries({ queryKey: [
@@ -161,7 +177,7 @@ export function useSyndicateMintMutation(
   const tbClient = useTokenboundClient();
   const idAccount = useTokenboundAccount(urbitID);
   const syAccount = useTokenboundAccount(urbitSyndicate);
-  const twTax = useSyndicateTax(urbitSyndicate);
+  const syTax = useSyndicateTax(urbitSyndicate);
   const sySafe = useSafeAccount(urbitSyndicate);
   const queryKey: QueryKey = useMemo(() => [
     APP.TAG, "safe", "proposals", wallet?.chainID, urbitSyndicate.id,
@@ -172,7 +188,7 @@ export function useSyndicateMintMutation(
       amounts: string[],
       recipients: string[],
     }) => {
-      if (!wallet || !tbClient || !idAccount || !syAccount || !sySafe || !twTax)
+      if (!wallet || !tbClient || !idAccount || !syAccount || !sySafe || !syTax)
         throw Error(ERROR.INVALID_QUERY);
       if (!syAccount.token)
         throw Error("Cannot mint tokens for Syndicate without dedicated token");
@@ -180,7 +196,7 @@ export function useSyndicateMintMutation(
         throw Error("Mismatch in the number of minting amounts and recipients");
       const recipientAmounts: bigint[] = amounts.map((amount) => {
         const bigAmount = parseUnits(amount, (syAccount?.token?.decimals ?? 18));
-        const bigAmountWTax = includeTax(bigAmount, twTax);
+        const bigAmountWTax = includeTax(bigAmount, syTax);
         return bigAmountWTax;
       });
       const recipientAddresses: Address[] = await Promise.all(recipients.map((recipient) => (
@@ -265,7 +281,7 @@ export function useSyndicateTerminateMutation(
 export function useSyndicateDissolveMutation(
   urbitID: UrbitID,
   urbitSyndicate: UrbitID,
-  options?: UseMutationOptions<Address, unknown, any, unknown>,
+  options?: UseMutationOptions<Address, unknown, void, unknown>,
 ) {
   const wallet = useWalletMeta();
   const tbClient = useTokenboundClient();
@@ -375,16 +391,17 @@ export function useSyndicateSendMutation(
   ], [wallet?.chainID, urbitSyndicate.id]);
 
   return useBasicMutation([queryKey], {
-    mutationFn: async ({token: symbol, recipient, amount}: {
+    mutationFn: async ({token: address, recipient, amount}: {
       token: string,
       recipient: string,
       amount: string,
     }) => {
       if (!wallet || !tbClient || !idAccount || !syAccount || !sySafe)
         throw Error(ERROR.INVALID_QUERY);
-      const TOKEN: Token = await fetchToken(wallet, symbol);
+      const NULL: Contract = formContract(wallet.chain, "NULL");
+      const TOKEN: Token = await fetchToken(wallet, address);
       const toAddress = await fetchRecipient(wallet, tbClient, recipient);
-      const tbTransferTransaction = await ((symbol === "ETH") ? tbClient.prepareExecution({
+      const tbTransferTransaction = await ((address === NULL.address) ? tbClient.prepareExecution({
         account: syAccount.address,
         to: toAddress,
         value: parseEther(amount),
@@ -483,7 +500,6 @@ export function useSafeCreateMutation(
     APP.TAG, "local", "safes", wallet?.chainID,
   ], [wallet?.chainID]);
 
-  const queryClient = useQueryClient();
   return useBasicMutation([localKey], {
     mutationFn: async ({managers, threshold}: {
       managers: UrbitID[],
@@ -515,6 +531,173 @@ export function useSafeCreateMutation(
   });
 }
 
+export function useTokenboundLaunchMutation(
+  urbitID: UrbitID,
+  options?: UseMutationOptions<Address, unknown, any, unknown>,
+) {
+  const wallet = useWalletMeta();
+  const tbClient = useTokenboundClient();
+  const tbAccount = useTokenboundAccount(urbitID);
+  const { mutate: diffTokenMutate } = useTokensDiffMutation();
+  const queryKey: QueryKey = useMemo(() => [
+    APP.TAG, "tokenbound", "account", wallet?.chainID, urbitID.id,
+  ], [wallet?.chainID, urbitID.id]);
+
+  return useBasicMutation([queryKey], {
+    mutationFn: async ({name, symbol, init_supply, max_supply}: {
+      name: string,
+      symbol: string,
+      init_supply: string,
+      max_supply: string,
+    }) => {
+      if (!wallet || !tbClient || !tbAccount)
+        throw Error(ERROR.INVALID_QUERY);
+      const initSupply = clamp(parseUnits(init_supply, 18), BigInt(0), MATH.MAX_UINT256);
+      const maxSupply = clamp(parseUnits(max_supply, 18), BigInt(0), MATH.MAX_UINT256);
+      const salt = pad("0x0"); // TODO: Customize or randomize salt?
+      if (maxSupply < initSupply)
+        throw Error("Maximum token supply must be at least as large as initial supply.");
+
+      const DEPLOY_V1: Contract = formContract(wallet.chain, "DEPLOYER_V1");
+      const TOKENBOUND: Contract = formContract(wallet.chain, "TOKENBOUND");
+      const txHash = await tbClient.execute({
+        account: tbAccount.address,
+        to: DEPLOY_V1.address,
+        value: BigInt(0),
+        data: encodeFunctionData({
+          abi: DEPLOY_V1.abi,
+          functionName: "deploySyndicate",
+          args: [TOKENBOUND.address, salt, initSupply, maxSupply, urbitID.id, name, symbol],
+        }),
+      });
+
+      const { transactionHash } = await awaitReceipt(wallet, txHash);
+      return transactionHash;
+    },
+    onSettled: async () => {
+      if (!!wallet && !!tbClient) {
+        const REGISTRY: Token = formToken(wallet.chain, "REGISTRY");
+        const tokenAddress: Address = ((await readContract(wallet.wagmi, {
+          abi: REGISTRY.abi,
+          address: REGISTRY.address,
+          functionName: "getSyndicateTokenAddressUsingAzimuthPoint",
+          args: [urbitID.id],
+        })) as Address);
+        diffTokenMutate({ addList: [tokenAddress] });
+      }
+    },
+    ...options,
+  });
+}
+
+export function useTokenboundMintMutation(
+  urbitID: UrbitID,
+  options?: UseMutationOptions<Address, unknown, any, unknown>,
+) {
+  const wallet = useWalletMeta();
+  const tbClient = useTokenboundClient();
+  const tbAccount = useTokenboundAccount(urbitID);
+  const syTax = useSyndicateTax(urbitID);
+  const queryKey: QueryKey = useMemo(() => [
+    APP.TAG, "tokenbound", "account", wallet?.chainID, urbitID.id,
+  ], [wallet?.chainID, urbitID.id]);
+
+  const queryClient = useQueryClient();
+  return useBasicMutation([queryKey], {
+    mutationFn: async ({amounts, recipients}: {
+      amounts: string[],
+      recipients: string[],
+    }) => {
+      if (!wallet || !tbClient || !tbAccount || !syTax)
+        throw Error(ERROR.INVALID_QUERY);
+      if (!tbAccount.token)
+        throw Error("Cannot mint tokens for Syndicate without dedicated token");
+      if (amounts.length !== recipients.length)
+        throw Error("Mismatch in the number of minting amounts and recipients");
+      const recipientAmounts: bigint[] = amounts.map((amount) => {
+        const bigAmount = parseUnits(amount, (tbAccount?.token?.decimals ?? 18));
+        return includeTax(bigAmount, syTax);
+      });
+      const recipientAddresses: Address[] = await Promise.all(recipients.map((recipient) => (
+        fetchRecipient(wallet, tbClient, recipient)
+      )));
+      const txHash = await tbClient.execute({
+        account: tbAccount.address,
+        to: tbAccount.token.address,
+        value: BigInt(0),
+        data: encodeFunctionData({
+          abi: ABI.TOCWEX_TOKEN_V1,
+          ...((recipientAmounts.length === 1) ? ({
+            functionName: "mint",
+            args: [recipientAddresses[0], recipientAmounts[0]],
+          }) : ({
+            functionName: "batchMint",
+            args: [recipientAddresses, recipientAmounts],
+          })),
+        }),
+      });
+
+      const { transactionHash } = await awaitReceipt(wallet, txHash);
+      return transactionHash;
+    },
+    onSettled: async (_, __, {recipients}, ___) => {
+      if (!!wallet && !!tbClient) {
+        for (const recipient of recipients) {
+          if (isValidUrbitID(recipient)) {
+            const recipientID = formUrbitID(recipient);
+            await queryClient.invalidateQueries({ queryKey: [
+              APP.TAG, "tokenbound", "account", wallet.chainID, recipientID.id,
+            ] });
+          }
+        }
+      }
+    },
+    ...options,
+  });
+}
+
+export function useTokenboundDissolveMutation(
+  urbitID: UrbitID,
+  options?: UseMutationOptions<Address, unknown, void, unknown>,
+) {
+  const wallet = useWalletMeta();
+  const tbClient = useTokenboundClient();
+  const tbAccount = useTokenboundAccount(urbitID);
+  const { mutate: diffTokenMutate } = useTokensDiffMutation();
+  const queryKey: QueryKey = useMemo(() => [
+    APP.TAG, "tokenbound", "account", wallet?.chainID, urbitID.id,
+  ], [wallet?.chainID, urbitID.id]);
+
+  return useBasicMutation([queryKey], {
+    mutationFn: async () => {
+      if (!wallet || !tbClient || !tbAccount)
+        throw Error(ERROR.INVALID_QUERY);
+      if (!tbAccount.token)
+        throw Error("Cannot dissolve a Syndicate that has no token");
+
+      const DEPLOY_V1: Contract = formContract(wallet.chain, "DEPLOYER_V1");
+      const txHash = await tbClient.execute({
+        account: tbAccount.address,
+        to: tbAccount.token.address,
+        value: BigInt(0),
+        data: encodeFunctionData({
+          abi: ABI.TOCWEX_TOKEN_V1,
+          functionName: "dissolveSyndicate",
+        }),
+      });
+
+      const { transactionHash } = await awaitReceipt(wallet, txHash);
+      return transactionHash;
+    },
+    onSettled: async () => {
+      if (!!wallet && !!tbClient && !!tbAccount && !!tbAccount.token) {
+        diffTokenMutate({ remList: [tbAccount.token.address] });
+      }
+    },
+    ...options,
+  });
+}
+
 export function useTokenboundSendMutation(
   urbitID: UrbitID,
   options?: UseMutationOptions<Address, unknown, any, unknown>,
@@ -528,15 +711,16 @@ export function useTokenboundSendMutation(
 
   const queryClient = useQueryClient();
   return useBasicMutation([queryKey], {
-    mutationFn: async ({token: symbol, recipient, amount}: {
+    mutationFn: async ({token: address, recipient, amount}: {
       token: string,
       recipient: string,
       amount: string,
     }) => {
       if (!wallet || !tbClient || !tbAccount) throw Error(ERROR.INVALID_QUERY);
-      const TOKEN = await fetchToken(wallet, symbol);
+      const NULL: Contract = formContract(wallet.chain, "NULL");
+      const TOKEN = await fetchToken(wallet, address);
       const toAddress = await fetchRecipient(wallet, tbClient, recipient);
-      const txHash = await ((symbol === "ETH") ? tbClient.transferETH({
+      const txHash = await ((address === NULL.address) ? tbClient.transferETH({
         account: tbAccount.address,
         amount: Number(amount),
         recipientAddress: toAddress,

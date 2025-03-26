@@ -19,7 +19,7 @@ import {
 import { normalize } from 'viem/ens'
 import { getChainMeta, formContract, formToken, formUrbitID, compareUrbitIDs } from '@/lib/util';
 import { URBIT } from '@/dat/apis';
-import { ABI, ACCOUNT, SAFE, REGEX } from '@/dat/const';
+import { ABI, ACCOUNT, BLOCKCHAIN, SAFE, REGEX } from '@/dat/const';
 
 export async function createSafe(
   wallet: WalletMeta,
@@ -95,43 +95,54 @@ export async function fetchToken(
   const NULL: Contract = formContract(wallet.chain, "NULL");
 
   let token: Token | undefined = undefined;
-  token = formToken(wallet.chain, identifier);
-  // NOTE: Do a remote lookup for tokens not cached locally
-  if (token.address === NULL.address && identifier.startsWith("0x")) {
-    const tokenName = ((await readContract(wallet.wagmi, {
-      abi: ABI.ERC20,
-      address: (identifier as Address),
-      functionName: "name",
-    })) as string);
-    const tokenSymbol = ((await readContract(wallet.wagmi, {
-      abi: ABI.ERC20,
-      address: (identifier as Address),
-      functionName: "symbol",
-    })) as string);
-    const tokenDecimals = ((await readContract(wallet.wagmi, {
-      abi: ABI.ERC20,
-      address: (identifier as Address),
-      functionName: "decimals",
-    })) as number);
-
-    const REGISTRY: Contract = formContract(wallet.chain, "REGISTRY");
-    const DEPLOYER: Contract = formContract(wallet.chain, "DEPLOYER_V1");
-    const isSyndicateToken = ((await readContract(wallet.wagmi, {
-      abi: REGISTRY.abi,
-      address: REGISTRY.address,
-      functionName: "getSyndicateTokenExistsUsingAddress",
-      args: [identifier],
-    })) as boolean);
-
+  if (identifier === NULL.address) {
     token = {
-      address: (identifier as Address),
-      // @ts-ignore
-      abi: ABI.ERC20,
-      name: tokenName,
-      symbol: tokenSymbol,
-      decimals: tokenDecimals,
-      deployer: !isSyndicateToken ? undefined : DEPLOYER.address,
+      address: NULL.address,
+      abi: [],
+      name: BLOCKCHAIN.TAG?.[Number(wallet.chain)] ?? BLOCKCHAIN.TAG[1],
+      symbol: BLOCKCHAIN.SYM?.[Number(wallet.chain)] ?? BLOCKCHAIN.SYM[1],
+      decimals: 18,
+      deployer: undefined,
     };
+  } else {
+    token = formToken(wallet.chain, identifier);
+    // NOTE: Do a remote lookup for tokens not cached locally
+    if (token.address === NULL.address && identifier.startsWith("0x")) {
+      const tokenName = ((await readContract(wallet.wagmi, {
+        abi: ABI.ERC20,
+        address: (identifier as Address),
+        functionName: "name",
+      })) as string);
+      const tokenSymbol = ((await readContract(wallet.wagmi, {
+        abi: ABI.ERC20,
+        address: (identifier as Address),
+        functionName: "symbol",
+      })) as string);
+      const tokenDecimals = ((await readContract(wallet.wagmi, {
+        abi: ABI.ERC20,
+        address: (identifier as Address),
+        functionName: "decimals",
+      })) as number);
+
+      const REGISTRY: Contract = formContract(wallet.chain, "REGISTRY");
+      const DEPLOYER: Contract = formContract(wallet.chain, "DEPLOYER_V1");
+      const isSyndicateToken = ((await readContract(wallet.wagmi, {
+        abi: REGISTRY.abi,
+        address: REGISTRY.address,
+        functionName: "getSyndicateTokenExistsUsingAddress",
+        args: [identifier],
+      })) as boolean);
+
+      token = {
+        address: (identifier as Address),
+        // @ts-ignore
+        abi: ABI.ERC20,
+        name: tokenName,
+        symbol: tokenSymbol,
+        decimals: tokenDecimals,
+        deployer: !isSyndicateToken ? undefined : DEPLOYER.address,
+      };
+    }
   }
 
   return (token as Token);
