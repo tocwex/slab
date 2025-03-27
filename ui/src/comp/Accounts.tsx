@@ -1,4 +1,8 @@
 import type { UrbitID, Address, Token, TokenHolding } from "@/type/slab";
+import type {
+  SlabTransferOperation, SlabLaunchOperation, SlabMintOperation,
+  SlabDissolveOperation, SlabTerminateOperation,
+} from '@/type/slab';
 import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { SingleSelector } from '@/comp/Selector';
 import {
@@ -15,8 +19,8 @@ import {
 import {
   useTokenboundAccount, useSafeAccount, useSafeProposals, useUrbitAccount,
   useDeployerTax, useSyndicateTax,
-  useTokenboundCreateMutation, useTokenboundSendMutation,
-  useSyndicateSendMutation, useSyndicateSignMutation, useSyndicateExecMutation,
+  useTokenboundCreateMutation, useTokenboundTransferMutation,
+  useSyndicateTransferMutation, useSyndicateSignMutation, useSyndicateExecMutation,
   useSyndicateMintMutation, useSyndicateLaunchMutation, useSyndicateTerminateMutation,
   useSyndicateDissolveMutation,
 } from '@/hook/web3';
@@ -148,8 +152,8 @@ export function SyndicateAccountInfo({
     useSyndicateSignMutation(urbitID, urbitSyndicate);
   const { mutate: syExecMutate, status: syExecStatus } =
     useSyndicateExecMutation(urbitSyndicate);
-  const { mutateAsync: sySendMutate, status: sySendStatus } =
-    useSyndicateSendMutation(urbitID, urbitSyndicate);
+  const { mutateAsync: syTransferMutate, status: syTransferStatus } =
+    useSyndicateTransferMutation(urbitID, urbitSyndicate);
   const { mutateAsync: syTerminateMutate, status: syTerminateStatus } =
     useSyndicateTerminateMutation(urbitID, urbitSyndicate);
   const { mutateAsync: syLaunchMutate, status: syLaunchStatus } =
@@ -185,10 +189,10 @@ export function SyndicateAccountInfo({
     <LoadingFrame title="Tokenbound Account" size="md" status={idAccount && syAccount}>
       {(!!idAccount && !!syAccount && !!localTokens && syAccount.deployed) && (
         <div className="main">
-          <TokenboundAccountSendModule
+          <TokenboundAccountTransferModule
             urbitID={urbitSyndicate}
-            send={sySendMutate}
-            status={sySendStatus}
+            transfer={syTransferMutate}
+            status={syTransferStatus}
           />
           <SyndicateTokenPropModule
             urbitID={urbitSyndicate}
@@ -418,17 +422,13 @@ export function SyndicateAccountInfo({
   );
 }
 
-export function TokenboundAccountSendModule({
+export function TokenboundAccountTransferModule({
   urbitID,
-  send,
+  transfer,
   status,
 }: {
   urbitID: UrbitID;
-  send: ({recipient, token, amount}: {
-    recipient: string;
-    token: string;
-    amount: string;
-  }) => Promise<any>;
+  transfer: (op: SlabTransferOperation) => Promise<any>;
   status: string;
 }): React.ReactNode {
   const formRef = useRef<HTMLFormElement>(null);
@@ -446,14 +446,14 @@ export function TokenboundAccountSendModule({
         return [isIdCmp, nameCmp].find((n) => (n !== 0)) ?? 0;
       })
   ), [(idAccount || {})?.address]);
-  const onSend = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
+  const onTransfer = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
     const fields = parseForm(event, {
-      recipient: urbitID.patp,
-      token: "ETH",
+      to: urbitID.patp,
       amount: "0",
+      tokenID: "ETH",
     });
-    fields && send(fields).then(() => formRef.current?.reset());
-  }, [send, formRef]);
+    fields && transfer(fields).then(() => formRef.current?.reset());
+  }, [transfer, formRef]);
 
   return (
     (!!idAccount && !!localTokens && idAccount.deployed) && (
@@ -471,8 +471,8 @@ export function TokenboundAccountSendModule({
             ))}
           </ul>
           <div className="flex flex-col gap-2">
-            <RecipientInput name="recipient" required />
-            <SingleSelector name="token" required={true}
+            <RecipientInput name="to" required />
+            <SingleSelector name="tokenID" required={true}
               placeholder="currency"
               className="w-full"
               options={idTokens.map(([, {token: {name, address}, balance}]: [string, TokenHolding]) => (
@@ -482,7 +482,7 @@ export function TokenboundAccountSendModule({
             <CurrencyInput name="amount" required />
             <button type="button"
               disabled={(status === "pending")}
-              onClick={onSend}
+              onClick={onTransfer}
               className="w-full button-lg"
             >
               {(status === "pending") ? (
@@ -490,8 +490,8 @@ export function TokenboundAccountSendModule({
               ) : (status === "error") ? (
                 "Error!"
               ) : (
-                // TODO: Make this "Propose Send" in the Syndicate case
-                "Send"
+                // TODO: Make this "Propose Transfer" in the Syndicate case
+                "Transfer"
               )}
             </button>
           </div>
@@ -512,17 +512,9 @@ export function SyndicateTokenPropModule({
   dissolveStatus,
 }: {
   urbitID: UrbitID;
-  launch: ({name, symbol, init_supply, max_supply}: {
-    name: string,
-    symbol: string,
-    init_supply: string,
-    max_supply: string,
-  }) => Promise<any>;
+  launch: (op: SlabLaunchOperation) => Promise<any>;
   launchStatus: string;
-  mint: ({amounts, recipients}: {
-    amounts: string[];
-    recipients: string[];
-  }) => Promise<any>;
+  mint: (op: SlabMintOperation) => Promise<any>;
   mintStatus: string;
   dissolve: () => Promise<any>;
   dissolveStatus: string;
@@ -557,12 +549,7 @@ function LaunchTokenModule({
   status,
 }: {
   urbitID: UrbitID;
-  launch: ({name, symbol, init_supply, max_supply}: {
-    name: string,
-    symbol: string,
-    init_supply: string,
-    max_supply: string,
-  }) => Promise<any>;
+  launch: (op: SlabLaunchOperation) => Promise<any>;
   status: string;
 }): React.ReactNode {
   const formRef = useRef<HTMLFormElement>(null);
@@ -579,8 +566,8 @@ function LaunchTokenModule({
     const fields = parseForm(event, {
       name: "",
       symbol: "",
-      init_supply: "0",
-      max_supply: String(MATH.MAX_UINT256),
+      init: "0",
+      max: String(MATH.MAX_UINT256),
     });
     fields && launch(fields).then(() => formRef.current?.reset());
   }, [launch, formRef]);
@@ -596,7 +583,7 @@ function LaunchTokenModule({
           placeholder={`symbol (e.g. ${urbitID.patp.toUpperCase()})`}
           pattern={REGEX.SYNDICATE.TOKEN}
         />
-        <CurrencyInput name="init_supply" required
+        <CurrencyInput name="init" required
           placeholder="supply (e.g. 1000000)"
         />
         <div className="flex flex-row items-center gap-2">
@@ -606,7 +593,7 @@ function LaunchTokenModule({
           />
           <span>set max supply?</span>
         </div>
-        <CurrencyInput name="max_supply" required={useMaxSupply}
+        <CurrencyInput name="max" required={useMaxSupply}
           placeholder="max supply (e.g. 2000000)"
           className={useMaxSupply ? "input-lg" : "hidden"}
         />
@@ -634,10 +621,7 @@ function MintTokenModule({
   status,
 }: {
   urbitID: UrbitID;
-  mint: ({amounts, recipients}: {
-    amounts: string[];
-    recipients: string[];
-  }) => Promise<any>;
+  mint: (op: SlabMintOperation) => Promise<any>;
   status: string;
 }): React.ReactNode {
   const formRef = useRef<HTMLFormElement>(null);
@@ -706,8 +690,7 @@ function MintTokenModule({
 
   const onMint = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
     const fields = parseForm(event, {
-      amounts: mintData.map(([a, r]) => a),
-      recipients: mintData.map(([a, r]) => r),
+      transfers: mintData.map(([a, r]) => ({amount: a, to: r})),
     });
     fields && mint(fields).then(() => {
       formRef.current?.reset();

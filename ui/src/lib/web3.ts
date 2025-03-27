@@ -1,8 +1,10 @@
 import type { WagmiConfig } from '@web3-onboard/core';
 import type { EIP1193Provider, TransactionReceipt } from 'viem';
 import type {
-  Nullable, Address, Contract, Transfer, CallData, Token,
-  UrbitNetworkLayer, UrbitID, UrbitAccount, WalletMeta, SlabTransaction,
+  Nullable, Address, Contract, Transfer, Tax, CallData, TBACallData,
+  WalletMeta, Token, TokenboundAccount,
+  SlabTransferOperation, SlabLaunchOperation, SlabMintOperation, SlabDissolveOperation,
+  UrbitNetworkLayer, UrbitID, UrbitAccount, SlabTransaction,
 } from '@/type/slab';
 import { TokenboundClient } from '@tokenbound/sdk';
 import Safe, { getSafeAddressFromDeploymentTx } from '@safe-global/protocol-kit';
@@ -13,13 +15,16 @@ import {
   sendTransaction, getTransactionReceipt, waitForTransactionReceipt,
 } from '@web3-onboard/wagmi';
 import {
-  keccak256, pad, decodeFunctionData,
-  encodePacked, numberToHex,
+  keccak256, pad, encodeFunctionData, decodeFunctionData,
+  encodePacked, numberToHex, parseUnits,
 } from 'viem';
 import { normalize } from 'viem/ens'
-import { getChainMeta, formContract, formToken, formUrbitID, compareUrbitIDs } from '@/lib/util';
+import {
+  clamp, getChainMeta, compareUrbitIDs,
+  formContract, formToken, formUrbitID, includeTax,
+} from '@/lib/util';
 import { URBIT } from '@/dat/apis';
-import { ABI, ACCOUNT, BLOCKCHAIN, SAFE, REGEX } from '@/dat/const';
+import { ABI, ACCOUNT, BLOCKCHAIN, MATH, SAFE, REGEX, ERROR } from '@/dat/const';
 
 export async function createSafe(
   wallet: WalletMeta,
@@ -36,6 +41,28 @@ export async function createSafe(
 
   const safeAddress = getSafeAddressFromDeploymentTx(deployReceipt, SAFE.VERSION);
   return (safeAddress as Address);
+}
+
+export async function submitDirectTx(
+  wallet: WalletMeta,
+  tbClient: TokenboundClient,
+  tbTransaction: TBACallData,
+): Promise<Address> {
+  const transaction: Address = await tbClient.execute(tbTransaction);
+  const { transactionHash } = await awaitReceipt(wallet, transaction);
+  return transactionHash;
+}
+
+export async function submitSafeTx(
+  wallet: WalletMeta,
+  tbClient: TokenboundClient,
+  tbTransaction: TBACallData,
+  safeAddress: Address,
+  signAddress: Address,
+): Promise<Address> {
+  const transaction: CallData = await tbClient.prepareExecution(tbTransaction);
+  const transactionHash = await proposeSafeTx(wallet, transaction, safeAddress, signAddress);
+  return transactionHash;
 }
 
 export async function proposeSafeTx(
@@ -67,6 +94,117 @@ export async function proposeSafeTx(
   });
 
   return (safeTxSign as Address);
+}
+
+export async function buildTransferCall(
+  wallet: WalletMeta,
+  tbClient: TokenboundClient,
+  account: TokenboundAccount,
+  {to, amount, tokenID}: SlabTransferOperation,
+): Promise<TBACallData> {
+  const NULL: Contract = formContract(wallet.chain, "NULL");
+  const TOKEN = await fetchToken(wallet, tokenID);
+
+  const toAddress = await fetchRecipient(wallet, tbClient, to);
+
+  return {
+    account: account.address,
+    ...((tokenID === NULL.address) ? {
+      to: toAddress,
+      value: parseUnits(amount, 18),
+      data: "0x",
+    } : {
+      to: TOKEN.address,
+      value: BigInt(0),
+      data: encodeFunctionData({
+        abi: TOKEN.abi,
+        functionName: "transfer",
+        args: [toAddress, parseUnits(amount, TOKEN.decimals)],
+      }),
+    }),
+  };
+}
+
+export async function buildLaunchCall(
+  wallet: WalletMeta,
+  tbClient: TokenboundClient,
+  account: TokenboundAccount,
+  {name, symbol, init, max, urbitID}: SlabLaunchOperation & {urbitID: string;},
+): Promise<TBACallData> {
+  if (!!account.token) throw Error(ERROR.YES_TOKEN);
+
+  const DEPLOY_V1: Contract = formContract(wallet.chain, "DEPLOYER_V1");
+  const TOKENBOUND: Contract = formContract(wallet.chain, "TOKENBOUND");
+
+  const initSupply = clamp(parseUnits(init, 18), BigInt(0), MATH.MAX_UINT256);
+  const maxSupply = clamp(parseUnits(max, 18), BigInt(0), MATH.MAX_UINT256);
+  const salt = pad("0x0"); // TODO: Customize or randomize salt?
+  if (maxSupply < initSupply)
+    throw Error("Maximum token supply must be at least as large as initial supply.");
+
+  return {
+    account: account.address,
+    to: DEPLOY_V1.address,
+    value: BigInt(0),
+    data: encodeFunctionData({
+      abi: DEPLOY_V1.abi,
+      functionName: "deploySyndicate",
+      args: [TOKENBOUND.address, salt, initSupply, maxSupply, urbitID, name, symbol],
+    }),
+  };
+}
+
+export async function buildMintCall(
+  wallet: WalletMeta,
+  tbClient: TokenboundClient,
+  account: TokenboundAccount,
+  {transfers, tax}: SlabMintOperation & {tax: Tax},
+): Promise<TBACallData> {
+  if (!account?.token) throw Error(ERROR.NO_TOKEN);
+  const tokenDecimals: number = account.token.decimals;
+
+  const recipientAddresses: Address[] = await Promise.all(transfers.map(({to}) => (
+    fetchRecipient(wallet, tbClient, to)
+  )));
+  const recipientAmounts: bigint[] = transfers.map(({amount}) => {
+    const bigAmount = parseUnits(amount, tokenDecimals);
+    return includeTax(bigAmount, tax);
+  });
+
+  return {
+    account: account.address,
+    to: account.token.address,
+    value: BigInt(0),
+    data: encodeFunctionData({
+      abi: ABI.TOCWEX_TOKEN_V1,
+      ...((transfers.length === 1) ? ({
+        functionName: "mint",
+        args: [recipientAddresses[0], recipientAmounts[0]],
+      }) : ({
+        functionName: "batchMint",
+        args: [recipientAddresses, recipientAmounts],
+      })),
+    }),
+  };
+}
+
+export async function buildDissolveCall(
+  wallet: WalletMeta,
+  tbClient: TokenboundClient,
+  account: TokenboundAccount,
+  args: SlabDissolveOperation,
+): Promise<TBACallData> {
+  if (!account.token) throw Error(ERROR.NO_TOKEN);
+
+  return {
+    account: account.address,
+    to: account.token.address,
+    value: BigInt(0),
+    data: encodeFunctionData({
+      abi: ABI.TOCWEX_TOKEN_V1,
+      functionName: "dissolveSyndicate",
+    }),
+  };
 }
 
 export async function signSafeTx(

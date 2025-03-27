@@ -2,7 +2,7 @@ import type { Address, UrbitID, UrbitAccount, TokenHolding } from "@/type/slab";
 import React, { Fragment, useState, useMemo, useEffect, useCallback } from 'react';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import {
-  TokenboundAccountMeta, TokenboundAccountSendModule, SyndicateTokenPropModule,
+  TokenboundAccountMeta, TokenboundAccountTransferModule, SyndicateTokenPropModule,
 } from '@/comp/Accounts';
 import { SafeFrame } from '@/comp/Frames';
 import { RecipientInput, RecipientLauncherInput } from '@/comp/Forms';
@@ -11,7 +11,7 @@ import { SingleSelector, SingleSelection } from '@/comp/Selector';
 import { useRouteUrbitID } from '@/hook/app';
 import {
   useSafeSyndicates, useUrbitAccount, useTokenboundAccount,
-  useTokenboundCreateMutation, useTokenboundSendMutation,
+  useTokenboundCreateMutation, useTokenboundTransferMutation,
   useTokenboundLaunchMutation, useTokenboundMintMutation, useTokenboundDissolveMutation,
   useSafeCreateMutation, useSyndicateCreateMutation,
 } from '@/hook/web3';
@@ -100,8 +100,8 @@ export const Route = createFileRoute('/id/$id/')({
       urbitID,
       { onSuccess: () => goNewSyndicate() },
     );
-    const { mutateAsync: tbSendMutate, status: tbSendStatus } =
-      useTokenboundSendMutation(urbitID);
+    const { mutateAsync: tbTransferMutate, status: tbTransferStatus } =
+      useTokenboundTransferMutation(urbitID);
     const { mutateAsync: tbLaunchMutate, status: tbLaunchStatus } =
       useTokenboundLaunchMutation(urbitID);
     const { mutateAsync: tbMintMutate, status: tbMintStatus } =
@@ -185,10 +185,10 @@ export const Route = createFileRoute('/id/$id/')({
           )}
         </form>
         <TokenboundAccountMeta urbitID={urbitID} />
-        <TokenboundAccountSendModule
+        <TokenboundAccountTransferModule
           urbitID={urbitID}
-          send={tbSendMutate}
-          status={tbSendStatus}
+          transfer={tbTransferMutate}
+          status={tbTransferStatus}
         />
         {!isValidSyndicate(urbitID) ? (
           <Fragment />

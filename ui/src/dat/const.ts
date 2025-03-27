@@ -195,4 +195,6 @@ export const REGEX = Object.freeze({
 export const ERROR = Object.freeze({
   INVALID_QUERY: "Query was invoked without proper preconditions.",
   INVALID_URBIT: "Query was invoked on an invalid Urbit ID.",
+  YES_TOKEN: "Token launch operation was performed on a Syndicate with an existing token.",
+  NO_TOKEN: "Token operation was performed on a Syndicate without a token.",
 });
