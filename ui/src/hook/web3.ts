@@ -95,20 +95,20 @@ export function useSyndicateExecMutation(
             const urbitID = await fetchUrbitID(wallet, tbClient, slabTx.to);
             await queryClient.invalidateQueries({ queryKey: [
               APP.TAG, "tokenbound", "account", wallet.chainID, urbitID.id,
-            ] });
+            ], refetchType: "all" });
           } else if (slabTx.type === "mint") {
             for (const transfer of slabTx.transfers) {
               const urbitID = await fetchUrbitID(wallet, tbClient, transfer.to);
               await queryClient.invalidateQueries({ queryKey: [
                 APP.TAG, "tokenbound", "account", wallet.chainID, urbitID.id,
-              ] });
+              ], refetchType: "all" });
             }
           } else if (slabTx.type === "dissolve") {
             if (!!syAccount && !!syAccount.token) {
-              diffTokenMutate({ remList: [syAccount.token.address] });
+              diffTokenMutate({ rem: [syAccount.token.address] });
             }
           } else if (slabTx.type === "launch") {
-            await queryClient.invalidateQueries({ queryKey: taxKey });
+            await queryClient.invalidateQueries({ queryKey: taxKey, refetchType: "all" });
             { // add new token to local token list
               const REGISTRY: Token = formToken(wallet.chain, "REGISTRY");
               const tokenAddress: Address = ((await readContract(wallet.wagmi, {
@@ -117,7 +117,7 @@ export function useSyndicateExecMutation(
                 functionName: "getSyndicateTokenAddressUsingAzimuthPoint",
                 args: [urbitSyndicate.id],
               })) as Address);
-              diffTokenMutate({ addList: [tokenAddress] });
+              diffTokenMutate({ add: [tokenAddress] });
             }
           } else if (slabTx.type === "terminate") {
             await queryClient.invalidateQueries({ queryKey: [
@@ -477,7 +477,7 @@ export function useTokenboundTransferMutation(
       return txHash;
     },
     onSettled: async (_, __, {to}, ___) => {
-      await queryClient.invalidateQueries({ queryKey: queryKey });
+      await queryClient.invalidateQueries({ queryKey: queryKey, refetchType: "all" });
       await queryClient.invalidateQueries({ queryKey: [
         APP.TAG, "tokenbound", "account", wallet?.chainID, formUrbitID(to).id,
       ], refetchType: "all" });
@@ -517,7 +517,7 @@ export function useTokenboundLaunchMutation(
           functionName: "getSyndicateTokenAddressUsingAzimuthPoint",
           args: [urbitID.id],
         })) as Address);
-        diffTokenMutate({ addList: [tokenAddress] });
+        diffTokenMutate({ add: [tokenAddress] });
       }
     },
     ...options,
@@ -555,7 +555,7 @@ export function useTokenboundMintMutation(
             const recipientID = formUrbitID(recipient);
             await queryClient.invalidateQueries({ queryKey: [
               APP.TAG, "tokenbound", "account", wallet.chainID, recipientID.id,
-            ] });
+            ], refetchType: "all" });
           }
         }
       }
@@ -585,7 +585,7 @@ export function useTokenboundDissolveMutation(
     },
     onSettled: async () => {
       if (!!wallet && !!tbClient && !!tbAccount && !!tbAccount.token) {
-        diffTokenMutate({ remList: [tbAccount.token.address] });
+        diffTokenMutate({ rem: [tbAccount.token.address] });
       }
     },
     ...options,

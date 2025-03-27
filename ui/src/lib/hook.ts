@@ -24,7 +24,7 @@ export function useBasicMutation<
     onSettled: async () => {
       for (const key of keys) {
         // console.log(`invalidating ${key}`);
-        await client.invalidateQueries({ queryKey: key });
+        await client.invalidateQueries({ queryKey: key, refetchType: "all" });
       }
     },
   };

@@ -24,12 +24,12 @@ export function useTokensDiffMutation(
 
   const queryClient = useQueryClient();
   return useBasicMutation([queryKey], {
-    mutationFn: async ({addList = [], remList = []}: {
-      addList?: Address[];
-      remList?: Address[];
+    mutationFn: async ({add = [], rem = []}: {
+      add?: Address[];
+      rem?: Address[];
     } = {}) => {
       if (!wallet) throw Error(ERROR.INVALID_QUERY);
-      const addTokens = await Promise.all(addList.map(a => fetchToken(wallet, a)));
+      const addTokens = await Promise.all(add.map(a => fetchToken(wallet, a)));
       // TODO: Add requirement for syndicate tokens?
       // if (!token.deployer) throw Error("Token is not a valid syndicate token");
 
@@ -39,7 +39,7 @@ export function useTokensDiffMutation(
         const oldTokenMap: TokenMap = (newArchive?.[chainKey] ?? {});
         const newTokenMap = omit(
           merge({}, oldTokenMap, Object.fromEntries(addTokens.map(t => [t.address, t]))),
-          remList,
+          rem,
         );
         newArchive[chainKey] = newTokenMap;
         return newArchive;

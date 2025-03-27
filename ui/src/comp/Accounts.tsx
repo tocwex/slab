@@ -146,7 +146,7 @@ export function TokenboundAccountTransferModule({
         const nameCmp: number = a.localeCompare(b);
         return [isIdCmp, nameCmp].find((n) => (n !== 0)) ?? 0;
       })
-  ), [(idAccount || {})?.address]);
+  ), [idAccount || {}]);
   const onTransfer = useCallback(async (event: React.MouseEvent<HTMLButtonElement>) => {
     const fields = parseForm(event, {
       to: urbitID.patp,
@@ -516,7 +516,7 @@ function AddTokenModule(): React.ReactNode {
       address: "0x0",
     });
     fields && !!localTokens && !localTokens?.[fields.address]
-      && diffTokensMutate({ addList: [fields.address] });
+      && diffTokensMutate({ add: [fields.address] });
   }, [localTokens, diffTokensMutate]);
 
   return (

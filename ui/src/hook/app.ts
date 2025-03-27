@@ -3,6 +3,12 @@ import { useMemo, useCallback } from 'react';
 import { useRouter, useMatches, useNavigate } from '@tanstack/react-router';
 import { formUrbitID } from '@/lib/util';
 
+////////////////////////////////////////////////////////////////////////////////
+//                                                                            //
+//                               URL Operations                               //
+//                                                                            //
+////////////////////////////////////////////////////////////////////////////////
+
 export function useRouteParams(): Record<string, any> {
   return useMatches({ select: (matches) => matches.reduce(
     (acc, nex) => ({...acc, ...nex.params}),
@@ -25,6 +31,12 @@ export function useRouteUrbitID(): Nullable<UrbitID> {
 export function useRouteUrbitSyndicate(): Nullable<UrbitID> {
   return useRouteUrbitParam("sy");
 }
+
+////////////////////////////////////////////////////////////////////////////////
+//                                                                            //
+//                             Routing Operations                             //
+//                                                                            //
+////////////////////////////////////////////////////////////////////////////////
 
 export function useRedirect(link: string): () => void {
   const navigate = useNavigate();
