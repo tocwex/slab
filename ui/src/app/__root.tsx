@@ -1,10 +1,13 @@
 import React, { useCallback } from 'react';
 import { createRootRoute, HeadContent, Link, Outlet, useLocation } from '@tanstack/react-router';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { HeroFrame } from '@/comp/Frames';
 import { QueryClientProvider } from '@tanstack/react-query'
 import { Web3OnboardProvider } from '@web3-onboard/react';
-import { REACT_QUERY, WEB3ONBOARD, URBIT } from '@/dat/apis';
+import { HeroFrame } from '@/comp/Frames';
+import { TextLoadingIcon } from '@/comp/Icons';
+import { useDeskVersion } from '@/hook/urbit';
+import { REACT_QUERY, WEB3ONBOARD } from '@/dat/apis';
+import { APP } from '@/dat/const';
 
 export const Route = createRootRoute({
   head: () => ({
@@ -29,6 +32,28 @@ export const Route = createRootRoute({
       )
     ), [pathname, window.location.origin]);
 
+    const Footer = useCallback(() => {
+      const version = useDeskVersion();
+      return (
+        <div className={`
+          fixed z-40 bottom-0 w-full flex flex-row justify-center gap-2
+          bg-gray-500/50 p-1 font-bold text-xs text-white
+        `}>
+          <span>⚠</span>
+          <span>BETA BUILD</span>
+          {!version ? (
+            <TextLoadingIcon />
+          ) : (
+            <>
+              <span>-</span>
+              <span>v{version}</span>
+            </>
+          )}
+          <span>⚠</span>
+        </div>
+      );
+    }, []);
+
     return (
       <>
         <HeadContent />
@@ -40,13 +65,9 @@ export const Route = createRootRoute({
             <div className="max-w-3xl mx-auto flex flex-col justify-center items-center">
               <Outlet />
             </div>
-            {/* TODO: Include Urbit desk version; include for "development mode" */}
-            <div className={`
-              fixed z-40 bottom-0 w-full flex justify-center
-              bg-red-500 py-1 px-2 font-bold text-sm text-black
-            `}>
-              ⚠ BETA BUILD ⚠
-            </div>
+            {APP.DEBUG && (
+              <Footer />
+            )}
             <ReactQueryDevtools initialIsOpen={false} />
           </Web3OnboardProvider>
         </QueryClientProvider>
