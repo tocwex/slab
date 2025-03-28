@@ -242,8 +242,11 @@ export function useSyndicateMintMutation(
   const syAccount = useTokenboundAccount(urbitSyndicate);
   const syTax = useSyndicateTax(urbitSyndicate);
   const sySafe = useSafeAccount(urbitSyndicate);
+  const queryKey: QueryKey = useMemo(() => [
+    APP.TAG, "safe", "proposals", wallet?.chainID, urbitSyndicate.id,
+  ], [wallet?.chainID, urbitSyndicate.id]);
 
-  return useMutation({
+  return useBasicMutation([queryKey], {
     mutationFn: async (mintOp: SlabMintOperation) => {
       if (!wallet || !tbClient || !idAccount || !syAccount || !sySafe || !syTax)
         throw Error(ERROR.INVALID_QUERY);
