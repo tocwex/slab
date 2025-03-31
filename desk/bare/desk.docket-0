@@ -6,5 +6,5 @@
     website+'https://github.com/tocwex/slab'
     license+'GNU GPLv3'
     base+'slab'
-    glob-http+['https://raw.githubusercontent.com/tocwex/slab/v1.1.0/meta/glob/glob-0v5.rsh4q.4f1ib.bt2l4.pi396.dq6tr.glob' 0v5.rsh4q.4f1ib.bt2l4.pi396.dq6tr]
+    glob-http+['https://raw.githubusercontent.com/tocwex/slab/v1.1.0/meta/glob/v1.1.0.glob' 0v5.rsh4q.4f1ib.bt2l4.pi396.dq6tr]
 ==
