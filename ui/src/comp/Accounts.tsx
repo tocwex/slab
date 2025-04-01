@@ -228,7 +228,7 @@ export function SyndicateTokenPropModule({
       {(!!syAccount && !!syTax) && (
         <div className="flex flex-col gap-2">
           <h2 className="text-2xl">
-            Syndicate Token
+            {(syAccount.token === undefined) ? "Create" : "Manage"} Syndicate Token
           </h2>
           {(syAccount.token === undefined) ? (
             <LaunchTokenModule urbitID={urbitID} launch={launch} status={launchStatus} />

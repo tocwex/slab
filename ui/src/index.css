@@ -15,7 +15,7 @@
 /* Works on Firefox */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-gray-500) transparent;
+  scrollbar-color: var(--color-gray-600) transparent;
 }
 
 /* Works on Chrome, Edge, and Safari */
@@ -29,7 +29,7 @@
 }
 
 *::-webkit-scrollbar-thumb {
-  background: var(--color-gray-500);
+  background: var(--color-gray-600);
   border: solid 2px transparent;
   border-radius: 20px;
   background-clip: content-box;
@@ -54,11 +54,15 @@ a {
 }
 
 input::placeholder {
-  @apply text-gray-500;
+  @apply text-gray-600;
 }
 
 input:user-invalid {
   @apply border-red-500;
+}
+
+dialog:open::backdrop {
+  @apply bg-transparent bg-white/20;
 }
 
 :is(button, [type='button'], [type='reset'], [type='submit']):enabled {
@@ -66,18 +70,18 @@ input:user-invalid {
 }
 
 :is(button, [type='button'], [type='reset'], [type='submit']):disabled {
-  @apply bg-white/20;
+  @apply bg-gray-600;
 }
 :is(button, [type='button'], [type='reset'], [type='submit']):disabled svg {
-  @apply bg-white/20;
+  @apply bg-gray-600;
 }
 
 .main {
-  @apply flex flex-col gap-4 py-4 px-4 justify-center items-center;
+  @apply flex flex-col gap-4 pt-4 pb-8 px-4 justify-center items-center;
 }
 
 .head {
-  @apply flex justify-center items-center px-4.5 py-3.5 border border-gray-500 text-xl bg-white text-black rounded-2xl;
+  @apply flex justify-center items-center px-4.5 py-3.5 border border-gray-600 text-xl bg-white text-black rounded-2xl;
 }
 
 .input-sm {

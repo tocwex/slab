@@ -14,6 +14,7 @@ export function useDeskVersion(): Loadable<Version> {
 
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKey,
+    // enabled: !!window.desk,
     queryFn: async (): Promise<Version> => {
       const apps = (await URBIT.scry<ChargeUpdateInitial>(scryCharges)).initial;
       return ((apps?.[window.desk]?.version ?? "?.?.?") as Version);

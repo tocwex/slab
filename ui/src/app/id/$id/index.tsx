@@ -207,7 +207,7 @@ export const Route = createFileRoute('/id/$id/')({
             )}
             <form className="flex flex-col items-center gap-2">
               <h2 className="text-2xl">
-                Create Syndicate
+                Create Syndicate Multisig
               </h2>
               {managerNames.map((managerName: string, managerID: number) => (
                 <SyndicateManager key={managerID} id={String(managerID)}
