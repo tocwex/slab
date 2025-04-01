@@ -1,23 +1,30 @@
 import type { WagmiConfig } from '@web3-onboard/core';
 import type { EIP1193Provider, TransactionReceipt } from 'viem';
 import type {
-  Nullable, Address, Contract, Transfer, Token, UrbitNetworkLayer,
-  UrbitID, UrbitAccount, WalletMeta, SlabTransaction,
+  Nullable, Address, Contract, Transfer, Tax, CallData, TBACallData,
+  WalletMeta, Token, TokenboundAccount,
+  SlabTransferOperation, SlabLaunchOperation, SlabMintOperation, SlabDissolveOperation,
+  UrbitNetworkLayer, UrbitID, UrbitAccount, SlabTransaction,
 } from '@/type/slab';
 import { TokenboundClient } from '@tokenbound/sdk';
 import Safe, { getSafeAddressFromDeploymentTx } from '@safe-global/protocol-kit';
+import SafeApiKit from '@safe-global/api-kit';
+import { OperationType } from '@safe-global/types-kit';
 import {
   getAccount, readContract, signMessage, getEnsAddress,
   sendTransaction, getTransactionReceipt, waitForTransactionReceipt,
 } from '@web3-onboard/wagmi';
 import {
-  keccak256, pad, decodeFunctionData,
-  encodePacked, numberToHex,
+  keccak256, pad, encodeFunctionData, decodeFunctionData,
+  encodePacked, numberToHex, parseUnits,
 } from 'viem';
 import { normalize } from 'viem/ens'
-import { getChainMeta, formContract, formToken, formUrbitID, compareUrbitIDs } from '@/lib/util';
+import {
+  clamp, getChainMeta, compareUrbitIDs,
+  formContract, formToken, formUrbitID, includeTax,
+} from '@/lib/util';
 import { URBIT } from '@/dat/apis';
-import { ABI, ACCOUNT, SAFE, REGEX } from '@/dat/const';
+import { ABI, ACCOUNT, BLOCKCHAIN, MATH, SAFE, REGEX, ERROR } from '@/dat/const';
 
 export async function createSafe(
   wallet: WalletMeta,
@@ -36,7 +43,171 @@ export async function createSafe(
   return (safeAddress as Address);
 }
 
-export async function signTBSafeTx(
+export async function submitDirectTx(
+  wallet: WalletMeta,
+  tbClient: TokenboundClient,
+  tbTransaction: TBACallData,
+): Promise<Address> {
+  const transaction: Address = await tbClient.execute(tbTransaction);
+  const { transactionHash } = await awaitReceipt(wallet, transaction);
+  return transactionHash;
+}
+
+export async function submitSafeTx(
+  wallet: WalletMeta,
+  tbClient: TokenboundClient,
+  tbTransaction: TBACallData,
+  safeAddress: Address,
+  signAddress: Address,
+): Promise<Address> {
+  const transaction: CallData = await tbClient.prepareExecution(tbTransaction);
+  const transactionHash = await proposeSafeTx(wallet, transaction, safeAddress, signAddress);
+  return transactionHash;
+}
+
+export async function proposeSafeTx(
+  wallet: WalletMeta,
+  transaction: CallData,
+  safeAddress: Address,
+  signAddress: Address,
+): Promise<Address> {
+  const safeAccount: Safe = await fetchSafeAccount(wallet, safeAddress);
+  const safeTransaction = await safeAccount.createTransaction({
+    transactions: [{
+      operation: OperationType.Call,
+      to: transaction.to,
+      data: transaction.data,
+      value: transaction.value.toString(),
+    }],
+  });
+
+  const safeTxHash = await safeAccount.getTransactionHash(safeTransaction);
+  const safeTxSign = await signSafeTx(wallet, signAddress, safeTxHash);
+
+  const safeClient = new SafeApiKit({chainId: wallet.chain});
+  await safeClient.proposeTransaction({
+    safeAddress: safeAddress,
+    senderAddress: signAddress,
+    senderSignature: safeTxSign,
+    safeTransactionData: safeTransaction.data,
+    safeTxHash: safeTxHash,
+  });
+
+  return (safeTxSign as Address);
+}
+
+export async function buildTransferCall(
+  wallet: WalletMeta,
+  tbClient: TokenboundClient,
+  account: TokenboundAccount,
+  {to, amount, tokenID}: SlabTransferOperation,
+): Promise<TBACallData> {
+  const NULL: Contract = formContract(wallet.chain, "NULL");
+  const TOKEN = await fetchToken(wallet, tokenID);
+
+  const toAddress = await fetchRecipient(wallet, tbClient, to);
+
+  return {
+    account: account.address,
+    ...((tokenID === NULL.address) ? {
+      to: toAddress,
+      value: parseUnits(amount, 18),
+      data: "0x",
+    } : {
+      to: TOKEN.address,
+      value: BigInt(0),
+      data: encodeFunctionData({
+        abi: TOKEN.abi,
+        functionName: "transfer",
+        args: [toAddress, parseUnits(amount, TOKEN.decimals)],
+      }),
+    }),
+  };
+}
+
+export async function buildLaunchCall(
+  wallet: WalletMeta,
+  tbClient: TokenboundClient,
+  account: TokenboundAccount,
+  {name, symbol, init, max, urbitID}: SlabLaunchOperation & {urbitID: string;},
+): Promise<TBACallData> {
+  if (!!account.token) throw Error(ERROR.YES_TOKEN);
+
+  const DEPLOY_V1: Contract = formContract(wallet.chain, "DEPLOYER_V1");
+  const TOKENBOUND: Contract = formContract(wallet.chain, "TOKENBOUND");
+
+  const initSupply = clamp(parseUnits(init, 18), BigInt(0), MATH.MAX_UINT256);
+  const maxSupply = clamp(parseUnits(max, 18), BigInt(0), MATH.MAX_UINT256);
+  const salt = pad("0x0"); // TODO: Customize or randomize salt?
+  if (maxSupply < initSupply)
+    throw Error("Maximum token supply must be at least as large as initial supply.");
+
+  return {
+    account: account.address,
+    to: DEPLOY_V1.address,
+    value: BigInt(0),
+    data: encodeFunctionData({
+      abi: DEPLOY_V1.abi,
+      functionName: "deploySyndicate",
+      args: [TOKENBOUND.address, salt, initSupply, maxSupply, urbitID, name, symbol],
+    }),
+  };
+}
+
+export async function buildMintCall(
+  wallet: WalletMeta,
+  tbClient: TokenboundClient,
+  account: TokenboundAccount,
+  {transfers, tax}: SlabMintOperation & {tax: Tax},
+): Promise<TBACallData> {
+  if (!account?.token) throw Error(ERROR.NO_TOKEN);
+  const tokenDecimals: number = account.token.decimals;
+
+  const recipientAddresses: Address[] = await Promise.all(transfers.map(({to}) => (
+    fetchRecipient(wallet, tbClient, to)
+  )));
+  const recipientAmounts: bigint[] = transfers.map(({amount}) => {
+    const bigAmount = parseUnits(amount, tokenDecimals);
+    return includeTax(bigAmount, tax);
+  });
+
+  return {
+    account: account.address,
+    to: account.token.address,
+    value: BigInt(0),
+    data: encodeFunctionData({
+      abi: ABI.TOCWEX_TOKEN_V1,
+      ...((transfers.length === 1) ? ({
+        functionName: "mint",
+        args: [recipientAddresses[0], recipientAmounts[0]],
+      }) : ({
+        functionName: "batchMint",
+        args: [recipientAddresses, recipientAmounts],
+      })),
+    }),
+  };
+}
+
+export async function buildDissolveCall(
+  wallet: WalletMeta,
+  tbClient: TokenboundClient,
+  account: TokenboundAccount,
+  args: SlabDissolveOperation,
+): Promise<TBACallData> {
+  if (!account.token) throw Error(ERROR.NO_TOKEN);
+
+  return {
+    account: account.address,
+    to: account.token.address,
+    value: BigInt(0),
+    data: encodeFunctionData({
+      abi: ABI.TOCWEX_TOKEN_V1,
+      functionName: "dissolveSyndicate",
+    }),
+  };
+}
+
+export async function signSafeTx(
   wallet: WalletMeta,
   tbAccount: Address,
   txHash: string,
@@ -62,43 +233,54 @@ export async function fetchToken(
   const NULL: Contract = formContract(wallet.chain, "NULL");
 
   let token: Token | undefined = undefined;
-  token = formToken(wallet.chain, identifier);
-  // NOTE: Do a remote lookup for tokens not cached locally
-  if (token.address === NULL.address && identifier.startsWith("0x")) {
-    const tokenName = ((await readContract(wallet.wagmi, {
-      abi: ABI.ERC20,
-      address: (identifier as Address),
-      functionName: "name",
-    })) as string);
-    const tokenSymbol = ((await readContract(wallet.wagmi, {
-      abi: ABI.ERC20,
-      address: (identifier as Address),
-      functionName: "symbol",
-    })) as string);
-    const tokenDecimals = ((await readContract(wallet.wagmi, {
-      abi: ABI.ERC20,
-      address: (identifier as Address),
-      functionName: "decimals",
-    })) as number);
-
-    const REGISTRY: Contract = formContract(wallet.chain, "REGISTRY");
-    const DEPLOYER: Contract = formContract(wallet.chain, "DEPLOYER_V1");
-    const isSyndicateToken = ((await readContract(wallet.wagmi, {
-      abi: REGISTRY.abi,
-      address: REGISTRY.address,
-      functionName: "getSyndicateTokenExistsUsingAddress",
-      args: [identifier],
-    })) as boolean);
-
+  if (identifier === NULL.address) {
     token = {
-      address: (identifier as Address),
-      // @ts-ignore
-      abi: ABI.ERC20,
-      name: tokenName,
-      symbol: tokenSymbol,
-      decimals: tokenDecimals,
-      deployer: !isSyndicateToken ? undefined : DEPLOYER.address,
+      address: NULL.address,
+      abi: [],
+      name: BLOCKCHAIN.TAG?.[Number(wallet.chain)] ?? BLOCKCHAIN.TAG[1],
+      symbol: BLOCKCHAIN.SYM?.[Number(wallet.chain)] ?? BLOCKCHAIN.SYM[1],
+      decimals: 18,
+      deployer: undefined,
     };
+  } else {
+    token = formToken(wallet.chain, identifier);
+    // NOTE: Do a remote lookup for tokens not cached locally
+    if (token.address === NULL.address && identifier.startsWith("0x")) {
+      const tokenName = ((await readContract(wallet.wagmi, {
+        abi: ABI.ERC20,
+        address: (identifier as Address),
+        functionName: "name",
+      })) as string);
+      const tokenSymbol = ((await readContract(wallet.wagmi, {
+        abi: ABI.ERC20,
+        address: (identifier as Address),
+        functionName: "symbol",
+      })) as string);
+      const tokenDecimals = ((await readContract(wallet.wagmi, {
+        abi: ABI.ERC20,
+        address: (identifier as Address),
+        functionName: "decimals",
+      })) as number);
+
+      const REGISTRY: Contract = formContract(wallet.chain, "REGISTRY");
+      const DEPLOYER: Contract = formContract(wallet.chain, "DEPLOYER_V1");
+      const isSyndicateToken = ((await readContract(wallet.wagmi, {
+        abi: REGISTRY.abi,
+        address: REGISTRY.address,
+        functionName: "getSyndicateTokenExistsUsingAddress",
+        args: [identifier],
+      })) as boolean);
+
+      token = {
+        address: (identifier as Address),
+        // @ts-ignore
+        abi: ABI.ERC20,
+        name: tokenName,
+        symbol: tokenSymbol,
+        decimals: tokenDecimals,
+        deployer: !isSyndicateToken ? undefined : DEPLOYER.address,
+      };
+    }
   }
 
   return (token as Token);

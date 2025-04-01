@@ -7,7 +7,7 @@ import type { WalletClient } from 'viem';
 import { useMemo } from 'react';
 import { QueryKey, useQuery } from '@tanstack/react-query';
 import { useConnectWallet, useWagmiConfig } from '@web3-onboard/react'
-import { readContract, getWalletClient } from '@web3-onboard/wagmi';
+import { readContract, getWalletClient, reconnect } from '@web3-onboard/wagmi';
 import { TokenboundClient } from '@tokenbound/sdk';
 import { hexToBigInt } from 'viem';
 import { fetchTBAddress, compareAPIUrbitIDs } from '@/lib/web3';
@@ -63,10 +63,10 @@ export function useUrbitIDs(account: Address): Loadable<UrbitID[]> {
     staleTime: 10 * 60 * 1000,
     queryFn: async () => {
       if (!wallet) throw Error(ERROR.INVALID_QUERY);
-      const azimuth: Contract = formContract(wallet.chain, "AZP");
+      const AZIMUTH: Contract = formContract(wallet.chain, "AZP");
       const points = await readContract(wallet.wagmi, {
-        abi: azimuth.abi,
-        address: azimuth.address,
+        abi: AZIMUTH.abi,
+        address: AZIMUTH.address,
         functionName: "getOwnedPoints",
         args: [account],
       });
@@ -115,6 +115,12 @@ export function useWalletMeta(): Nullable<WalletMeta> {
     const chain: bigint = hexToBigInt(((wallet?.chains?.[0]?.id ?? "0x0") as Address));
     const address: Address = wallet?.accounts?.[0]?.address ?? ACCOUNT.NULL.ETHEREUM;
 
+    // FIXME: `@web3-onboard/wagmi` doesn't update the Wagmi config when the
+    // wallet network changes, so we manually reconnect to fix things
+    if (!!wagmiConfig) {
+      try { reconnect(wagmiConfig) } catch (error) { /* no-op */ }
+    }
+
     return (status === undefined || status === "disconnected")
       ? null
       : {
@@ -124,5 +130,5 @@ export function useWalletMeta(): Nullable<WalletMeta> {
         stateID: `${chain}:${address}`,
         chainID: (BLOCKCHAIN.TAG?.[Number(chain)] ?? "unknown").toLowerCase(),
       };
-  }, [wallet?.chains?.[0]?.id, wallet?.accounts?.[0]?.address]);
+  }, [wagmiConfig?.state?.chainId, wallet?.chains?.[0]?.id, wallet?.accounts?.[0]?.address]);
 }

@@ -5,6 +5,8 @@ import type {
 import type { QueryKey, UseMutationOptions } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import omit from 'lodash.omit';
+import merge from 'lodash.merge';
 import { useWalletMeta } from '@/hook/wallet';
 import { useBasicMutation } from '@/lib/hook';
 import { fetchToken } from '@/lib/web3';
@@ -12,8 +14,8 @@ import { formContract, encodeSet, decodeSet } from '@/lib/util';
 import { get as getLocal, update as updateLocal } from '@/dat/local';
 import { APP, ERROR } from '@/dat/const';
 
-export function useTokensAddMutation(
-  options?: UseMutationOptions<Token, unknown, any, unknown>,
+export function useTokensDiffMutation(
+  options?: UseMutationOptions<Token[], unknown, any, unknown>,
 ) {
   const wallet = useWalletMeta();
   const queryKey: QueryKey = useMemo(() => [
@@ -22,26 +24,28 @@ export function useTokensAddMutation(
 
   const queryClient = useQueryClient();
   return useBasicMutation([queryKey], {
-    mutationFn: async ({address}: {
-      address: Address,
-    }) => {
+    mutationFn: async ({add = [], rem = []}: {
+      add?: Address[];
+      rem?: Address[];
+    } = {}) => {
       if (!wallet) throw Error(ERROR.INVALID_QUERY);
-      const token = await fetchToken(wallet, address);
-      // TODO: Add requirement for syndicate token?
+      const addTokens = await Promise.all(add.map(a => fetchToken(wallet, a)));
+      // TODO: Add requirement for syndicate tokens?
       // if (!token.deployer) throw Error("Token is not a valid syndicate token");
 
       const chainKey = `${wallet.chain}`;
       await updateLocal("tokens", (oldArchive: TokenArchive | undefined) => {
         const newArchive: TokenArchive = (oldArchive ?? {});
         const oldTokenMap: TokenMap = (newArchive?.[chainKey] ?? {});
-        const newTokenMap = {...oldTokenMap, ...({
-          [token.address]: token,
-        })};
+        const newTokenMap = omit(
+          merge({}, oldTokenMap, Object.fromEntries(addTokens.map(t => [t.address, t]))),
+          rem,
+        );
         newArchive[chainKey] = newTokenMap;
         return newArchive;
       });
 
-      return token;
+      return addTokens;
     },
     ...options,
   });

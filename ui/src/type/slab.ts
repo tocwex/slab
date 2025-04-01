@@ -1,6 +1,7 @@
 import type { SafeInfoResponse } from '@safe-global/api-kit';
 import type { SafeMultisigTransactionResponse } from '@safe-global/types-kit';
 import type { WagmiConfig } from '@web3-onboard/core';
+import type { CallData, ExecuteCallParams as TBACallData } from '@tokenbound/sdk';
 import { Abi } from 'abitype';
 
 export type Nullable<T> = T | null;
@@ -20,6 +21,12 @@ export interface Transfer {
   to: Address;
   amount: bigint; // NOTE: unitless unless relative to some token
 }
+export interface WeakTransfer {
+  to: string;
+  amount: string;
+}
+
+export { CallData, TBACallData };
 
 export interface WalletMeta {
   wagmi: WagmiConfig;
@@ -41,24 +48,42 @@ export interface SlabTransferTransaction extends Transfer {
   type: 'transfer';
   token: Token;
 }
+export interface SlabTransferOperation extends WeakTransfer {
+  tokenID: string; // symbol (e.g. "usdc") or address (e.g. "0x...")
+}
 export interface SlabMintTransaction {
   type: 'mint';
   transfers: Transfer[];
   token: Token;
+}
+export interface SlabMintOperation {
+  transfers: WeakTransfer[];
 }
 export interface SlabLaunchTransaction {
   type: 'launch';
   amount: bigint;
   token: Token;
 }
+export interface SlabLaunchOperation {
+  name: string,
+  symbol: string,
+  init: string,
+  max: string,
+}
 export interface SlabDissolveTransaction {
   type: 'dissolve';
+}
+export interface SlabDissolveOperation {
 }
 export interface SlabTerminateTransaction {
   type: 'terminate';
   point: number;
   to: Address;
   reset: boolean;
+}
+export interface SlabTerminateOperation {
+  recipient: Address;
+  breach: boolean;
 }
 export interface SlabOtherTransaction {
   type: 'other';
