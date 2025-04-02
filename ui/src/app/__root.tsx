@@ -83,7 +83,7 @@ export const Route = createRootRoute({
                       Sightbear</a>, an autonomous AI security agent designed
                       to find exploits in Web and Web3 applications.
                       Sightbear's agent did not find any exploits in run
-                      #84f1ac05, which was it's final review of the contract
+                      #84f1ac05, which was its final review of the contract
                       code launched to mainnet ethereum.
                     </p>
                   </div>

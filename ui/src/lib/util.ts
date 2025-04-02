@@ -208,6 +208,7 @@ export function formContract(chain: bigint, symbol: string): Contract {
   const [chainId, chainTag] = getChainMeta(chain);
   return {
     abi: (CONTRACT as any)?.[symbol]?.ABI ?? [],
+    launch: (CONTRACT as any)?.[symbol]?.LAUNCH?.[chainTag] ?? BigInt(0),
     address: (CONTRACT as any)?.[symbol]?.ADDRESS?.[chainTag]
       ?? ACCOUNT.NULL?.[chainTag]
       ?? ACCOUNT.NULL?.ETHEREUM,
@@ -219,12 +220,14 @@ export function formToken(chain: bigint, symbol: string): Token {
   return (symbol === "ETH")
     ? {
       abi: [],
+      launch: BigInt(0),
       address: ACCOUNT.NULL?.[chainTag] ?? ACCOUNT.NULL.ETHEREUM,
       name: BLOCKCHAIN.TAG?.[chainId] ?? BLOCKCHAIN.TAG[BLOCKCHAIN.ID.ETHEREUM],
       symbol: BLOCKCHAIN.SYM?.[chainId] ?? BLOCKCHAIN.SYM[BLOCKCHAIN.ID.ETHEREUM],
       decimals: 18,
     } : {
       abi: (CONTRACT as any)?.[symbol]?.ABI ?? [],
+      launch: (CONTRACT as any)?.[symbol]?.LAUNCH?.[chainTag] ?? BigInt(0),
       address: (CONTRACT as any)?.[symbol]?.ADDRESS?.[chainTag]
         ?? ACCOUNT.NULL?.[chainTag]
         ?? ACCOUNT.NULL.ETHEREUM,

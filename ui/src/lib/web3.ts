@@ -237,6 +237,7 @@ export async function fetchToken(
     token = {
       address: NULL.address,
       abi: [],
+      launch: BigInt(0),
       name: BLOCKCHAIN.TAG?.[Number(wallet.chain)] ?? BLOCKCHAIN.TAG[1],
       symbol: BLOCKCHAIN.SYM?.[Number(wallet.chain)] ?? BLOCKCHAIN.SYM[1],
       decimals: 18,
@@ -264,17 +265,30 @@ export async function fetchToken(
 
       const REGISTRY: Contract = formContract(wallet.chain, "REGISTRY");
       const DEPLOYER: Contract = formContract(wallet.chain, "DEPLOYER_V1");
-      const isSyndicateToken = ((await readContract(wallet.wagmi, {
+      const isSyndicateToken: boolean = ((await readContract(wallet.wagmi, {
         abi: REGISTRY.abi,
         address: REGISTRY.address,
         functionName: "getSyndicateTokenExistsUsingAddress",
         args: [identifier],
       })) as boolean);
+      // FIXME: Is there an easy way to get this information for non-Syndicate
+      // tokens?
+      let tokenLaunch: bigint = BigInt(0);
+      if (isSyndicateToken) {
+        // FIXME: This is currently returning 0 for every syndicate
+        tokenLaunch = ((await readContract(wallet.wagmi, {
+          abi: REGISTRY.abi,
+          address: REGISTRY.address,
+          functionName: "getSyndicateTokenLaunchTimeUsingAzimuthPoint",
+          args: [identifier],
+        })) as bigint);
+      }
 
       token = {
         address: (identifier as Address),
         // @ts-ignore
-        abi: ABI.ERC20,
+        abi: !isSyndicateToken ? ABI.ERC20 : ABI.TOCWEX_TOKEN_V1,
+        launch: tokenLaunch,
         name: tokenName,
         symbol: tokenSymbol,
         decimals: tokenDecimals,
@@ -521,6 +535,7 @@ export async function decodeProposal(
             address: NULL.address,
             // @ts-ignore
             abi: ABI.ERC20,
+            launch: BigInt(0),
             name: tkName,
             symbol: tkSymbol,
             decimals: 18,

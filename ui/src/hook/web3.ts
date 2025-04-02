@@ -1,18 +1,16 @@
 import type { QueryKey, UseMutationOptions } from '@tanstack/react-query';
 import type {
   Loadable, Nullable, Address, ChainAddress, Tax, CallData, TBACallData, UrbitID,
-  Contract, Token, TokenHolding, TokenHoldings, SlabTransaction,
-  SlabTransferOperation, SlabLaunchOperation, SlabMintOperation,
-  SlabDissolveOperation, SlabTerminateOperation,
+  Contract, Token, TokenHolding, TokenHoldings, Syndicate,
+  SlabTransaction, SlabTransferOperation, SlabLaunchOperation,
+  SlabMintOperation, SlabDissolveOperation, SlabTerminateOperation,
   TokenboundAccount, SafeAccount, UrbitAccount, UrbitNetworkLayer,
   SafeResponse, SafeOwners, SafeArchive,
 } from '@/type/slab';
 import { useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useConnectWallet, useWagmiConfig } from '@web3-onboard/react';
-import {
-  getWalletClient, getBalance, readContract, writeContract,
-} from '@web3-onboard/wagmi';
+import { getPublicClient, getBalance, readContract, writeContract } from '@web3-onboard/wagmi';
 import { TokenboundClient } from '@tokenbound/sdk';
 import Safe, { getSafeAddressFromDeploymentTx } from '@safe-global/protocol-kit';
 import SafeApiKit from '@safe-global/api-kit';
@@ -599,6 +597,107 @@ export function useTokenboundCreateMutation(
     },
     ...options,
   });
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//                                                                            //
+//                                Other Hooks                                 //
+//                                                                            //
+////////////////////////////////////////////////////////////////////////////////
+
+export function useGlobalSyndicates(): Loadable<Syndicate[]> {
+  const wallet = useWalletMeta();
+  const queryKey: QueryKey = useMemo(() => [
+    APP.TAG, "syndicate", "global", wallet?.chainID,
+  ], [wallet?.chainID]);
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: queryKey,
+    enabled: !!wallet,
+    queryFn: async (): Promise<Syndicate[]> => {
+      if (!wallet) throw Error(ERROR.INVALID_QUERY);
+      const publicClient = await getPublicClient(wallet.wagmi);
+      if (!publicClient) throw Error(ERROR.INVALID_QUERY);
+
+      const REGISTRY: Token = formToken(wallet.chain, "REGISTRY");
+      const registerLogs = await publicClient.getContractEvents({
+        address: REGISTRY.address,
+        abi: REGISTRY.abi,
+        eventName: "SyndicateRegistered",
+        fromBlock: REGISTRY.launch,
+        toBlock: "latest",
+      });
+      const dissolveLogs = await publicClient.getContractEvents({
+        address: REGISTRY.address,
+        abi: REGISTRY.abi,
+        eventName: "SyndicateDissolved",
+        fromBlock: REGISTRY.launch,
+        toBlock: "latest",
+      });
+      const perUrbitLogs: Record<number, [bigint, any]> = [...registerLogs, ...dissolveLogs].reduce(
+        (logs, next) => {
+          // @ts-ignore
+          const uid: number = Number(next.args.azimuthPoint);
+          const nextBlock: bigint = next.blockNumber;
+          const [prevBlock, prev] = logs?.[uid] ?? [BigInt(0), next];
+          logs[uid] = (nextBlock > prevBlock) ? [nextBlock, next] : [prevBlock, prev];
+          return logs;
+        },
+        ({} as Record<number, [bigint, any]>),
+      );
+
+      let syndicates: Syndicate[] = [];
+      for (const [, log] of Object.values(perUrbitLogs)) {
+        const { owner, azimuthPoint: uid, syndicateToken: tokenAddress } = log.args;
+        const logType: string = log.eventName; // "Syndicate((Registered)|(Dissolved))"
+
+        const NULL: Contract = formContract(wallet.chain, "NULL");
+        const TOKEN: Token = await fetchToken(wallet, tokenAddress);
+        if (TOKEN.address === NULL.address) continue; // FIXME: Bad "args" data on "SyndicateDissolved"
+
+        const tokenSupply: bigint = ((await readContract(wallet.wagmi, {
+          abi: TOKEN.abi,
+          address: TOKEN.address,
+          functionName: "totalSupply",
+        })) as bigint);
+        let tokenMaximum: bigint | undefined = undefined;
+        { // query token maximum cap //
+          const isTokenCapped: boolean = ((await readContract(wallet.wagmi, {
+            abi: TOKEN.abi,
+            address: TOKEN.address,
+            functionName: "isSupplyCapped",
+          })) as boolean);
+          if (isTokenCapped) {
+            tokenMaximum = ((await readContract(wallet.wagmi, {
+              abi: TOKEN.abi,
+              address: TOKEN.address,
+              functionName: "getMaxSupply",
+            })) as bigint);
+          }
+        }
+
+        // TODO: Transfer logs on the ERC20 contract
+        const tokenHolders: Record<Address, bigint> = {};
+
+        syndicates.push({
+          owner: owner,
+          holders: tokenHolders,
+          token: {
+            ...TOKEN,
+            active: (logType === "SyndicateRegistered"),
+            supply: tokenSupply,
+            maximum: tokenMaximum,
+          },
+        });
+      }
+
+      return syndicates;
+    },
+  });
+
+  return isLoading ? undefined
+    : isError ? null
+    : (data as Syndicate[]);
 }
 
 export function useSafeProposals(urbitSyndicate: UrbitID): Loadable<SafeResponse[]> {
