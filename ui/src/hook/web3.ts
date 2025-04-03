@@ -10,7 +10,7 @@ import type {
 import { useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useConnectWallet, useWagmiConfig } from '@web3-onboard/react';
-import { getPublicClient, getBalance, readContract, writeContract } from '@web3-onboard/wagmi';
+import { getBalance, readContract, writeContract } from '@web3-onboard/wagmi';
 import { TokenboundClient } from '@tokenbound/sdk';
 import Safe, { getSafeAddressFromDeploymentTx } from '@safe-global/protocol-kit';
 import SafeApiKit from '@safe-global/api-kit';
@@ -23,7 +23,7 @@ import { useWalletMeta, useTokenboundClient } from '@/hook/wallet';
 import { useLocalTokens, useTokensDiffMutation } from '@/hook/local';
 import {
   createSafe, submitSafeTx, submitDirectTx, proposeSafeTx,
-  signSafeTx, fetchSafeAccount, fetchUrbitAccount,
+  signSafeTx, scanDiffEvents, fetchSafeAccount, fetchUrbitAccount,
   fetchRecipient, fetchTBAddress, fetchToken, fetchUrbitID,
   buildTransferCall, buildLaunchCall, buildMintCall, buildDissolveCall,
   fetchAzimuthEcliptic, decodeProposal, awaitReceipt, compareAPIUrbitIDs,
@@ -605,6 +605,36 @@ export function useTokenboundCreateMutation(
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
+export function useGlobalWhitelist(): Loadable<UrbitID[]> {
+  const wallet = useWalletMeta();
+  const queryKey: QueryKey = useMemo(() => [
+    APP.TAG, "syndicate", "whitelist", wallet?.chainID,
+  ], [wallet?.chainID]);
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: queryKey,
+    enabled: !!wallet,
+    queryFn: async (): Promise<UrbitID[]> => {
+      if (!wallet) throw Error(ERROR.INVALID_QUERY);
+
+      const DEPLOYER: Token = formToken(wallet.chain, "DEPLOYER_V1");
+      const whitelistLogs = await scanDiffEvents(wallet, DEPLOYER,
+        "AzimuthPointAddedToWhitelist", "AzimuthPointRemovedFromWhitelist",
+        (l) => Number(l?.args?.azimuthPoint ?? 0));
+
+      const whitelistIDs: UrbitID[] = Object.entries(whitelistLogs)
+        .filter(([uid, [, log]]) => (log.eventName === "AzimuthPointAddedToWhitelist"))
+        .map(([uid, [, log]]) => (formUrbitID(uid)));
+
+      return whitelistIDs;
+    },
+  });
+
+  return isLoading ? undefined
+    : isError ? null
+    : (data as UrbitID[]);
+}
+
 export function useGlobalSyndicates(): Loadable<Syndicate[]> {
   const wallet = useWalletMeta();
   const queryKey: QueryKey = useMemo(() => [
@@ -616,60 +646,47 @@ export function useGlobalSyndicates(): Loadable<Syndicate[]> {
     enabled: !!wallet,
     queryFn: async (): Promise<Syndicate[]> => {
       if (!wallet) throw Error(ERROR.INVALID_QUERY);
-      const publicClient = await getPublicClient(wallet.wagmi);
-      if (!publicClient) throw Error(ERROR.INVALID_QUERY);
 
+      const NULL: Token = formToken(wallet.chain, "NULL");
       const REGISTRY: Token = formToken(wallet.chain, "REGISTRY");
-      const registerLogs = await publicClient.getContractEvents({
-        address: REGISTRY.address,
-        abi: REGISTRY.abi,
-        eventName: "SyndicateRegistered",
-        fromBlock: REGISTRY.launch,
-        toBlock: "latest",
-      });
-      const dissolveLogs = await publicClient.getContractEvents({
-        address: REGISTRY.address,
-        abi: REGISTRY.abi,
-        eventName: "SyndicateDissolved",
-        fromBlock: REGISTRY.launch,
-        toBlock: "latest",
-      });
-      const perUrbitLogs: Record<number, [bigint, any]> = [...registerLogs, ...dissolveLogs].reduce(
-        (logs, next) => {
-          // @ts-ignore
-          const uid: number = Number(next.args.azimuthPoint);
-          const nextBlock: bigint = next.blockNumber;
-          const [prevBlock, prev] = logs?.[uid] ?? [BigInt(0), next];
-          logs[uid] = (nextBlock > prevBlock) ? [nextBlock, next] : [prevBlock, prev];
-          return logs;
-        },
-        ({} as Record<number, [bigint, any]>),
+      const syndicateLogs = await scanDiffEvents(
+        wallet,
+        REGISTRY,
+        "SyndicateRegistered",
+        "SyndicateDissolved",
+        (l) => Number(l?.args?.azimuthPoint ?? 0),
+        (hi, lo) => ({...hi, args: {
+          ...(hi?.args ?? {}),
+          ...(Object.fromEntries(["owner", "syndicateToken"].map((arg) => ([
+            arg,
+            [hi?.args?.[arg], lo?.args?.[arg]].find((val) => (
+              val !== undefined && val !== NULL.address
+            )) ?? hi?.args?.[arg]
+          ])))),
+        }}),
       );
 
-      let syndicates: Syndicate[] = [];
-      for (const [, log] of Object.values(perUrbitLogs)) {
+      const syndicates: Syndicate[] = [];
+      for (const [, log] of Object.values(syndicateLogs)) {
         const { owner, azimuthPoint: uid, syndicateToken: tokenAddress } = log.args;
-        const logType: string = log.eventName; // "Syndicate((Registered)|(Dissolved))"
+        const logType: string = log.eventName;
 
-        const NULL: Contract = formContract(wallet.chain, "NULL");
         const TOKEN: Token = await fetchToken(wallet, tokenAddress);
-        if (TOKEN.address === NULL.address) continue; // FIXME: Bad "args" data on "SyndicateDissolved"
-
         const tokenSupply: bigint = ((await readContract(wallet.wagmi, {
-          abi: TOKEN.abi,
+          abi: ABI.TOCWEX_TOKEN_V1,
           address: TOKEN.address,
           functionName: "totalSupply",
         })) as bigint);
         let tokenMaximum: bigint | undefined = undefined;
         { // query token maximum cap //
           const isTokenCapped: boolean = ((await readContract(wallet.wagmi, {
-            abi: TOKEN.abi,
+            abi: ABI.TOCWEX_TOKEN_V1,
             address: TOKEN.address,
             functionName: "isSupplyCapped",
           })) as boolean);
           if (isTokenCapped) {
             tokenMaximum = ((await readContract(wallet.wagmi, {
-              abi: TOKEN.abi,
+              abi: ABI.TOCWEX_TOKEN_V1,
               address: TOKEN.address,
               functionName: "getMaxSupply",
             })) as bigint);
@@ -684,6 +701,8 @@ export function useGlobalSyndicates(): Loadable<Syndicate[]> {
           holders: tokenHolders,
           token: {
             ...TOKEN,
+            // @ts-ignore
+            abi: ABI.TOCWEX_TOKEN_V1,
             active: (logType === "SyndicateRegistered"),
             supply: tokenSupply,
             maximum: tokenMaximum,

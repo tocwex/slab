@@ -1,5 +1,5 @@
 import type { WagmiConfig } from '@web3-onboard/core';
-import type { EIP1193Provider, TransactionReceipt } from 'viem';
+import type { BlockTag, EIP1193Provider, TransactionReceipt } from 'viem';
 import type {
   Nullable, Address, Contract, Transfer, Tax, CallData, TBACallData,
   WalletMeta, Token, TokenboundAccount,
@@ -11,7 +11,7 @@ import Safe, { getSafeAddressFromDeploymentTx } from '@safe-global/protocol-kit'
 import SafeApiKit from '@safe-global/api-kit';
 import { OperationType } from '@safe-global/types-kit';
 import {
-  getAccount, readContract, signMessage, getEnsAddress,
+  getPublicClient, getAccount, readContract, signMessage, getEnsAddress,
   sendTransaction, getTransactionReceipt, waitForTransactionReceipt,
 } from '@web3-onboard/wagmi';
 import {
@@ -224,6 +224,44 @@ export async function signSafeTx(
     [pad(tbAccount), BigInt(65), 0, BigInt((txSign.length - 2) / 2), txSign],
   );
   return safeTxSign;
+}
+
+export async function scanDiffEvents<IDType extends string | number | symbol>(
+  wallet: WalletMeta,
+  contract: Contract,
+  addEventName: string,
+  remEventName: string,
+  getEventId: (l: any) => IDType = (l: any) => (l?.args?.[0] ?? ""),
+  mergeEvents: (hi: any, lo: any) => any = (hi: any, lo: any) => (hi),
+): Promise<Record<number, [bigint, any]>> {
+  const publicClient = await getPublicClient(wallet.wagmi);
+  if (!publicClient) throw Error("Public client for wallet unavailable");
+
+  const scanArgs = {
+    address: contract.address,
+    abi: contract.abi,
+    fromBlock: contract.launch,
+    toBlock: ("latest" as BlockTag),
+  };
+  const [addLogs, remLogs] = await Promise.all([
+    publicClient.getContractEvents({...scanArgs, eventName: addEventName}),
+    publicClient.getContractEvents({...scanArgs, eventName: remEventName}),
+  ]);
+
+  const id2log: Record<IDType, [bigint, any]> = [...addLogs, ...remLogs].reduce(
+    (logs, next) => {
+      const logID: IDType = getEventId(next);
+      const nextBlock: bigint = next?.blockNumber || BigInt(0);
+      const [prevBlock, prev] = logs?.[logID] ?? [BigInt(0), next];
+      logs[logID] = (nextBlock < prevBlock)
+        ? [prevBlock, prev]
+        : [nextBlock, mergeEvents(next, prev)];
+      return logs;
+    },
+    ({} as Record<IDType, [bigint, any]>),
+  );
+
+  return id2log;
 }
 
 export async function fetchToken(
