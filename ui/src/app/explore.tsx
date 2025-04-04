@@ -53,6 +53,20 @@ export const Route = createFileRoute('/explore')({
               <span className="font-bold">owner: </span>
               <TBAFrame address={owner} />
             </li>
+            <li>
+              <span className="font-bold">holders: </span>
+              <ul className="list-decimal pl-8">
+                {Object.entries(holders).map(([holder, amount]: [string, bigint]) => (
+                  <li key={holder}>
+                    <TBAFrame address={(holder as Address)} />
+                    <span> : </span>
+                    <span>
+                      {formatFloat(formatUnits(amount, token.decimals), 0, 2)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </li>
           </ul>
         </li>
       );

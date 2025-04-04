@@ -20,6 +20,8 @@ cd ./ui
 npm install
 echo "VITE_SHIP_URL=http://127.0.0.1:8080" >> .env.local
 echo "VITE_ALCHEMY_KEY=…" >> .env.local
+# optional: for token metadata statistics
+echo "VITE_MORALIS_KEY=…" >> .env.local
 ```
 
 Subsequently, run the following commands to download [durploy] create a new

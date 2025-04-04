@@ -97,12 +97,14 @@ export function UrbitIDFrame({
   className=undefined,
 }: {
   urbitID: UrbitID;
-  link?: boolean;
+  link?: "dm" | "pf" | boolean;
   className?: string;
 }): React.ReactNode {
-  const href: string = useMemo(() => (`
-    https://network.urbit.org/${urbitID.patp}
-  `.trim()), [urbitID]);
+  const href: string = useMemo(() => (
+    !link ? "" :
+    (link === "pf") ? `https://network.urbit.org/${urbitID.patp}` :
+    `${window.location.origin}/apps/groups/dm/${urbitID.patp}`
+  ), [window.location.origin, urbitID, link]);
 
   return !link ? (
     <code className={className}>

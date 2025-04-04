@@ -649,6 +649,11 @@ export function useGlobalSyndicates(): Loadable<Syndicate[]> {
 
       const NULL: Token = formToken(wallet.chain, "NULL");
       const REGISTRY: Token = formToken(wallet.chain, "REGISTRY");
+      // FIXME: Because of how `scanDiffEvents` works, this will only report
+      // the most recently registered/dissolved syndicate for each point; this
+      // should be changed to all registered/dissolved syndicates for each point
+      // (along with active block windows, e.g. "formed at block X, dissolved at
+      // block Y)
       const syndicateLogs = await scanDiffEvents(
         wallet,
         REGISTRY,
@@ -693,8 +698,32 @@ export function useGlobalSyndicates(): Loadable<Syndicate[]> {
           }
         }
 
-        // TODO: Transfer logs on the ERC20 contract
-        const tokenHolders: Record<Address, bigint> = {};
+        let tokenHolders: Record<Address, bigint> = {};
+        if (!!import.meta.env.VITE_MORALIS_KEY) { // query token holders from API //
+          const queryUrl = new URL(`https://deep-index.moralis.io/api/v2.2/erc20/${
+            TOKEN.address
+          }/owners`);
+          queryUrl.searchParams.append("chain", numberToHex(wallet.chain));
+          queryUrl.searchParams.append("limit", "100");
+          queryUrl.searchParams.append("order", "DESC");
+
+          tokenHolders = await fetch(queryUrl, {
+            method: "GET",
+            headers: {
+              "accept": "application/json",
+              "X-API-Key": String(import.meta.env.VITE_MORALIS_KEY),
+            },
+          }).then(response => (
+            response.json()
+          )).then(json => (Object.fromEntries(
+            (json?.result ?? []).map(({owner_address: o, balance: b}: {
+              owner_address: any;
+              balance: any;
+            }) => (
+              ([o, b] as [Address, bigint])
+            ))
+          )));
+        }
 
         syndicates.push({
           owner: owner,
