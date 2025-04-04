@@ -1,57 +1,41 @@
-import type { UrbitID } from "@/type/slab";
-import React, { FormEvent, useCallback, useMemo } from 'react';
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { HeroFrame, LoadingFrame, AddressFrame } from '@/comp/Frames';
+import React, { useCallback } from 'react';
+import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
+import { HeroFrame } from '@/comp/Frames';
 import { ConnectedWalletGuard } from '@/comp/Guards';
-import { SingleSelector, SingleSelection } from '@/comp/Selector';
-import { useWalletMeta, useWalletUrbitIDs } from '@/hook/wallet';
-import { toTitleCase } from '@/lib/util';
+import { AzimuthIcon, UrbitIcon } from '@/comp/Icons';
 
 export const Route = createFileRoute('/')({
   component: (): React.ReactNode => {
-    const navigate = useNavigate();
-    const wallet = useWalletMeta();
-    const urbitIDs = useWalletUrbitIDs();
-
-    const goUrbitID = useCallback((selection: SingleSelection) => {
-      if (!!selection) {
-        navigate({ to: `/id/${selection.value}` });
-      }
-    }, [navigate]);
+    const HeroButton = useCallback(({
+      title,
+      href,
+      children,
+    } : {
+      title: string;
+      href: string,
+      children: React.ReactNode;
+    }): React.ReactNode => (
+      <Link title={title} to={href} className={`
+        w-60 h-60 flex flex-col justify-around items-center
+        border-3 border-white p-4 rounded-2xl
+      `.trim()}>
+        <h3 className="text-2xl">{title}</h3>
+        {children}
+      </Link>
+    ), []);
 
     return (
       <ConnectedWalletGuard>
-        <LoadingFrame status={urbitIDs && ((urbitIDs ?? []).length > 0)} error={
-          (!!wallet) && (
-            (urbitIDs === null) ? (
-              <h4 className="font-medium">
-                <span>Unable to fetch Web3 wallet details for </span>
-                <AddressFrame address={wallet.address} />
-                <span>; please try again.</span>
-              </h4>
-            ) : (
-              <h4 className="font-medium">
-                <span>Web3 wallet </span>
-                <AddressFrame address={wallet.address} />
-                <span> doesn't own an Urbit ID on chain </span>
-                <span className="font-bold">{toTitleCase(wallet.chainID)}</span>
-                <span>; please connect another.</span>
-              </h4>
-            )
-          )
-        }>
-          <HeroFrame>
-            <SingleSelector
-              onChange={goUrbitID}
-              placeholder="Select Urbit ID"
-              isClearable={false}
-              styles={{container: (s) => ({...s, width: "200px"})}}
-              options={((urbitIDs || null) ?? []).map(({id, patp, clan}: UrbitID) => (
-                { value: patp, label: patp }
-              ))}
-            />
-          </HeroFrame>
-        </LoadingFrame>
+        <HeroFrame size="lg">
+          <div className="flex flex-row gap-10">
+            <HeroButton title="Select Identity" href="/id">
+              <UrbitIcon className="border-4 w-24 h-24" />
+            </HeroButton>
+            <HeroButton title="Explore Ecosystem" href="/ex">
+              <AzimuthIcon className="w-24 h-24" />
+            </HeroButton>
+          </div>
+        </HeroFrame>
       </ConnectedWalletGuard>
     );
   },

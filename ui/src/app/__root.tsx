@@ -33,7 +33,7 @@ export const Route = createRootRoute({
 
     const HomeLink = useCallback(() => (
       (pathname !== '/apps/slab/') ? (
-        <Link className="head" children="HOME" to="/" />
+        <Link className="head" children="BACK" to=".." />
       ) : (
         <a className="head" children="LANDSCAPE" href={
           `${window.location.origin}/apps/landscape/`
@@ -66,50 +66,48 @@ export const Route = createRootRoute({
       );
     }, [toggleDialog]);
 
-    const Dialog = useCallback(() => {
-      return (
-        <dialog ref={dialogRef}>
-          <div className="fixed inset-0 z-50 w-screen overflow-y-auto">
-            <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-              <div className="relative overflow-hidden rounded-lg text-left sm:my-8 sm:w-full sm:max-w-lg">
-                <div className="relative bg-white text-black px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
-                  <div className="mt-3 text-center flex flex-col gap-3 sm:mt-0 sm:text-left">
-                    <h2 className="text-2xl font-bold underline">
-                      %slab Beta
-                    </h2>
-                    <p>
-                      The Syndicate contract ecosystem was developed in
-                      concert with <a href="https://www.sightbear.com">
-                      Sightbear</a>, an autonomous AI security agent designed
-                      to find exploits in Web and Web3 applications.
-                      Sightbear's agent did not find any exploits in run
-                      #84f1ac05, which was its final review of the contract
-                      code launched to mainnet ethereum.
-                    </p>
-                  </div>
+    const Dialog = useCallback(() => (
+      <dialog ref={dialogRef}>
+        <div className="fixed inset-0 z-50 w-screen overflow-y-auto">
+          <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+            <div className="relative overflow-hidden rounded-lg text-left sm:my-8 sm:w-full sm:max-w-lg">
+              <div className="relative bg-white text-black px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                <div className="mt-3 text-center flex flex-col gap-3 sm:mt-0 sm:text-left">
+                  <h2 className="text-2xl font-bold underline">
+                    %slab Beta
+                  </h2>
+                  <p>
+                    The Syndicate contract ecosystem was developed in
+                    concert with <a href="https://www.sightbear.com">
+                    Sightbear</a>, an autonomous AI security agent designed
+                    to find exploits in Web and Web3 applications.
+                    Sightbear's agent did not find any exploits in run
+                    #84f1ac05, which was its final review of the contract
+                    code launched to mainnet ethereum.
+                  </p>
                 </div>
-                <div className="absolute top-3 right-4">
-                  <button type="button"
-                    onClick={toggleDialog}
-                    className="font-light"
-                  >
-                    ✖
-                  </button>
-                </div>
-                <div className="bg-gray-600 text-white flex gap-2 px-4 py-3 sm:flex-row-reverse sm:px-6">
-                  <button type="button"
-                    onClick={toggleDialog}
-                    className="button-lg bg-black"
-                  >
-                    Close
-                  </button>
-                </div>
+              </div>
+              <div className="absolute top-3 right-4">
+                <button type="button"
+                  onClick={toggleDialog}
+                  className="font-light"
+                >
+                  ✖
+                </button>
+              </div>
+              <div className="bg-gray-600 text-white flex gap-2 px-4 py-3 sm:flex-row-reverse sm:px-6">
+                <button type="button"
+                  onClick={toggleDialog}
+                  className="button-lg bg-black"
+                >
+                  Close
+                </button>
               </div>
             </div>
           </div>
-        </dialog>
-      );
-    }, [dialogRef, toggleDialog]);
+        </div>
+      </dialog>
+    ), [dialogRef, toggleDialog]);
 
     return (
       <>

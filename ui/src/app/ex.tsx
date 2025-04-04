@@ -2,11 +2,12 @@ import type { Address, Loadable, Syndicate, UrbitID } from '@/type/slab';
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { createFileRoute } from '@tanstack/react-router'
 import { LoadingFrame, TBAFrame, AddressFrame, UrbitIDFrame } from '@/comp/Frames';
+import { ConnectedWalletGuard } from '@/comp/Guards';
 import { useGlobalWhitelist, useGlobalSyndicates } from '@/hook/web3';
 import { formatToken, formatFloat, formatUint } from '@/lib/util';
 import { formatUnits } from 'viem';
 
-export const Route = createFileRoute('/explore')({
+export const Route = createFileRoute('/ex')({
   // head: ({ params }) => ({
   //   meta: [
   //     { title: `%slab | test page` },
@@ -73,39 +74,41 @@ export const Route = createFileRoute('/explore')({
     }, []);
 
     return (
-      <LoadingFrame status={whitelist && syndicates} title="Explore Syndicates" size="lg">
-        <div className="main">
-          <h1 className="text-4xl font-bold underline">
-            Explore Syndicates
-          </h1>
-          <h3 className="text-2xl font-semibold underline">
-            Active Syndicates
-          </h3>
-          <ul className="list-disc space-y-4">
-            {activeSyndicates.map((sy: Syndicate) => (
-              <SyndicateFrame key={sy?.token?.address} syndicate={sy} />
-            ))}
-          </ul>
-          <h3 className="text-2xl font-semibold underline">
-            Retired Syndicates
-          </h3>
-          <ul className="list-disc space-y-4">
-            {inactiveSyndicates.map((sy: Syndicate) => (
-              <SyndicateFrame key={sy?.token?.address} syndicate={sy} />
-            ))}
-          </ul>
-          <h3 className="text-2xl font-semibold underline">
-            Whitelisted Points
-          </h3>
-          <ul className="list-disc">
-            {(whitelist || []).map((urbitID: UrbitID) => (
-              <li key={urbitID.id}>
-                <UrbitIDFrame urbitID={urbitID} link={false} />
-              </li>
-            ))}
-          </ul>
-        </div>
-      </LoadingFrame>
+      <ConnectedWalletGuard>
+        <LoadingFrame status={whitelist && syndicates} title="Explore Syndicates" size="lg">
+          <div className="main">
+            <h1 className="text-4xl font-bold underline">
+              Explore Syndicates
+            </h1>
+            <h3 className="text-2xl font-semibold underline">
+              Active Syndicates
+            </h3>
+            <ul className="list-disc space-y-4">
+              {activeSyndicates.map((sy: Syndicate) => (
+                <SyndicateFrame key={sy?.token?.address} syndicate={sy} />
+              ))}
+            </ul>
+            <h3 className="text-2xl font-semibold underline">
+              Retired Syndicates
+            </h3>
+            <ul className="list-disc space-y-4">
+              {inactiveSyndicates.map((sy: Syndicate) => (
+                <SyndicateFrame key={sy?.token?.address} syndicate={sy} />
+              ))}
+            </ul>
+            <h3 className="text-2xl font-semibold underline">
+              Whitelisted Points
+            </h3>
+            <ul className="list-disc">
+              {(whitelist || []).map((urbitID: UrbitID) => (
+                <li key={urbitID.id}>
+                  <UrbitIDFrame urbitID={urbitID} link={false} />
+                </li>
+              ))}
+            </ul>
+          </div>
+        </LoadingFrame>
+      </ConnectedWalletGuard>
     );
   },
 });
