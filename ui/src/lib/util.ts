@@ -1,7 +1,9 @@
 import type { Nullable, Address, Contract, Token, Tax, UrbitID, UrbitClan } from '@/type/slab';
 import type { WalletState } from '@web3-onboard/core';
 import { APP, ABI, ACCOUNT, BLOCKCHAIN, CONTRACT } from '@/dat/const';
-import * as ob from "urbit-ob";
+import * as ob from 'urbit-ob';
+import seedrandom from 'seedrandom';
+import Color, { ColorInstance } from 'color';
 import { formatUnits, isHex, hexToBigInt } from 'viem';
 
 const CLAN_INDEX = Object.freeze({
@@ -49,6 +51,11 @@ export function rateLimit(maxRequests: number, perSeconds: number): (func: any) 
   };
 }
 
+export function randomColor(seed: string): ColorInstance {
+  const color: number = Math.floor(seedrandom(seed)() * (0xFFFFFF - 0x0 + 1) + 0x0);
+  return Color(`#${color.toString(16).padStart(6, "0")}`);
+}
+
 export function encodeList<U>(list: U[]): string {
   return String(list.sort());
 }
@@ -68,6 +75,12 @@ export function decodeSet<U>(str: string, sip?: (s: string) => U): Set<U> {
 
 export function trimAddress(address: string): string {
   return `${address.slice(0, 5)}…${address.slice(-4)}`;
+}
+
+export function trimUrbitID(urbit: UrbitID): string {
+  return (urbit.clan === "comet") ? `${urbit.patp.substring(0, 7)}_${urbit.patp.substring(urbit.patp.length - 7)}`
+    : (urbit.clan === "moon") ? ob.sein(urbit.patp).replace("-", "^")
+    : urbit.patp;
 }
 
 export function coerceBigInt(amount: number | string | bigint): [bigint, number] {

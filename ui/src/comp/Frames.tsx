@@ -5,7 +5,7 @@ import { useGoBack } from '@/hook/app';
 import { useTokenboundUrbitID, useAddressENS } from '@/hook/web3';
 import { useWalletMeta } from '@/hook/wallet';
 import { useCopy } from '@/hook/util';
-import { trimAddress, formUrbitID, toTitleCase } from '@/lib/util';
+import { trimAddress, trimUrbitID, formUrbitID, toTitleCase } from '@/lib/util';
 import { BLOCKCHAIN } from '@/dat/const';
 
 export function LoadingFrame({
@@ -89,6 +89,24 @@ export function WideFrame({
       {children}
     </div>
   );
+}
+
+export function NameFrame({
+  address,
+  short=true,
+}: {
+  address: Address;
+  short?: boolean;
+}): React.ReactNode {
+  // TODO: Implement "short" to shorten address/urbitid
+  const urbitID = useTokenboundUrbitID(address);
+  const addressENS = useAddressENS(address);
+
+  return !!urbitID
+    ? (!short ? urbitID.patp : trimUrbitID(urbitID))
+    : !!addressENS
+      ? addressENS
+      : (!short ? address : trimAddress(address));
 }
 
 export function ChainFrame({
