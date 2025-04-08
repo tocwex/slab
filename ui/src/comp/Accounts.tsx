@@ -438,12 +438,7 @@ function MintTokenModule({
             {formatTax(syTax)}
           </WideFrame>
           <WideFrame title="Total Mint Quantity">
-            {
-              formatToken(
-                includeTax(mintTotal, syTax),
-                syAccount.token,
-              )
-            }
+            {formatToken(includeTax(mintTotal, syTax), syAccount.token)}
           </WideFrame>
         </div>
         <button type="button"

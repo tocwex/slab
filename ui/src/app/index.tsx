@@ -27,7 +27,7 @@ export const Route = createFileRoute('/')({
     return (
       <ConnectedWalletGuard>
         <HeroFrame size="lg">
-          <div className="flex flex-row gap-10">
+          <div className="flex flex-row flex-wrap justify-center gap-10">
             <HeroButton title="Select Identity" href="/id">
               <UrbitIcon className="border-4 w-24 h-24" />
             </HeroButton>

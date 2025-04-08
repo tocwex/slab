@@ -10,6 +10,7 @@ import { APP } from '@/dat/const';
 
 export const Route = createFileRoute('/id/$id/sy')({
   loader: ({params}) => {
+    // @ts-ignore
     if (!params?.sy) {
       throw redirect({ to: ".." });
     }

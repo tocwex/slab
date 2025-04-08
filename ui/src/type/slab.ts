@@ -130,6 +130,7 @@ export interface UrbitL2Account {
 }
 export interface UrbitNoAccount {
   layer: 'no';
+  owner: '0x0000000000000000000000000000000000000000';
 }
 export type UrbitAccount = UrbitL1Account | UrbitL2Account | UrbitNoAccount;
 

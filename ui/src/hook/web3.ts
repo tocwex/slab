@@ -24,7 +24,7 @@ import { useLocalTokens, useTokensDiffMutation } from '@/hook/local';
 import {
   createSafe, submitSafeTx, submitDirectTx, proposeSafeTx,
   signSafeTx, scanDiffEvents, fetchSafeAccount, fetchUrbitAccount,
-  fetchRecipient, fetchTBAddress, fetchToken, fetchUrbitID,
+  fetchRecipient, fetchTBAddress, fetchToken, fetchUrbitID, fetchAddressENS,
   buildTransferCall, buildLaunchCall, buildMintCall, buildDissolveCall,
   fetchAzimuthEcliptic, decodeProposal, awaitReceipt, compareAPIUrbitIDs,
 } from '@/lib/web3';
@@ -608,7 +608,7 @@ export function useTokenboundCreateMutation(
 export function useGlobalWhitelist(): Loadable<UrbitID[]> {
   const wallet = useWalletMeta();
   const queryKey: QueryKey = useMemo(() => [
-    APP.TAG, "syndicate", "whitelist", wallet?.chainID,
+    APP.TAG, "global", "whitelist", wallet?.chainID,
   ], [wallet?.chainID]);
 
   const { data, isLoading, isError } = useQuery({
@@ -626,7 +626,7 @@ export function useGlobalWhitelist(): Loadable<UrbitID[]> {
         .filter(([uid, [, log]]) => (log.eventName === "AzimuthPointAddedToWhitelist"))
         .map(([uid, [, log]]) => (formUrbitID(uid)));
 
-      return whitelistIDs;
+      return whitelistIDs.sort(compareAPIUrbitIDs);
     },
   });
 
@@ -635,16 +635,16 @@ export function useGlobalWhitelist(): Loadable<UrbitID[]> {
     : (data as UrbitID[]);
 }
 
-export function useGlobalSyndicates(): Loadable<Syndicate[]> {
+export function useGlobalSyndicates(): Loadable<[UrbitID, Address][]> {
   const wallet = useWalletMeta();
   const queryKey: QueryKey = useMemo(() => [
-    APP.TAG, "syndicate", "global", wallet?.chainID,
+    APP.TAG, "global", "syndicates", wallet?.chainID,
   ], [wallet?.chainID]);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKey,
     enabled: !!wallet,
-    queryFn: async (): Promise<Syndicate[]> => {
+    queryFn: async (): Promise<[UrbitID, Address][]> => {
       if (!wallet) throw Error(ERROR.INVALID_QUERY);
 
       const NULL: Token = formToken(wallet.chain, "NULL");
@@ -671,81 +671,113 @@ export function useGlobalSyndicates(): Loadable<Syndicate[]> {
         }}),
       );
 
-      const syndicates: Syndicate[] = [];
-      for (const [, log] of Object.values(syndicateLogs)) {
-        const { owner, azimuthPoint: uid, syndicateToken: tokenAddress } = log.args;
-        const logType: string = log.eventName;
+      const syndicates = Object.values(syndicateLogs).map(([, log]): [UrbitID, Address] => ([
+        formUrbitID(Number(log?.args?.azimuthPoint ?? 0)),
+        log?.args?.syndicateToken ?? NULL.address,
+      ]));
 
-        const TOKEN: Token = await fetchToken(wallet, tokenAddress);
-        const tokenSupply: bigint = ((await readContract(wallet.wagmi, {
-          abi: ABI.TOCWEX_TOKEN_V1,
-          address: TOKEN.address,
-          functionName: "totalSupply",
-        })) as bigint);
-        let tokenMaximum: bigint | undefined = undefined;
-        { // query token maximum cap //
-          const isTokenCapped: boolean = ((await readContract(wallet.wagmi, {
-            abi: ABI.TOCWEX_TOKEN_V1,
-            address: TOKEN.address,
-            functionName: "isSupplyCapped",
-          })) as boolean);
-          if (isTokenCapped) {
-            tokenMaximum = ((await readContract(wallet.wagmi, {
-              abi: ABI.TOCWEX_TOKEN_V1,
-              address: TOKEN.address,
-              functionName: "getMaxSupply",
-            })) as bigint);
-          }
-        }
-
-        let tokenHolders: Record<Address, bigint> = {};
-        if (!!import.meta.env.VITE_MORALIS_KEY) { // query token holders from API //
-          const queryUrl = new URL(`https://deep-index.moralis.io/api/v2.2/erc20/${
-            TOKEN.address
-          }/owners`);
-          queryUrl.searchParams.append("chain", numberToHex(wallet.chain));
-          queryUrl.searchParams.append("limit", "100");
-          queryUrl.searchParams.append("order", "DESC");
-
-          tokenHolders = await fetch(queryUrl, {
-            method: "GET",
-            headers: {
-              "accept": "application/json",
-              "X-API-Key": String(import.meta.env.VITE_MORALIS_KEY),
-            },
-          }).then(response => (
-            response.json()
-          )).then(json => (Object.fromEntries(
-            (json?.result ?? []).map(({owner_address: o, balance: b}: {
-              owner_address: any;
-              balance: any;
-            }) => (
-              ([o, b] as [Address, bigint])
-            ))
-          )));
-        }
-
-        syndicates.push({
-          owner: owner,
-          holders: tokenHolders,
-          token: {
-            ...TOKEN,
-            // @ts-ignore
-            abi: ABI.TOCWEX_TOKEN_V1,
-            active: (logType === "SyndicateRegistered"),
-            supply: tokenSupply,
-            maximum: tokenMaximum,
-          },
-        });
-      }
-
-      return syndicates;
+      return syndicates.sort(([a, ], [b,]) => compareAPIUrbitIDs(a, b));
     },
   });
 
   return isLoading ? undefined
     : isError ? null
-    : (data as Syndicate[]);
+    : (data as [UrbitID, Address][]);
+}
+
+export function useUrbitSyndicate(urbitSyndicate: UrbitID): Loadable<Syndicate> {
+  const wallet = useWalletMeta();
+  const tbClient = useTokenboundClient();
+  const queryKey: QueryKey = useMemo(() => [
+    APP.TAG, "global", "syndicates", wallet?.chainID, urbitSyndicate.id,
+  ], [wallet?.chainID]);
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: queryKey,
+    enabled: !!wallet && !!tbClient,
+    queryFn: async (): Promise<Syndicate | false> => {
+      if (!wallet || !tbClient) throw Error(ERROR.INVALID_QUERY);
+
+      const NULL: Contract = formContract(wallet.chain, "NULL");
+      const REGISTRY: Token = formToken(wallet.chain, "REGISTRY");
+      const tokenAddress: Address = ((await readContract(wallet.wagmi, {
+        abi: REGISTRY.abi,
+        address: REGISTRY.address,
+        functionName: "getSyndicateTokenAddressUsingAzimuthPoint",
+        args: [urbitSyndicate.id],
+      })) as Address);
+      if (tokenAddress === NULL.address) return false;
+
+      const TOKEN: Token = await fetchToken(wallet, tokenAddress);
+      const tokenSupply: bigint = ((await readContract(wallet.wagmi, {
+        abi: ABI.TOCWEX_TOKEN_V1,
+        address: TOKEN.address,
+        functionName: "totalSupply",
+      })) as bigint);
+      let tokenMaximum: bigint | undefined = undefined;
+      { // query token maximum cap //
+        const isTokenCapped: boolean = ((await readContract(wallet.wagmi, {
+          abi: ABI.TOCWEX_TOKEN_V1,
+          address: TOKEN.address,
+          functionName: "isSupplyCapped",
+        })) as boolean);
+        if (isTokenCapped) {
+          tokenMaximum = ((await readContract(wallet.wagmi, {
+            abi: ABI.TOCWEX_TOKEN_V1,
+            address: TOKEN.address,
+            functionName: "getMaxSupply",
+          })) as bigint);
+        }
+      }
+
+      let tokenHolders: Record<Address, bigint> = {};
+      if (!!import.meta.env.VITE_MORALIS_KEY) { // query token holders from API //
+        const queryUrl = new URL(`https://deep-index.moralis.io/api/v2.2/erc20/${
+          TOKEN.address
+        }/owners`);
+        queryUrl.searchParams.append("chain", numberToHex(wallet.chain));
+        queryUrl.searchParams.append("limit", "100");
+        queryUrl.searchParams.append("order", "DESC");
+
+        tokenHolders = await fetch(queryUrl, {
+          method: "GET",
+          headers: {
+            "accept": "application/json",
+            "X-API-Key": String(import.meta.env.VITE_MORALIS_KEY),
+          },
+        }).then(response => (
+          response.json()
+        )).then(json => (Object.fromEntries(
+          (json?.result ?? []).map(({owner_address: o, balance: b}: {
+            owner_address: any;
+            balance: any;
+          }) => (
+            ([o, b] as [Address, bigint])
+          ))
+        )));
+      }
+
+      const owner = await fetchTBAddress(wallet, tbClient, urbitSyndicate);
+      return {
+        owner: owner,
+        holders: tokenHolders,
+        token: {
+          ...TOKEN,
+          // @ts-ignore
+          abi: ABI.TOCWEX_TOKEN_V1,
+          // FIXME: Inactive/defunt token exploring is not yet supported
+          active: true,
+          supply: tokenSupply,
+          maximum: tokenMaximum,
+        },
+      };
+    },
+  });
+
+  return isLoading ? undefined
+    : isError ? null
+    : !data ? false
+    : (data as Syndicate);
 }
 
 export function useSafeProposals(urbitSyndicate: UrbitID): Loadable<SafeResponse[]> {
@@ -932,9 +964,13 @@ export function useSafeAccount(urbitID: UrbitID): Loadable<SafeAccount> {
       })) as Address);
 
       const safeClient = new SafeApiKit({chainId: wallet.chain});
-      const safeInfo = await safeClient.getSafeInfo(safeAddress);
-
-      return safeInfo;
+      try {
+        const safeInfo = await safeClient.getSafeInfo(safeAddress);
+        return safeInfo;
+      // FIXME: Assuming the error is a 404 and thus that this ID has no SAFE
+      } catch(error) {
+        return false;
+      }
     },
   });
 
@@ -1064,6 +1100,30 @@ export function useRecipientAddress(value: string): Loadable<Address> {
       const recipientAddress = await fetchRecipient(wallet, tbClient, value);
       if (recipientAddress === NULL.address) return false;
       return recipientAddress;
+    },
+  });
+
+  return isLoading ? undefined
+    : isError ? null
+    : !data ? false
+    : (data as Address);
+}
+
+export function useAddressENS(address: Address): Loadable<string> {
+  const wallet = useWalletMeta();
+  const queryKey: QueryKey = useMemo(() => [
+    APP.TAG, "address", wallet?.chainID, address,
+  ], [wallet?.chainID, address]);
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: queryKey,
+    enabled: !!wallet,
+    queryFn: async (): Promise<string | false> => {
+      if (!wallet) throw Error(ERROR.INVALID_QUERY);
+      if (!address.match(REGEX.ETHEREUM.ADDRESS)) return false;
+      const addressENS = await fetchAddressENS(wallet, address);
+      if (addressENS === "") return false;
+      return addressENS;
     },
   });
 

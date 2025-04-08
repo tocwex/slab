@@ -2,7 +2,7 @@ import type { Address, AddressType, UrbitID } from "@/type/slab";
 import React, { useCallback, useMemo } from 'react';
 import { CopyIcon, CopiedIcon, HugeLoadingIcon } from '@/comp/Icons';
 import { useGoBack } from '@/hook/app';
-import { useTokenboundUrbitID } from '@/hook/web3';
+import { useTokenboundUrbitID, useAddressENS } from '@/hook/web3';
 import { useWalletMeta } from '@/hook/wallet';
 import { useCopy } from '@/hook/util';
 import { trimAddress, formUrbitID } from '@/lib/util';
@@ -130,6 +130,7 @@ export function AddressFrame({
 }): React.ReactNode {
   const wallet = useWalletMeta();
   const [copy, copied] = useCopy(address);
+  const addressENS = useAddressENS(address);
 
   const link: boolean = useMemo(() => (
     type !== "signature"
@@ -137,10 +138,12 @@ export function AddressFrame({
   const text: string = useMemo(() => (
     (typeof short === "string")
       ? short
-      : !short
-        ? address
-        : trimAddress(address)
-  ), [address, short]);
+      : !!addressENS
+        ? addressENS
+        : !short
+          ? address
+          : trimAddress(address)
+  ), [address, addressENS, short]);
   const href: string = useMemo(() => (`
     https://${
       (wallet?.chain === BigInt(BLOCKCHAIN.ID.SEPOLIA)) ? "sepolia."

@@ -11,7 +11,7 @@ import Safe, { getSafeAddressFromDeploymentTx } from '@safe-global/protocol-kit'
 import SafeApiKit from '@safe-global/api-kit';
 import { OperationType } from '@safe-global/types-kit';
 import {
-  getPublicClient, getAccount, readContract, signMessage, getEnsAddress,
+  getPublicClient, getAccount, readContract, signMessage, getEnsAddress, getEnsName,
   sendTransaction, getTransactionReceipt, waitForTransactionReceipt,
 } from '@web3-onboard/wagmi';
 import {
@@ -427,6 +427,16 @@ export async function fetchENSAddress(
     name: normalize(domain),
   });
   return (ensAddress === null) ? NULL.address : (ensAddress as Address);
+}
+
+export async function fetchAddressENS(
+  wallet: WalletMeta,
+  address: Address,
+): Promise<string> {
+  const ensName = await getEnsName(wallet.wagmi, {
+    address: address,
+  });
+  return (ensName === null) ? "" : ensName;
 }
 
 export async function fetchTBAddress(

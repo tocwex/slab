@@ -32,6 +32,10 @@ export function useRouteUrbitSyndicate(): Nullable<UrbitID> {
   return useRouteUrbitParam("sy");
 }
 
+export function useRouteUrbitExplore(): Nullable<UrbitID> {
+  return useRouteUrbitParam("ex");
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
 //                             Routing Operations                             //
