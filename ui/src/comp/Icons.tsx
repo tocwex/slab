@@ -175,7 +175,7 @@ export function TinyLoadingIcon({className, ...props}: SVGProps<SVGSVGElement>):
   return (<BaseLoadingIcon className={`w-6 h-6 border-[1.75px] ${className}`} {...props} />);
 }
 export function TextLoadingIcon({className, ...props}: SVGProps<SVGSVGElement>): ReactNode {
-  return (<BaseLoadingIcon className={`w-4 h-4 border ${className}`} {...props} />);
+  return (<BaseLoadingIcon className={`w-4 h-4 border inline-block ${className}`} {...props} />);
 }
 export function BaseLoadingIcon({className, ...props}: SVGProps<SVGSVGElement>): ReactNode {
   return (

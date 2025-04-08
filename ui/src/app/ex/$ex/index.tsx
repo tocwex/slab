@@ -1,11 +1,12 @@
 import type { Nullable, Address, Loadable, UrbitID } from '@/type/slab';
 import { createFileRoute } from '@tanstack/react-router'
 import React, { useMemo } from 'react';
-import { HeroFrame, LoadingFrame, TBAFrame, AddressFrame, UrbitIDFrame } from '@/comp/Frames';
+import { HeroFrame, LoadingFrame, TBAFrame, AddressFrame, UrbitIDFrame, ChainFrame } from '@/comp/Frames';
 import { TextLoadingIcon } from '@/comp/Icons';
 import { useRouteUrbitExplore } from '@/hook/app';
 import { useGlobalSyndicates, useUrbitSyndicate, useSafeAccount, useUrbitAccount } from '@/hook/web3';
-import { formatToken, formatFloat, formatUint } from '@/lib/util';
+import { useWalletMeta } from '@/hook/wallet';
+import { formatToken, toTitleCase } from '@/lib/util';
 
 export const Route = createFileRoute('/ex/$ex/')({
   // head: ({ params }) => ({
@@ -43,12 +44,14 @@ export const Route = createFileRoute('/ex/$ex/')({
             <h4 className="font-medium">
               <span>There is no live Syndicate for </span>
               <UrbitIDFrame urbitID={urbitID} />
+              <span> on chain </span>
+              <ChainFrame />
               <span>.</span>
             </h4>
             <h4 className="font-medium">
               {!syAddress ? (
                 <span>
-                  A Syndicate has never been formed for this Urbit ID.
+                  A Syndicate has never been formed for this Urbit ID on this chain.
                 </span>
               ) : (
                 <>

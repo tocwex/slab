@@ -4,6 +4,7 @@ import type {
   SlabDissolveOperation, SlabTerminateOperation,
 } from '@/type/slab';
 import React, { useState, useMemo, useCallback, useRef } from 'react';
+import { Link } from '@tanstack/react-router';
 import { SingleSelector } from '@/comp/Selector';
 import {
   LoadingFrame, WideFrame, SafeFrame, AddressFrame, TBAFrame,
@@ -405,7 +406,9 @@ function MintTokenModule({
         <ul className="list-disc">
           <li>
             <span className="font-bold">name: </span>
-            <span>{syAccount.token.name}</span>
+            <Link to="/ex/$ex" params={{ex: urbitID.patp}}>
+              {syAccount.token.name}
+            </Link>
           </li>
           <li>
             <span className="font-bold">symbol: </span>

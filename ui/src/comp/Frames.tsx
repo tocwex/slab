@@ -1,11 +1,11 @@
 import type { Address, AddressType, UrbitID } from "@/type/slab";
 import React, { useCallback, useMemo } from 'react';
-import { CopyIcon, CopiedIcon, HugeLoadingIcon } from '@/comp/Icons';
+import { CopyIcon, CopiedIcon, TextLoadingIcon, HugeLoadingIcon } from '@/comp/Icons';
 import { useGoBack } from '@/hook/app';
 import { useTokenboundUrbitID, useAddressENS } from '@/hook/web3';
 import { useWalletMeta } from '@/hook/wallet';
 import { useCopy } from '@/hook/util';
-import { trimAddress, formUrbitID } from '@/lib/util';
+import { trimAddress, formUrbitID, toTitleCase } from '@/lib/util';
 import { BLOCKCHAIN } from '@/dat/const';
 
 export function LoadingFrame({
@@ -88,6 +88,27 @@ export function WideFrame({
       <span className="whitespace-nowrap font-semibold">{title}</span>
       {children}
     </div>
+  );
+}
+
+export function ChainFrame({
+  short=false,
+  className=undefined,
+}: {
+  short?: boolean;
+  className?: string;
+}): React.ReactNode {
+  const wallet = useWalletMeta();
+
+  return !wallet ? (
+    <TextLoadingIcon />
+  ) : (
+    <span className={`font-bold ${className}`}>
+      {short
+        ? String(wallet.chain)
+        : toTitleCase(wallet.chainID)
+      }
+    </span>
   );
 }
 

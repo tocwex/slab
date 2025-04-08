@@ -1,7 +1,7 @@
 import type { UrbitID } from "@/type/slab";
 import React, { FormEvent, useCallback, useMemo } from 'react';
 import { createFileRoute, useNavigate, Outlet } from '@tanstack/react-router';
-import { HeroFrame, LoadingFrame, AddressFrame } from '@/comp/Frames';
+import { HeroFrame, LoadingFrame, AddressFrame, ChainFrame } from '@/comp/Frames';
 import { RouteUIDOwnerGuard, ConnectedWalletGuard } from '@/comp/Guards';
 import { SingleSelector, SingleSelection } from '@/comp/Selector';
 import { useRouteUrbitID } from '@/hook/app';
@@ -43,7 +43,7 @@ export const Route = createFileRoute('/id')({
                   <span>Web3 wallet </span>
                   <AddressFrame address={wallet.address} />
                   <span> doesn't own an Urbit ID on chain </span>
-                  <span className="font-bold">{toTitleCase(wallet.chainID)}</span>
+                  <ChainFrame />
                   <span>; please connect another.</span>
                 </h4>
               )
