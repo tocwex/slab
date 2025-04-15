@@ -247,6 +247,15 @@ export async function scanDiffEvents<IDType extends string | number | symbol>(
     publicClient.getContractEvents({...scanArgs, eventName: addEventName}),
     publicClient.getContractEvents({...scanArgs, eventName: remEventName}),
   ]);
+  // TODO: The error is that the 'public client' gets out of wack when
+  // switching chains
+  // - `reconnect` does not work
+  // - `disconnect` then `connect` does work, but it has a really bad UX
+  // console.log(publicClient);
+  // console.log(`Public Client: ${publicClient?.chain?.name}/${publicClient?.chain?.id}`);
+  // console.log(`Wallet: ${wallet.chainID}`);
+  // console.log(addLogs);
+  // console.log(remLogs);
 
   const id2log: Record<IDType, [bigint, any]> = [...addLogs, ...remLogs].reduce(
     (logs, next) => {

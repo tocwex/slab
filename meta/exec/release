@@ -78,16 +78,18 @@ case ${release_type} in
 	prod) release__vername="v${release_version}" ;;
 	dbug) release__vername="v${release_version}-dbg" ;;
 	test)
-		release__latest="$(find "$(dirname "$(readlink -f "${release_globpath}")")" -maxdepth 1 -name "${release_version}-rc*.glob" \
+		release__latest="$(find "$(dirname "$(readlink -f "${release_globpath}")")" \
+			-maxdepth 1 -name "v${release_version}-rc*.glob" \
 			| sed -re "s/.*-rc([[:digit:]]+)\.glob/\1/" \
-			| sort -g | tail -n1)"
+			| sort -g | tail -1)"
 		release__vername="v${release_version}-rc$((release__latest+1))"
 		;;
 esac
 release__filename="${release__vername}.glob"
 mv "${release_globpath}" "$(dirname "$(readlink -f "${release_globpath}")")/${release__filename}"
 if [ "${release_type}" = "prod" ]; then
-	rm -f "$(dirname "$(readlink -f "${release_globpath}")")/${release__vername}-rc*.glob"
+	# shellcheck disable=SC2046,SC2086
+	rm -f $(dirname "$(readlink -f "${release_globpath}")")/${release__vername}-rc*.glob
 fi
 
 release__reponame="$(git -C "${release__basedir}" remote -v | awk '/\(fetch\)$/ {print $2;}' | sed -re 's|.*:(.*)\.git$|\1|')"

@@ -48,8 +48,11 @@ export const Route = createFileRoute('/ex/$ex/')({
       );
       let holderTotal: bigint = holderAmounts.reduce((a, [, n]) => a + n, BigInt(0));
       if (!!urbitSy && isShowMaximum && !!urbitSy.token.maximum) {
-        holderAmounts.push(["unminted", urbitSy.token.maximum - holderTotal]);
-        holderTotal = urbitSy.token.maximum;
+        const unmintedAmount: bigint = urbitSy.token.maximum - holderTotal;
+        if (unmintedAmount > 0) {
+          holderAmounts.push(["unminted", unmintedAmount]);
+          holderTotal = urbitSy.token.maximum;
+        }
       }
 
       const holderPercs: [string, number][] = holderAmounts.map(([holder, amount]) => ([
