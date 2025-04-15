@@ -93,7 +93,7 @@ npm run build:prod
 cd ..
 ./durploy desk -g zod slab ./ui/dist
 cp "$(ls -dtr1 "${XDG_CACHE_HOME:-$HOME/.cache}/durploy/glob"/* | tail -1)" ./meta/glob
-./meta/exec/release -l 1.2.3 "$(ls -dtr1 ./meta/glob/* | tail -1)"
+./meta/exec/release 1.2.3 "$(ls -dtr1 ./meta/glob/* | tail -1)"
 ./durploy desk zod slab ./desk/full/
 # run this in zod's dojo to make sure the new glob is being used
 # :docket [%kick %slab]
