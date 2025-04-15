@@ -17,6 +17,12 @@ import { useWalletMeta } from '@/hook/wallet';
 import { formatToken, trimAddress, randomColor } from '@/lib/util';
 import { REGEX } from '@/dat/const';
 
+interface SyndicateShares {
+  holders: [Address, bigint][];
+  minted: bigint;
+  maximum?: bigint;
+}
+
 export const Route = createFileRoute('/ex/$ex/')({
   // head: ({ params }) => ({
   //   meta: [
@@ -42,24 +48,30 @@ export const Route = createFileRoute('/ex/$ex/')({
     const syManagers: Nullable<Address[]> = useMemo(() => (
       ((urbitMultisig || null)?.owners as Address[]) ?? null
     ), [urbitMultisig]);
-    const syPieData = useMemo(() => {
-      const holderAmounts: [string, bigint][] = Object.entries((urbitSy || {})?.holders ?? {}).map(
-        ([holder, amount]: [string, bigint]) => ([holder, BigInt(amount)])
+    const syShares: Nullable<SyndicateShares> = useMemo(() => {
+      const holders: [Address, bigint][] = Object.entries((urbitSy || {})?.holders ?? {}).map(
+        ([holder, amount]: [string, bigint]) => ([(holder as Address), BigInt(amount)])
       );
-      let holderTotal: bigint = holderAmounts.reduce((a, [, n]) => a + n, BigInt(0));
-      if (!!urbitSy && isShowMaximum && !!urbitSy.token.maximum) {
-        const unmintedAmount: bigint = urbitSy.token.maximum - holderTotal;
-        if (unmintedAmount > 0) {
-          holderAmounts.push(["unminted", unmintedAmount]);
-          holderTotal = urbitSy.token.maximum;
+      const minted: bigint = holders.reduce((a, [, n]) => a + n, BigInt(0));
+      const maximum: bigint | undefined = (urbitSy || {})?.token?.maximum;
+      return !urbitSy ? null : { holders, minted, maximum };
+    }, [urbitSy]);
+    const syPieData = useMemo(() => {
+      const pieAmounts: [string, bigint][] = syShares?.holders?.concat() ?? [];
+      let pieTotal: bigint = syShares?.minted ?? BigInt(0);
+      if (!!syShares && !!syShares.maximum && isShowMaximum) {
+        const unminted: bigint = syShares.maximum - syShares.minted;
+        if (unminted > 0) {
+          pieAmounts.push(["unminted", unminted]);
+          pieTotal = syShares.maximum;
         }
       }
 
-      const holderPercs: [string, number][] = holderAmounts.map(([holder, amount]) => ([
-        holder,
-        Number(amount * BigInt(10000) / holderTotal) / 100,
+      const piePercs: [string, number][] = pieAmounts.map(([owner, amount]) => ([
+        owner,
+        Number(amount * BigInt(10000) / pieTotal) / 100,
       ]));
-      const [hugePercs, tinyPercs] = partition(holderPercs, ([, p]: [string, number]) => p >= 1);
+      const [hugePercs, tinyPercs] = partition(piePercs, ([, p]: [string, number]) => p >= 1);
       // FIXME: May want to renormalize based on the "rest" value, and to use
       // the proper NULL address for the current chain
       const finalPercs = hugePercs.concat(!tinyPercs.length
@@ -68,12 +80,12 @@ export const Route = createFileRoute('/ex/$ex/')({
         : [["<1% holders", 1]]
       );
 
-      return finalPercs.map(([holder, perc]: [string, number], index: number) => ({
-        title: holder,
+      return finalPercs.map(([owner, perc]: [string, number]) => ({
+        title: owner,
         value: perc,
-        color: randomColor(holder).grayscale().hex(),
+        color: randomColor(owner).grayscale().hex(),
       }));
-    }, [urbitSy, isShowMaximum]);
+    }, [syShares, isShowMaximum]);
 
     return (
       <LoadingFrame status={urbitSy} title={`Explore ${urbitID.patp} Syndicate`} error={
@@ -209,10 +221,15 @@ export const Route = createFileRoute('/ex/$ex/')({
             />
             <button type="button"
               onClick={toggleShowMaximum}
-              disabled={!urbitSy.token.maximum}
+              disabled={!urbitSy.token.maximum
+                || (!!syShares && (syShares?.minted === syShares?.maximum))
+              }
               className="button-lg bg-black"
             >
-              Show {isShowMaximum ? "Current Supply" : "With Cap"}
+              {(!!syShares && (syShares?.minted === syShares?.maximum))
+                ? "At Full Issuance"
+                : `Show ${isShowMaximum ? "Current Supply" : "With Cap"}`
+              }
             </button>
           </div>
         )}
