@@ -2,7 +2,7 @@
     info+'A Syndicate launchpad and management dashboard.'
     color+0x11.1111
     image+'https://github.com/tocwex/slab/raw/refs/tags/v1.0.0/meta/xtra/tile.jpeg'
-    version+[1 1 0]
+    version+[1 1 1]
     website+'https://github.com/tocwex/slab'
     license+'GNU GPLv3'
     base+'slab'
