@@ -1,11 +1,11 @@
 import type { Address, AddressType, UrbitID } from "@/type/slab";
 import React, { useCallback, useMemo } from 'react';
-import { CopyIcon, CopiedIcon, HugeLoadingIcon } from '@/comp/Icons';
+import { CopyIcon, CopiedIcon, TextLoadingIcon, HugeLoadingIcon } from '@/comp/Icons';
 import { useGoBack } from '@/hook/app';
-import { useTokenboundUrbitID } from '@/hook/web3';
+import { useTokenboundUrbitID, useAddressENS } from '@/hook/web3';
 import { useWalletMeta } from '@/hook/wallet';
 import { useCopy } from '@/hook/util';
-import { trimAddress, formUrbitID } from '@/lib/util';
+import { trimAddress, trimUrbitID, formUrbitID, toTitleCase } from '@/lib/util';
 import { BLOCKCHAIN } from '@/dat/const';
 
 export function LoadingFrame({
@@ -91,18 +91,59 @@ export function WideFrame({
   );
 }
 
+export function NameFrame({
+  address,
+  short=true,
+}: {
+  address: Address;
+  short?: boolean;
+}): React.ReactNode {
+  // TODO: Implement "short" to shorten address/urbitid
+  const urbitID = useTokenboundUrbitID(address);
+  const addressENS = useAddressENS(address);
+
+  return !!urbitID
+    ? (!short ? urbitID.patp : trimUrbitID(urbitID))
+    : !!addressENS
+      ? addressENS
+      : (!short ? address : trimAddress(address));
+}
+
+export function ChainFrame({
+  short=false,
+  className=undefined,
+}: {
+  short?: boolean;
+  className?: string;
+}): React.ReactNode {
+  const wallet = useWalletMeta();
+
+  return !wallet ? (
+    <TextLoadingIcon />
+  ) : (
+    <span className={`font-bold ${className}`}>
+      {short
+        ? String(wallet.chain)
+        : toTitleCase(wallet.chainID)
+      }
+    </span>
+  );
+}
+
 export function UrbitIDFrame({
   urbitID,
   link=true,
   className=undefined,
 }: {
   urbitID: UrbitID;
-  link?: boolean;
+  link?: "dm" | "pf" | boolean;
   className?: string;
 }): React.ReactNode {
-  const href: string = useMemo(() => (`
-    https://network.urbit.org/${urbitID.patp}
-  `.trim()), [urbitID]);
+  const href: string = useMemo(() => (
+    !link ? "" :
+    (link === "pf") ? `https://network.urbit.org/${urbitID.patp}` :
+    `${window.location.origin}/apps/groups/dm/${urbitID.patp}`
+  ), [window.location.origin, urbitID, link]);
 
   return !link ? (
     <code className={className}>
@@ -128,6 +169,7 @@ export function AddressFrame({
 }): React.ReactNode {
   const wallet = useWalletMeta();
   const [copy, copied] = useCopy(address);
+  const addressENS = useAddressENS(address);
 
   const link: boolean = useMemo(() => (
     type !== "signature"
@@ -135,10 +177,12 @@ export function AddressFrame({
   const text: string = useMemo(() => (
     (typeof short === "string")
       ? short
-      : !short
-        ? address
-        : trimAddress(address)
-  ), [address, short]);
+      : !!addressENS
+        ? addressENS
+        : !short
+          ? address
+          : trimAddress(address)
+  ), [address, addressENS, short]);
   const href: string = useMemo(() => (`
     https://${
       (wallet?.chain === BigInt(BLOCKCHAIN.ID.SEPOLIA)) ? "sepolia."

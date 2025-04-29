@@ -1,18 +1,16 @@
 import type { QueryKey, UseMutationOptions } from '@tanstack/react-query';
 import type {
   Loadable, Nullable, Address, ChainAddress, Tax, CallData, TBACallData, UrbitID,
-  Contract, Token, TokenHolding, TokenHoldings, SlabTransaction,
-  SlabTransferOperation, SlabLaunchOperation, SlabMintOperation,
-  SlabDissolveOperation, SlabTerminateOperation,
+  Contract, Token, TokenHolding, TokenHoldings, Syndicate,
+  SlabTransaction, SlabTransferOperation, SlabLaunchOperation,
+  SlabMintOperation, SlabDissolveOperation, SlabTerminateOperation,
   TokenboundAccount, SafeAccount, UrbitAccount, UrbitNetworkLayer,
   SafeResponse, SafeOwners, SafeArchive,
 } from '@/type/slab';
 import { useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useConnectWallet, useWagmiConfig } from '@web3-onboard/react';
-import {
-  getWalletClient, getBalance, readContract, writeContract,
-} from '@web3-onboard/wagmi';
+import { getBalance, readContract, writeContract } from '@web3-onboard/wagmi';
 import { TokenboundClient } from '@tokenbound/sdk';
 import Safe, { getSafeAddressFromDeploymentTx } from '@safe-global/protocol-kit';
 import SafeApiKit from '@safe-global/api-kit';
@@ -25,8 +23,8 @@ import { useWalletMeta, useTokenboundClient } from '@/hook/wallet';
 import { useLocalTokens, useTokensDiffMutation } from '@/hook/local';
 import {
   createSafe, submitSafeTx, submitDirectTx, proposeSafeTx,
-  signSafeTx, fetchSafeAccount, fetchUrbitAccount,
-  fetchRecipient, fetchTBAddress, fetchToken, fetchUrbitID,
+  signSafeTx, scanDiffEvents, fetchSafeAccount, fetchUrbitAccount,
+  fetchRecipient, fetchTBAddress, fetchToken, fetchUrbitID, fetchAddressENS,
   buildTransferCall, buildLaunchCall, buildMintCall, buildDissolveCall,
   fetchAzimuthEcliptic, decodeProposal, awaitReceipt, compareAPIUrbitIDs,
 } from '@/lib/web3';
@@ -601,6 +599,187 @@ export function useTokenboundCreateMutation(
   });
 }
 
+////////////////////////////////////////////////////////////////////////////////
+//                                                                            //
+//                                Other Hooks                                 //
+//                                                                            //
+////////////////////////////////////////////////////////////////////////////////
+
+export function useGlobalWhitelist(): Loadable<UrbitID[]> {
+  const wallet = useWalletMeta();
+  const queryKey: QueryKey = useMemo(() => [
+    APP.TAG, "global", "whitelist", wallet?.chainID,
+  ], [wallet?.chainID]);
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: queryKey,
+    enabled: !!wallet,
+    queryFn: async (): Promise<UrbitID[]> => {
+      if (!wallet) throw Error(ERROR.INVALID_QUERY);
+
+      const DEPLOYER: Token = formToken(wallet.chain, "DEPLOYER_V1");
+      const whitelistLogs = await scanDiffEvents(wallet, DEPLOYER,
+        "AzimuthPointAddedToWhitelist", "AzimuthPointRemovedFromWhitelist",
+        (l) => Number(l?.args?.azimuthPoint ?? 0));
+
+      const whitelistIDs: UrbitID[] = Object.entries(whitelistLogs)
+        .filter(([uid, [, log]]) => (log.eventName === "AzimuthPointAddedToWhitelist"))
+        .map(([uid, [, log]]) => (formUrbitID(uid)));
+
+      return whitelistIDs.sort(compareAPIUrbitIDs);
+    },
+  });
+
+  return isLoading ? undefined
+    : isError ? null
+    : (data as UrbitID[]);
+}
+
+export function useGlobalSyndicates(): Loadable<[UrbitID, Address][]> {
+  const wallet = useWalletMeta();
+  const queryKey: QueryKey = useMemo(() => [
+    APP.TAG, "global", "syndicates", wallet?.chainID,
+  ], [wallet?.chainID]);
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: queryKey,
+    enabled: !!wallet,
+    queryFn: async (): Promise<[UrbitID, Address][]> => {
+      if (!wallet) throw Error(ERROR.INVALID_QUERY);
+
+      const NULL: Token = formToken(wallet.chain, "NULL");
+      const REGISTRY: Token = formToken(wallet.chain, "REGISTRY");
+      // FIXME: Because of how `scanDiffEvents` works, this will only report
+      // the most recently registered/dissolved syndicate for each point; this
+      // should be changed to all registered/dissolved syndicates for each point
+      // (along with active block windows, e.g. "formed at block X, dissolved at
+      // block Y)
+      const syndicateLogs = await scanDiffEvents(
+        wallet,
+        REGISTRY,
+        "SyndicateRegistered",
+        "SyndicateDissolved",
+        (l) => Number(l?.args?.azimuthPoint ?? 0),
+        (hi, lo) => ({...hi, args: {
+          ...(hi?.args ?? {}),
+          ...(Object.fromEntries(["owner", "syndicateToken"].map((arg) => ([
+            arg,
+            [hi?.args?.[arg], lo?.args?.[arg]].find((val) => (
+              val !== undefined && val !== NULL.address
+            )) ?? hi?.args?.[arg]
+          ])))),
+        }}),
+      );
+
+      const syndicates = Object.values(syndicateLogs).map(([, log]): [UrbitID, Address] => ([
+        formUrbitID(Number(log?.args?.azimuthPoint ?? 0)),
+        log?.args?.syndicateToken ?? NULL.address,
+      ]));
+
+      return syndicates.sort(([a, ], [b,]) => compareAPIUrbitIDs(a, b));
+    },
+  });
+
+  return isLoading ? undefined
+    : isError ? null
+    : (data as [UrbitID, Address][]);
+}
+
+export function useUrbitSyndicate(urbitSyndicate: UrbitID): Loadable<Syndicate> {
+  const wallet = useWalletMeta();
+  const tbClient = useTokenboundClient();
+  const queryKey: QueryKey = useMemo(() => [
+    APP.TAG, "global", "syndicates", wallet?.chainID, urbitSyndicate.id,
+  ], [wallet?.chainID]);
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: queryKey,
+    enabled: !!wallet && !!tbClient,
+    queryFn: async (): Promise<Syndicate | false> => {
+      if (!wallet || !tbClient) throw Error(ERROR.INVALID_QUERY);
+
+      const NULL: Contract = formContract(wallet.chain, "NULL");
+      const REGISTRY: Token = formToken(wallet.chain, "REGISTRY");
+      const tokenAddress: Address = ((await readContract(wallet.wagmi, {
+        abi: REGISTRY.abi,
+        address: REGISTRY.address,
+        functionName: "getSyndicateTokenAddressUsingAzimuthPoint",
+        args: [urbitSyndicate.id],
+      })) as Address);
+      if (tokenAddress === NULL.address) return false;
+
+      const TOKEN: Token = await fetchToken(wallet, tokenAddress);
+      const tokenSupply: bigint = ((await readContract(wallet.wagmi, {
+        abi: ABI.TOCWEX_TOKEN_V1,
+        address: TOKEN.address,
+        functionName: "totalSupply",
+      })) as bigint);
+      let tokenMaximum: bigint | undefined = undefined;
+      { // query token maximum cap //
+        const isTokenCapped: boolean = ((await readContract(wallet.wagmi, {
+          abi: ABI.TOCWEX_TOKEN_V1,
+          address: TOKEN.address,
+          functionName: "isSupplyCapped",
+        })) as boolean);
+        if (isTokenCapped) {
+          tokenMaximum = ((await readContract(wallet.wagmi, {
+            abi: ABI.TOCWEX_TOKEN_V1,
+            address: TOKEN.address,
+            functionName: "getMaxSupply",
+          })) as bigint);
+        }
+      }
+
+      let tokenHolders: Record<Address, bigint> = {};
+      if (!!import.meta.env.VITE_MORALIS_KEY) { // query token holders from API //
+        const queryUrl = new URL(`https://deep-index.moralis.io/api/v2.2/erc20/${
+          TOKEN.address
+        }/owners`);
+        queryUrl.searchParams.append("chain", numberToHex(wallet.chain));
+        queryUrl.searchParams.append("limit", "100");
+        queryUrl.searchParams.append("order", "DESC");
+
+        tokenHolders = await fetch(queryUrl, {
+          method: "GET",
+          headers: {
+            "accept": "application/json",
+            "X-API-Key": String(import.meta.env.VITE_MORALIS_KEY),
+          },
+        }).then(response => (
+          response.json()
+        )).then(json => (Object.fromEntries(
+          (json?.result ?? []).map(({owner_address: o, balance: b}: {
+            owner_address: any;
+            balance: any;
+          }) => (
+            ([o, b] as [Address, bigint])
+          ))
+        )));
+      }
+
+      const owner = await fetchTBAddress(wallet, tbClient, urbitSyndicate);
+      return {
+        owner: owner,
+        holders: tokenHolders,
+        token: {
+          ...TOKEN,
+          // @ts-ignore
+          abi: ABI.TOCWEX_TOKEN_V1,
+          // FIXME: Inactive/defunt token exploring is not yet supported
+          active: true,
+          supply: tokenSupply,
+          maximum: tokenMaximum,
+        },
+      };
+    },
+  });
+
+  return isLoading ? undefined
+    : isError ? null
+    : !data ? false
+    : (data as Syndicate);
+}
+
 export function useSafeProposals(urbitSyndicate: UrbitID): Loadable<SafeResponse[]> {
   const wallet = useWalletMeta();
   const tbClient = useTokenboundClient();
@@ -785,9 +964,13 @@ export function useSafeAccount(urbitID: UrbitID): Loadable<SafeAccount> {
       })) as Address);
 
       const safeClient = new SafeApiKit({chainId: wallet.chain});
-      const safeInfo = await safeClient.getSafeInfo(safeAddress);
-
-      return safeInfo;
+      try {
+        const safeInfo = await safeClient.getSafeInfo(safeAddress);
+        return safeInfo;
+      // FIXME: Assuming the error is a 404 and thus that this ID has no SAFE
+      } catch(error) {
+        return false;
+      }
     },
   });
 
@@ -917,6 +1100,30 @@ export function useRecipientAddress(value: string): Loadable<Address> {
       const recipientAddress = await fetchRecipient(wallet, tbClient, value);
       if (recipientAddress === NULL.address) return false;
       return recipientAddress;
+    },
+  });
+
+  return isLoading ? undefined
+    : isError ? null
+    : !data ? false
+    : (data as Address);
+}
+
+export function useAddressENS(address: Address): Loadable<string> {
+  const wallet = useWalletMeta();
+  const queryKey: QueryKey = useMemo(() => [
+    APP.TAG, "address", wallet?.chainID, address,
+  ], [wallet?.chainID, address]);
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: queryKey,
+    enabled: !!wallet,
+    queryFn: async (): Promise<string | false> => {
+      if (!wallet) throw Error(ERROR.INVALID_QUERY);
+      if (!address.match(REGEX.ETHEREUM.ADDRESS)) return false;
+      const addressENS = await fetchAddressENS(wallet, address);
+      if (addressENS === "") return false;
+      return addressENS;
     },
   });
 

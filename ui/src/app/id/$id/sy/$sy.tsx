@@ -11,8 +11,7 @@ import {
 import { CurrencyInput, TextInput, RecipientInput } from '@/comp/Forms';
 import { TinyLoadingIcon } from '@/comp/Icons';
 import {
-  useTokenboundAccount, useSafeAccount, useSafeProposals, useUrbitAccount,
-  useDeployerTax, useSyndicateTax,
+  useTokenboundAccount, useSafeProposals, useDeployerTax, useSyndicateTax,
   useTokenboundCreateMutation, useTokenboundTransferMutation,
   useSyndicateTransferMutation, useSyndicateSignMutation, useSyndicateExecMutation,
   useSyndicateMintMutation, useSyndicateLaunchMutation, useSyndicateTerminateMutation,
@@ -178,7 +177,7 @@ export const Route = createFileRoute('/id/$id/sy/$sy')({
                           <div className="w-7/12 flex flex-col gap-2 items-center">
                             <span className="font-bold underline">
                               {(transaction.type === "transfer") ? (
-                                `Transfer ${formatToken(transaction.amount, transaction.token)}`
+                                `Transfer ${formatToken(transaction.amount, transaction.token, true)}`
                               ) : (transaction.type === "launch") ? (
                                 `Launch \$${transaction.token.symbol}`
                               ) : (transaction.type === "dissolve") ? (
@@ -189,6 +188,7 @@ export const Route = createFileRoute('/id/$id/sy/$sy')({
                                 `Mint ${formatToken(
                                   transaction.transfers.reduce((a, {amount: n}) => a + n, BigInt(0)),
                                   transaction.token,
+                                  true,
                                 )}`
                               ) : (
                                 "Execute Transaction"
@@ -217,7 +217,7 @@ export const Route = createFileRoute('/id/$id/sy/$sy')({
                               ) : (transaction.type === "launch") ? (
                                 <>
                                   <WideFrame title="Mint Total">
-                                    {formatToken(transaction.amount, transaction.token)}
+                                    {formatToken(transaction.amount, transaction.token, true)}
                                   </WideFrame>
                                   <WideFrame title="Protocol Fee">
                                     {formatTax(twTax)}

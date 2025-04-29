@@ -46,7 +46,6 @@ export function RouteUIDValidGuard({
   param: string;
   children: React.ReactNode;
 }>): React.ReactNode {
-  const [{wallet, connecting}, connect, disconnect] = useConnectWallet();
   const params = useRouteParams();
   const routeID: UrbitID | null = useRouteUrbitParam(param);
 

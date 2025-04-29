@@ -1,6 +1,6 @@
 import type { UrbitID } from "@/type/slab";
 import React, { useMemo } from 'react';
-import { createFileRoute, Outlet } from '@tanstack/react-router';
+import { createFileRoute, Outlet, redirect } from '@tanstack/react-router';
 import { useRouteParams, useRedirect } from '@/hook/app';
 import { useSafeAccount, useTokenboundAccount } from '@/hook/web3';
 import { RouteUIDValidGuard } from '@/comp/Guards';
@@ -9,6 +9,12 @@ import { formUrbitID, isValidSyndicate } from '@/lib/util';
 import { APP } from '@/dat/const';
 
 export const Route = createFileRoute('/id/$id/sy')({
+  loader: ({params}) => {
+    // @ts-ignore
+    if (!params?.sy) {
+      throw redirect({ to: ".." });
+    }
+  },
   component: (): React.ReactNode => {
     const params = useRouteParams();
     const routeID: UrbitID = useMemo(() => formUrbitID(params?.id ?? ""), [params?.id]);

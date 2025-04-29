@@ -108,6 +108,7 @@ export function useTokenboundClient(): Loadable<TokenboundClient> {
 
 export function useWalletMeta(): Nullable<WalletMeta> {
   const [{wallet}, , ] = useConnectWallet();
+  // const [{wallet}, connect, disconnect] = useConnectWallet();
   const wagmiConfig = useWagmiConfig();
 
   return useMemo(() => {
@@ -119,6 +120,7 @@ export function useWalletMeta(): Nullable<WalletMeta> {
     // wallet network changes, so we manually reconnect to fix things
     if (!!wagmiConfig) {
       try { reconnect(wagmiConfig) } catch (error) { /* no-op */ }
+      // try { disconnect(wallet).then(connect()) } catch (error) { /* no-op */ }
     }
 
     return (status === undefined || status === "disconnected")

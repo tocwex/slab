@@ -49,6 +49,10 @@ export const CONTRACT = Object.freeze({
       ETHEREUM: "0x049A3C78aD0dE36b280eD8e79E5f647810b2eFAB",
       SEPOLIA: "0x49882e8de02e3c45b39778c7154f1fa77358c085",
     }) as {[network: string]: `0x${string}`;}),
+    LAUNCH: (Object.freeze({
+      ETHEREUM: BigInt("22092061"),
+      SEPOLIA: BigInt("7936488"),
+    }) as {[network: string]: bigint;}),
     NAME: "Azimuth Points",
     SYMBOL: "AZP",
     DECIMALS: 0,
@@ -59,6 +63,10 @@ export const CONTRACT = Object.freeze({
       ETHEREUM: "0x1DfC039E89E65d907aE479318C2555e0229be6CF",
       SEPOLIA: "0x1CcED74d9AC23d34C33BA8590da2bfD467eF9DfD",
     }) as {[network: string]: `0x${string}`;}),
+    LAUNCH: (Object.freeze({
+      ETHEREUM: BigInt("22092062"),
+      SEPOLIA: BigInt("7936488"),
+    }) as {[network: string]: bigint;}),
     ABI: ABI.TOCWEX_DEPLOYER_V1,
   }),
   TOKENBOUND: Object.freeze({ // Tokenbound (custom implementation)
@@ -66,6 +74,10 @@ export const CONTRACT = Object.freeze({
       ETHEREUM: "0x83B3Ef42d9D933051c2664ca2aF8b01FB312b4c9",
       SEPOLIA: "0x83B3Ef42d9D933051c2664ca2aF8b01FB312b4c9",
     }) as {[network: string]: `0x${string}`;}),
+    LAUNCH: (Object.freeze({
+      ETHEREUM: BigInt("22068875"),
+      SEPOLIA: BigInt("7922609"),
+    }) as {[network: string]: bigint;}),
     ABI: ABI.TOKENBOUND,
   }),
   AZP: Object.freeze({ // Azimuth
@@ -73,6 +85,10 @@ export const CONTRACT = Object.freeze({
       ETHEREUM: "0x223c067f8cf28ae173ee5cafea60ca44c335fecb",
       SEPOLIA: "0xc982929e336c366DCf8312589b5EbaaBc8Dd36Ad",
     }) as {[network: string]: `0x${string}`;}),
+    LAUNCH: (Object.freeze({
+      ETHEREUM: BigInt("6784880"),
+      SEPOLIA: BigInt("7778406"),
+    }) as {[network: string]: bigint;}),
     ABI: ABI.AZIMUTH,
   }),
   ECL: Object.freeze({ // Ecliptic
@@ -80,6 +96,10 @@ export const CONTRACT = Object.freeze({
       ETHEREUM: "0x33EeCbf908478C10614626A9D304bfe18B78DD73",
       SEPOLIA: "0x7ecf516D01bA166351EBb441dA1E3839D2C0e1A2",
     }) as {[network: string]: `0x${string}`;}),
+    LAUNCH: (Object.freeze({
+      ETHEREUM: BigInt("13692129"),
+      SEPOLIA: BigInt("7778416"),
+    }) as {[network: string]: bigint;}),
     NAME: "Azimuth Points",
     SYMBOL: "AZP",
     DECIMALS: 0,
@@ -90,6 +110,10 @@ export const CONTRACT = Object.freeze({
       ETHEREUM: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
       SEPOLIA: "0xB962E45F33814833744b8a102C7C626a98B32e38",
     }) as {[network: string]: `0x${string}`;}),
+    LAUNCH: (Object.freeze({
+      ETHEREUM: BigInt("6082465"),
+      SEPOLIA: BigInt("5621625"),
+    }) as {[network: string]: bigint;}),
     NAME: "USD Coin",
     SYMBOL: "USDC",
     DECIMALS: 6,

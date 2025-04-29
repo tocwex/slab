@@ -1,9 +1,9 @@
-import type {
-  Nullable, Address, Contract, Token, Tax, UrbitID, UrbitClan,
-} from '@/type/slab';
+import type { Nullable, Address, Contract, Token, Tax, UrbitID, UrbitClan } from '@/type/slab';
 import type { WalletState } from '@web3-onboard/core';
 import { APP, ABI, ACCOUNT, BLOCKCHAIN, CONTRACT } from '@/dat/const';
-import * as ob from "urbit-ob";
+import * as ob from 'urbit-ob';
+import seedrandom from 'seedrandom';
+import Color, { ColorInstance } from 'color';
 import { formatUnits, isHex, hexToBigInt } from 'viem';
 
 const CLAN_INDEX = Object.freeze({
@@ -51,6 +51,11 @@ export function rateLimit(maxRequests: number, perSeconds: number): (func: any) 
   };
 }
 
+export function randomColor(seed: string): ColorInstance {
+  const color: number = Math.floor(seedrandom(seed)() * (0xFFFFFF - 0x0 + 1) + 0x0);
+  return Color(`#${color.toString(16).padStart(6, "0")}`);
+}
+
 export function encodeList<U>(list: U[]): string {
   return String(list.sort());
 }
@@ -72,7 +77,15 @@ export function trimAddress(address: string): string {
   return `${address.slice(0, 5)}…${address.slice(-4)}`;
 }
 
+export function trimUrbitID(urbit: UrbitID): string {
+  return (urbit.clan === "comet") ? `${urbit.patp.substring(0, 7)}_${urbit.patp.substring(urbit.patp.length - 7)}`
+    : (urbit.clan === "moon") ? ob.sein(urbit.patp).replace("-", "^")
+    : urbit.patp;
+}
+
 export function coerceBigInt(amount: number | string | bigint): [bigint, number] {
+  // TODO: This function does not handle sub-1 values properly (it should
+  // probably round these values to 0).
   let [value, decimals]: [bigint, number] = [BigInt(0), 0];
 
   if (typeof amount === "bigint") {
@@ -80,9 +93,22 @@ export function coerceBigInt(amount: number | string | bigint): [bigint, number]
   } else if (typeof amount === "string" && isHex(amount)) {
     value = hexToBigInt(amount);
   } else {
-    const decimal: number = Number(amount);
-    if (!isNaN(decimal)) {
-      const amountString: string = String(decimal);
+    // NOTE: Expand exponents in given number/string value.
+    // See: http://jsfromhell.com/string/expand-exponential
+    const amountString: string = ((s: string) => (
+      s.replace(/^([+-])?(\d+).?(\d*)[eE]([-+]?\d+)$/,
+          (x: any, s: any, n: any, f: any, c: any) => {
+        var l = Number(+c < 0), i = n.length + +c, x = (l ? n : f).length,
+        d = ((c = Math.abs(c)) >= x ? c - x + l : 0),
+        z = (new Array(d + 1)).join("0"), r = n + f;
+        return (s || "")
+          + (l ? r = z + r : r += z).substr(0, i += l ? z.length : 0)
+          + (i < r.length ? "." + r.substr(i) : "");
+      })
+    ))(String(amount));
+    // NOTE: Does the given string represent a valid number?
+    // See: https://stackoverflow.com/a/175787
+    if (!isNaN(amountString as any) && !isNaN(parseFloat(amountString))) {
       value = BigInt(amountString.replace(".", ""));
       decimals = (amountString.split(".")?.[1] ?? "").length;
     }
@@ -117,6 +143,12 @@ export function formatUint(amount: number | bigint | string): string {
   return floatFormat.replaceAll(/(\d)(?=(\d{3})+$)/g, "$1.");
 }
 
+export function formatCurrency(amount: number | bigint | string): string {
+  // NOTE: https://stackoverflow.com/a/2901298
+  const floatFormat = formatFloat(amount, 0, 2);
+  return floatFormat.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
 export function applyTax(amount: number | bigint | string, tax: Tax): bigint {
   const [bigAmount, ] = coerceBigInt(amount);
   return (bigAmount * tax.fee) / BigInt(10000);
@@ -131,13 +163,14 @@ export function formatTax(tax: Tax): string {
   return `${formatFloat(formatUnits(tax.fee, 2), 2, 2)}%`;
 }
 
-export function formatToken(amount: number | bigint | string, token: Token): string {
+export function formatToken(
+  amount: number | bigint | string,
+  token: Token,
+  symbol: boolean = false,
+): string {
   const [bigAmount, bigDecimals] = coerceBigInt(amount);
-  return `${
-    formatFloat(formatUnits(bigAmount, bigDecimals + token.decimals), 0, 2)
-  } \$${
-    token.symbol
-  }`;
+  const currFormat = formatCurrency(formatUnits(bigAmount, bigDecimals + token.decimals));
+  return `${currFormat}${!symbol ? "" : "$" + token.symbol}`;
 }
 
 export function compareUrbitIDs(a: UrbitID, b: UrbitID): number {
@@ -208,6 +241,7 @@ export function formContract(chain: bigint, symbol: string): Contract {
   const [chainId, chainTag] = getChainMeta(chain);
   return {
     abi: (CONTRACT as any)?.[symbol]?.ABI ?? [],
+    launch: (CONTRACT as any)?.[symbol]?.LAUNCH?.[chainTag] ?? BigInt(0),
     address: (CONTRACT as any)?.[symbol]?.ADDRESS?.[chainTag]
       ?? ACCOUNT.NULL?.[chainTag]
       ?? ACCOUNT.NULL?.ETHEREUM,
@@ -219,12 +253,14 @@ export function formToken(chain: bigint, symbol: string): Token {
   return (symbol === "ETH")
     ? {
       abi: [],
+      launch: BigInt(0),
       address: ACCOUNT.NULL?.[chainTag] ?? ACCOUNT.NULL.ETHEREUM,
       name: BLOCKCHAIN.TAG?.[chainId] ?? BLOCKCHAIN.TAG[BLOCKCHAIN.ID.ETHEREUM],
       symbol: BLOCKCHAIN.SYM?.[chainId] ?? BLOCKCHAIN.SYM[BLOCKCHAIN.ID.ETHEREUM],
       decimals: 18,
     } : {
       abi: (CONTRACT as any)?.[symbol]?.ABI ?? [],
+      launch: (CONTRACT as any)?.[symbol]?.LAUNCH?.[chainTag] ?? BigInt(0),
       address: (CONTRACT as any)?.[symbol]?.ADDRESS?.[chainTag]
         ?? ACCOUNT.NULL?.[chainTag]
         ?? ACCOUNT.NULL.ETHEREUM,

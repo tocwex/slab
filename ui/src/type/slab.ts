@@ -99,12 +99,18 @@ export type SlabTransaction =
 export interface Contract {
   address: Address;
   abi: Abi;
+  launch: bigint;
 }
 export interface Token extends Contract {
   name: string;
   symbol: string;
   decimals: number;
   deployer?: Address;
+}
+export interface SyToken extends Token {
+  active: boolean;
+  supply: bigint;
+  maximum?: bigint; // undefined if not set
 }
 
 export interface TokenHolding {
@@ -124,8 +130,15 @@ export interface UrbitL2Account {
 }
 export interface UrbitNoAccount {
   layer: 'no';
+  owner: '0x0000000000000000000000000000000000000000';
 }
 export type UrbitAccount = UrbitL1Account | UrbitL2Account | UrbitNoAccount;
+
+export interface Syndicate {
+  owner: Address;
+  token: SyToken;
+  holders: Record<Address, bigint>; // owner => amount
+}
 
 export interface TokenboundAccount {
   address: Address;
