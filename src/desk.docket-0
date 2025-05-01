@@ -1,6 +1,7 @@
 :~  title+'slab'
     info+'A Syndicate launchpad and management dashboard.'
     color+0x11.1111
+    :: https://github.com/tocwex/slab/raw/refs/tags/v1.2.X/dat/tile.jpeg
     image+'https://github.com/tocwex/slab/raw/refs/tags/v1.0.0/meta/xtra/tile.jpeg'
     version+[1 2 0]
     website+'https://github.com/tocwex/slab'

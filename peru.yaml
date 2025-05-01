@@ -1,0 +1,48 @@
+imports:
+  arvo: ./out/desk
+  yard: ./out/desk
+  geur: ./out/exec
+
+git module geur:
+  url: https://github.com/sidnym-ladrut/geur
+  pick:
+    - glup
+  reup: develop
+  rev: 444cf6657e842dcb0a2646ae4765dd826a4cfabf
+
+git module arvo:
+  url: https://github.com/urbit/urbit
+  export: pkg/base-dev
+  pick:
+    - pkg/base-dev/lib/verb.hoon
+    - pkg/base-dev/sur/verb.hoon
+  reup: master
+  rev: 410k
+
+git module yard:
+  url: https://github.com/urbit/yard
+  export: desk
+  pick:
+    - desk/lib/dbug.hoon
+    - desk/lib/docket.hoon
+    - desk/lib/default-agent.hoon
+    - desk/lib/skeleton.hoon
+    - desk/mar/atom.hoon
+    - desk/mar/noun.hoon
+    - desk/mar/loob.hoon
+    - desk/mar/bill.hoon
+    - desk/mar/txt.hoon
+    - desk/mar/docket-0.hoon
+    - desk/mar/kelvin.hoon
+    - desk/mar/hoon.hoon
+    - desk/mar/ship.hoon
+    - desk/mar/mime.hoon
+    - desk/mar/json.hoon
+    - desk/mar/css.hoon
+    - desk/mar/png.hoon
+    - desk/mar/svg.hoon
+    - desk/mar/js.hoon
+    - desk/mar/json.hoon
+    - desk/sur/docket.hoon
+  reup: main
+  rev: 500a46840eb891539a3b69aea9fb8d7c7b6797f2
