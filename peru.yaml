@@ -8,7 +8,7 @@ git module geur:
   pick:
     - glup
   reup: develop
-  rev: 444cf6657e842dcb0a2646ae4765dd826a4cfabf
+  rev: 482a95863f068a224ff7a7f4dd8adbc14c74a336
 
 git module arvo:
   url: https://github.com/urbit/urbit
