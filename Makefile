@@ -1,8 +1,12 @@
+BASE_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
+BASE_NAME := $(shell basename $(BASE_DIR))
+
 IN_SHIP ?= zod
+# NOTE: Urbit-compliant name of project root directory
+IN_DESK ?= $(shell echo $(BASE_NAME) | sed -e "s/[^a-z0-9]/-/g" -e "s/^[^a-z]/x/g")
 IN_RVER ?= 0.0.0
 IN_RTYP ?= dbug
 
-BASE_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 OUT_DIR = $(BASE_DIR)/out
 SRC_DIR = $(BASE_DIR)/src
 GUI_DIR = $(BASE_DIR)/ui
@@ -56,12 +60,12 @@ $(GLOB_FILE) : ship-glob $(DESK_DIR) $(GLUP)
 	$(GLUP) -t $(IN_RTYP) $(IN_RVER) "$$(ls -dtr1 $(GLOB_DIR)/* | tail -1)"
 	cp -r $(SRC_DIR)/* $(DESK_DIR)
 	touch $(DESK_DIR)
-	durploy desk $(IN_SHIP) syndicate-box $(DESK_DIR)/
+	durploy desk $(IN_SHIP) $(IN_DESK) $(DESK_DIR)/
 
 # FIXME: This should be an alias for some sort of glob-(hash of ui/dist/) file
 # so it doesn't always rebuild
 ship-glob : $(DIST_DIR) $(GLOB_DIR)
-	durploy desk -g $(IN_SHIP) syndicate-box $(DIST_DIR)
+	durploy desk -g $(IN_SHIP) $(IN_DESK) $(DIST_DIR)
 	cp "$$(ls -dtr1 "$${XDG_CACHE_HOME:-$$HOME/.cache}/durploy/glob"/* | tail -1)" $(GLOB_DIR)
 glob : $(DIST_DIR)
 $(DIST_DIR) : $(GUI_FILES) $(NODE_DIR)
@@ -72,7 +76,7 @@ $(NODE_DIR) : $(GUI_DIR)/package.json
 	touch $(NODE_DIR)
 
 ship-desk : $(DESK_DIR)
-	durploy desk $(IN_SHIP) syndicate-box $(DESK_DIR)/
+	durploy desk $(IN_SHIP) $(IN_DESK) $(DESK_DIR)/
 desk : $(DESK_DIR)
 $(DESK_DIR) : $(DESK_FILES) $(LISC_FILE) $(PERU_FILE) $(OUT_DIR)
 	cp -r $(SRC_DIR)/* $(DESK_DIR)
