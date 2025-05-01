@@ -2,101 +2,82 @@
 
 A [Syndicate] launchpad and management dashboard.
 
-## Build/Develop
+## Setup
 
-All commands assume that the current working directory is this repository's
-base directory and use [durploy] to streamline various Urbit development
-workflows.
+Make sure the following dependencies are installed on your development machine:
 
-### First-time Setup
+- [`GNU Make`](https://www.gnu.org/software/make/)
+- [`npm`](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)
+- [`nvm`](https://github.com/nvm-sh/nvm?tab=readme-ov-file#installing-and-updating)
+- [`durploy`](https://github.com/sidnym-ladrut/durploy)
+- [`peru`](https://github.com/buildinspace/peru?tab=readme-ov-file#installation)
 
-The following commands should be executed after each fresh clone of the project
-to set up the [Vite] and the UI development environment:
+Also, run the following commands to prepare your environment:
 
 ```bash
 nvm install 22
 nvm use 22
-cd ./ui
-npm install
 echo "VITE_SHIP_URL=http://127.0.0.1:8080" >> .env.local
 echo "VITE_ALCHEMY_KEY=…" >> .env.local
-# optional: for token metadata statistics
 echo "VITE_MORALIS_KEY=…" >> .env.local
 ```
 
-Subsequently, run the following commands to download [durploy] create a new
-[fake `~zod`][fakezod] with the `%slab` desk:
+## Build/Develop
+
+All of the following commands assume that the current working directory is this
+repository's base directory. Also, before running any development commands, you
+first need a running Urbit ship. Deploy one on your local machine with:
 
 ```bash
-curl -LO https://raw.githubusercontent.com/sidnym-ladrut/durploy/release/durploy
-chmod u+x ./durploy
-./durploy ship zod
-# In a different terminal:
-./durploy desk zod slab ./desk/full/
+durploy ship zod
 ```
 
 ### Development Workflows
 
-#### Back-end Workflows
-
-In order to continuously test back-end code changes as they're made, run the
-following commands:
+In order to continuously test back-end code changes as they're made, run:
 
 ```bash
-./durploy desk -w zod slab ./desk/full/
+durploy desk -w zod syndicate-box ./out/desk/
 ```
 
-#### Front-end Workflows
-
-In order to continuously test front-end code changes as they're made, run the
-following commands:
+In order to continuously test front-end code changes as they're made, run
+either of the following:
 
 ```bash
-cd ./ui
-npm run dev
+cd ./ui && npm run dev
+cd ./ui && npm run build && npm run serve
 ```
 
-To test the bundled version of the front-end code, run these commands instead:
+For front-end changes, be sure to authenticate via both the NPM web portal
+(default: `127.0.0.1:3000`) and the development ship's web portal ([fake
+`~zod`][fakezod] default: `127.0.0.1:8080`) using the output of the Urbit
+`+code` command as the password.
 
-```bash
-cd ./ui
-# must be run every time changes are made
-npm run build
-# can be run passively
-npm run serve
-```
-
-Also, be sure to authenticate via both the NPM web portal (default:
-`127.0.0.1:3000`) and the development ship's web portal ([fake `~zod`][fakezod]
-default: `127.0.0.1:8080`) using the output of the Urbit `+code` command as
-the password.
-
-### Deployment Workflow
-
-#### Back-end Workflows
+### Deployment Workflows
 
 To generate a new full desk from the existing base desk, run the following
 command:
 
 ```bash
-./meta/exec/regen
+make desk
 ```
 
-#### Front-end Workflows
-
-In order to test the web package deployment process for the current
-front-end build, run the following commands:
+To deploy a new desk onto your development ship, run:
 
 ```bash
-cd ./ui
-npm run build:prod
-cd ..
-./durploy desk -g zod slab ./ui/dist
-cp "$(ls -dtr1 "${XDG_CACHE_HOME:-$HOME/.cache}/durploy/glob"/* | tail -1)" ./meta/glob
-./meta/exec/release 1.2.3 "$(ls -dtr1 ./meta/glob/* | tail -1)"
-./durploy desk zod slab ./desk/full/
-# run this in zod's dojo to make sure the new glob is being used
-# :docket [%kick %slab]
+make ship-desk IN_SHIP=zod
+```
+
+To generate a new front-end glob, run the following command:
+
+```bash
+make glob
+```
+
+To deploy this glob to your development ship, run:
+
+```bash
+make release IN_SHIP=zod
 ```
 
 

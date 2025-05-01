@@ -5,8 +5,8 @@
   "scripts": {
     "dev": "vite",
     "serve": "vite preview",
-    "build": "tsc && vite build --mode development --minify false",
-    "build:prod": "tsc && vite build --mode production",
+    "build": "tsc && vite build --mode production",
+    "build:dbug": "tsc && vite build --mode development --minify false",
     "tsc": "tsc --noEmit",
     "test": "tsc --noEmit",
     "postinstall": "patch-package"
