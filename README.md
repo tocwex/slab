@@ -17,9 +17,9 @@ Also, run the following commands to prepare your environment:
 ```bash
 nvm install 22
 nvm use 22
-echo "VITE_SHIP_URL=http://127.0.0.1:8080" >> .env.local
-echo "VITE_ALCHEMY_KEY=…" >> .env.local
-echo "VITE_MORALIS_KEY=…" >> .env.local
+echo "VITE_SHIP_URL=http://127.0.0.1:8080" >> ./ui/.env.local
+echo "VITE_INFURA_KEY=…" >> ./ui/.env.local
+echo "VITE_MORALIS_KEY=…" >> ./ui/.env.local
 ```
 
 ## Build/Develop

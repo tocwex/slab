@@ -1,5 +1,5 @@
-import type { UrbitID, Address, Token, TokenHolding } from "@/type/slab";
 import type {
+  UrbitID, Address, Tax, Token, TokenHolding,
   SlabTransferOperation, SlabLaunchOperation, SlabMintOperation,
   SlabDissolveOperation, SlabTerminateOperation,
 } from '@/type/slab';
@@ -16,12 +16,13 @@ import {
   TinyLoadingIcon, TextLoadingIcon, ClanIcon, AzimuthIcon,
 } from '@/comp/Icons';
 import {
-  useTokenboundAccount, useSafeAccount, useSyndicateTax, useTokenboundCreateMutation
+  useTokenboundAccount, useSafeAccount, useDeployerTax, useSyndicateTax,
+  useTokenboundCreateMutation
 } from '@/hook/web3';
 import { useLocalTokens, useTokensDiffMutation } from '@/hook/local';
 import {
-  hasClanBoon, parseForm, coerceBigInt, includeTax,
-  formatTax, formatToken, formatFloat, formatUint,
+  hasClanBoon, parseForm, coerceBigInt, coerceBigString, applyTax, includeTax,
+  formatTax, formatToken, formatCurrency, formatFloat, formatUint,
 } from '@/lib/util';
 import { formatUnits } from 'viem';
 import { MATH, REGEX } from '@/dat/const';
@@ -255,10 +256,18 @@ function LaunchTokenModule({
   status: string;
 }): React.ReactNode {
   const formRef = useRef<HTMLFormElement>(null);
+  const [supply, setSupply] = useState<string | undefined>(undefined);
   const [useMaxSupply, setUseMaxSupply] = useState<boolean>(false);
 
   const syAccount = useTokenboundAccount(urbitID);
-  const syTax = useSyndicateTax(urbitID);
+  const twTax = useDeployerTax();
+
+  const calculateLaunchAmount = useCallback((amount: string, tax: Tax) => {
+    const [bigAmount, bigDecimals]: [bigint, number] = coerceBigInt(amount);
+    const normAmount: bigint = (bigAmount * BigInt(10) ** BigInt(18 - bigDecimals));
+    const normTax: bigint = applyTax(normAmount, tax);
+    return formatCurrency(coerceBigString(normAmount - normTax, 18));
+  }, []);
 
   const toggleMaxSupply = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     setUseMaxSupply(event.target.checked);
@@ -275,7 +284,7 @@ function LaunchTokenModule({
   }, [launch, formRef]);
 
   return (
-    (!!syAccount && !!syTax && syAccount.deployed && !syAccount.token) && (
+    (!!syAccount && !!twTax && syAccount.deployed && !syAccount.token) && (
       <form ref={formRef} className="flex flex-col gap-2">
         <TextInput name="name" required
           placeholder={`name (e.g. ${urbitID.patp} token)`}
@@ -287,6 +296,7 @@ function LaunchTokenModule({
         />
         <CurrencyInput name="init" required
           placeholder="supply (e.g. 1000000)"
+          onChange={e => setSupply(e?.target?.value)}
         />
         <div className="flex flex-row items-center gap-2">
           <input type="checkbox" name="use_max_supply"
@@ -297,8 +307,17 @@ function LaunchTokenModule({
         </div>
         <CurrencyInput name="max" required={useMaxSupply}
           placeholder="max supply (e.g. 2000000)"
+          min={supply ?? "0"}
           className={useMaxSupply ? "input-lg" : "hidden"}
         />
+        <div className="w-full flex flex-col">
+          <WideFrame title="Protocol Fee">
+            {formatTax(twTax)}
+          </WideFrame>
+          <WideFrame title="Syndicate Receives">
+            {calculateLaunchAmount(supply ?? "0", twTax)}
+          </WideFrame>
+        </div>
         <button type="button"
           disabled={!hasClanBoon(urbitID, "star") || (status === "pending")}
           onClick={onLaunch}

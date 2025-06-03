@@ -14,7 +14,7 @@ export function CurrencyInput({
   ...props
 }: Omit<
   React.ComponentProps<"input">,
-  "type" | "min" | "max" | "step"
+  "type" | "step"
 >): React.ReactNode {
   return (
     <input type="number"

@@ -117,6 +117,12 @@ export function coerceBigInt(amount: number | string | bigint): [bigint, number]
   return [value, decimals];
 }
 
+export function coerceBigString(amount: bigint, decimals: number): string {
+  const amountString: string = String(amount);
+  const decimalIndex: number = amountString.length - decimals;
+  return amountString.slice(0, decimalIndex) + "." + amountString.slice(decimalIndex);
+}
+
 export function formatFloat(
   amount: number | bigint | string,
   minDecimals: number | undefined = undefined,
