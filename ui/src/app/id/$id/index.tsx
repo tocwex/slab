@@ -242,10 +242,10 @@ export const Route = createFileRoute('/id/$id/')({
                     <button type="button" onClick={toggleAdvancedShown} className="text-xl">
                       {isAdvancedShown ? "- Hide" : "+ Show"} Advanced Options
                     </button>
-                    <div className={`
-                      flex-col-sm items-center max-w-72
-                      ${isAdvancedShown ? "block" : "hidden"}
-                    `}>
+                    <div
+                      className="flex-col-sm items-center max-w-72"
+                      style={isAdvancedShown ? {} : {display: "none"}}
+                    >
                       <p>
                         Checking this box will perform a 'factory reset' and breach
                         continuity of your urbit's networking. If you know what that

@@ -112,44 +112,48 @@ export const Route = createFileRoute('/id/$id/sy/$sy')({
                 {(syAccount.token !== undefined) ? (
                   <div>(no operations found)</div>
                 ) : (
-                  <form ref={termFormRef} className="flex-col-sm items-center">
-                    <RecipientInput name="recipient" required
-                      placeholder="exit address/ens"
-                    />
-                    <>
-                      <button type="button" onClick={toggleAdvancedShown} className="text-xl">
-                        {isAdvancedShown ? "- Hide" : "+ Show"} Advanced Options
-                      </button>
-                      <div className={`
-                        flex-col-sm items-center max-w-72
-                        ${isAdvancedShown ? "block" : "hidden"}
-                      `}>
-                        <p>
-                          Checking this box will perform a 'factory reset' and breach
-                          continuity of your urbit's networking. If you know what that
-                          means, you'll also need to set your networking keys. If you
-                          don't know what that means, turn around, because there be
-                          dragons here.
-                        </p>
-                        <div className="flex flex-row items-center gap-2">
-                          <input type="checkbox" name="breach" />
-                          <span>reset on creation?</span>
-                        </div>
-                      </div>
-                    </>
-                    <button type="button"
+                  <form ref={termFormRef}>
+                    <fieldset
                       disabled={(syTerminateStatus === "pending")}
-                      onClick={onTerminate}
-                      className="w-full buttoff-lg"
+                      className="flex-col-sm items-center"
                     >
-                      {(syTerminateStatus === "pending") ? (
-                        <TinyLoadingIcon />
-                      ) : (syTerminateStatus === "error") ? (
-                        "Error!"
-                      ) : (
-                        "Propose Termination"
-                      )}
-                    </button>
+                      <RecipientInput name="recipient" required
+                        placeholder="exit address/ens"
+                      />
+                      <>
+                        <button type="button" onClick={toggleAdvancedShown} className="text-xl">
+                          {isAdvancedShown ? "- Hide" : "+ Show"} Advanced Options
+                        </button>
+                        <div
+                          className="flex-col-sm items-center max-w-72"
+                          style={isAdvancedShown ? {} : {display: "none"}}
+                        >
+                          <p>
+                            Checking this box will perform a 'factory reset' and breach
+                            continuity of your urbit's networking. If you know what that
+                            means, you'll also need to set your networking keys. If you
+                            don't know what that means, turn around, because there be
+                            dragons here.
+                          </p>
+                          <div className="flex flex-row items-center gap-2">
+                            <input type="checkbox" name="breach" />
+                            <span>reset on migration?</span>
+                          </div>
+                        </div>
+                      </>
+                      <button type="button"
+                        onClick={onTerminate}
+                        className="w-full input-lg input-mean"
+                      >
+                        {(syTerminateStatus === "pending") ? (
+                          <TinyLoadingIcon />
+                        ) : (syTerminateStatus === "error") ? (
+                          "Error!"
+                        ) : (
+                          "Propose Termination"
+                        )}
+                      </button>
+                    </fieldset>
                   </form>
                 )}
               </div>

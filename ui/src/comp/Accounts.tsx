@@ -318,7 +318,8 @@ function LaunchTokenModule({
           <CurrencyInput name="max" required={useMaxSupply}
             placeholder="max supply (e.g. 2000000)"
             min={supply ?? "0"}
-            className={useMaxSupply ? "input-lg" : "hidden"}
+            className="input-lg input-nice"
+            style={useMaxSupply ? {} : {display: "none"}}
           />
           <div className="w-full flex flex-col">
             <WideFrame title="Protocol Fee">
@@ -559,7 +560,8 @@ function AddTokenModule(): React.ReactNode {
         {isShown ? "- Hide" : "+ More"} Token Options
       </button>
       <form ref={addFormRef}
-        className={`flex-col-sm items-center ${isShown ? "block" : "hidden"}`}
+        className="flex-col-sm items-center"
+        style={isShown ? {} : {display: "none"}}
       >
         <fieldset
           disabled={(diffTokensStatus === "pending")}
