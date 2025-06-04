@@ -68,11 +68,14 @@ ship-glob : $(DIST_DIR) $(GLOB_DIR)
 	durploy desk -g $(IN_SHIP) $(IN_DESK) $(DIST_DIR)
 	cp "$$(ls -dtr1 "$${XDG_CACHE_HOME:-$$HOME/.cache}/durploy/glob"/* | tail -1)" $(GLOB_DIR)
 glob : $(DIST_DIR)
+# NOTE: `npm --prefix ./ui` will report relative to `./ui`; we add this part of
+# the path back so vim `:mak` quickfix will work
 $(DIST_DIR) : $(GUI_FILES) $(NODE_DIR)
-	cd $(GUI_DIR) && npm run build
+	(set -o pipefail; npm --prefix $(GUI_DIR) run tsc | sed "s|^src|ui/src|")
+	npm --prefix $(GUI_DIR) run build
 	touch $(DIST_DIR)
 $(NODE_DIR) : $(GUI_DIR)/package.json
-	cd $(GUI_DIR) && npm install
+	npm --prefix $(GUI_DIR) install
 	touch $(NODE_DIR)
 
 ship-desk : $(DESK_DIR)
