@@ -42,7 +42,7 @@ export function LoadingFrame({
         error
       )}
       {!!action ? action : (
-        <button type="button" onClick={goBack} className="button-lg">
+        <button type="button" onClick={goBack} className="input-lg input-nice">
           ← Back
         </button>
       )}

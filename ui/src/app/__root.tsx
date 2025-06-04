@@ -98,7 +98,7 @@ export const Route = createRootRoute({
               <div className="bg-gray-600 text-white flex gap-2 px-4 py-3 sm:flex-row-reverse sm:px-6">
                 <button type="button"
                   onClick={toggleDialog}
-                  className="button-lg bg-black"
+                  className="input-lg input-nice bg-black"
                 >
                   Close
                 </button>
@@ -135,7 +135,7 @@ export const Route = createRootRoute({
       <h4 className="font-semibold">
         404 | Page not found!
       </h4>
-      <Link to="/" className="button-lg no-underline!">
+      <Link to="/" className="input-lg input-nice no-underline!">
         ↜ Home
       </Link>
     </HeroFrame>

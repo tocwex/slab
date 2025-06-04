@@ -105,14 +105,14 @@ export const Route = createFileRoute('/id/$id/sy/$sy')({
                 dissolve={syDissolveMutate}
                 dissolveStatus={syDissolveStatus}
               />
-              <div className="flex flex-col gap-2 items-center">
+              <div className="flex-col-sm items-center">
                 <h2 className="text-2xl">
                   Syndicate Operations
                 </h2>
                 {(syAccount.token !== undefined) ? (
                   <div>(no operations found)</div>
                 ) : (
-                  <form ref={termFormRef} className="flex flex-col items-center gap-2">
+                  <form ref={termFormRef} className="flex-col-sm items-center">
                     <RecipientInput name="recipient" required
                       placeholder="exit address/ens"
                     />
@@ -121,7 +121,7 @@ export const Route = createFileRoute('/id/$id/sy/$sy')({
                         {isAdvancedShown ? "- Hide" : "+ Show"} Advanced Options
                       </button>
                       <div className={`
-                        flex flex-col items-center gap-2 max-w-72
+                        flex-col-sm items-center max-w-72
                         ${isAdvancedShown ? "block" : "hidden"}
                       `}>
                         <p>
@@ -153,7 +153,7 @@ export const Route = createFileRoute('/id/$id/sy/$sy')({
                   </form>
                 )}
               </div>
-              <div className="flex flex-col items-center gap-2">
+              <div className="flex-col-sm items-center">
                 <h2 className="text-2xl">
                   Syndicate Proposals
                 </h2>
@@ -166,7 +166,7 @@ export const Route = createFileRoute('/id/$id/sy/$sy')({
                 ) : (syProposals.length === 0) ? (
                   <div>(no proposals found)</div>
                 ) : (
-                  <div className="min-w-96 w-full flex flex-col items-center gap-2">
+                  <div className="min-w-96 w-full flex-col-sm items-center">
                     {syProposals.map(({safeTxHash, transaction, confirmations, confirmationsRequired}) => {
                       const confirms = (confirmations ?? []);
                       return (
@@ -174,7 +174,7 @@ export const Route = createFileRoute('/id/$id/sy/$sy')({
                           key={safeTxHash}
                           className="w-full flex flex-row border-2 border-white rounded-md gap-2 p-3"
                         >
-                          <div className="w-7/12 flex flex-col gap-2 items-center">
+                          <div className="w-7/12 flex-col-sm items-center">
                             <span className="font-bold underline">
                               {(transaction.type === "transfer") ? (
                                 `Transfer ${formatToken(transaction.amount, transaction.token, true)}`
@@ -266,7 +266,7 @@ export const Route = createFileRoute('/id/$id/sy/$sy')({
                               )}
                             </div>
                           </div>
-                          <div className="w-5/12 flex flex-col gap-2 pl-2 border-l border-white">
+                          <div className="w-5/12 flex-col-sm pl-2 border-l border-white">
                             <h4 className="font-medium">
                               Signed by ({confirms.length} / {confirmationsRequired}):
                             </h4>
@@ -283,7 +283,7 @@ export const Route = createFileRoute('/id/$id/sy/$sy')({
                                 data-hash={safeTxHash}
                                 onClick={onExec}
                                 disabled={syExecStatus === "pending"}
-                                className="w-full button-lg"
+                                className="w-full input-lg input-nice"
                               >
                                 {(syExecStatus === "pending") ? (
                                   <TinyLoadingIcon />
@@ -301,7 +301,7 @@ export const Route = createFileRoute('/id/$id/sy/$sy')({
                                   confirms.some(({owner}) => owner === idAccount?.address)
                                   || (sySignStatus === "pending")
                                 }
-                                className="w-full button-lg"
+                                className="w-full input-lg input-nice"
                               >
                                 {(sySignStatus === "pending") ? (
                                   <TinyLoadingIcon />

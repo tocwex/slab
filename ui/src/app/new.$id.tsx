@@ -43,7 +43,7 @@ export const Route = createFileRoute('/new/$id')({
 
     return (
       <LoadingFrame status={syMultisig && walletTBAs} error={
-        <div className="flex flex-col gap-2 text-center">
+        <div className="flex-col-sm text-center">
           <h4 className="font-medium">
             <span>Unable to load Syndicate for </span>
             <UrbitIDFrame urbitID={routeID} />

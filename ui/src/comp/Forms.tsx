@@ -10,7 +10,7 @@ import { REGEX } from '@/dat/const';
 
 export function CurrencyInput({
   placeholder="currency amount",
-  className="input-lg",
+  className="input-lg input-nice",
   ...props
 }: Omit<
   React.ComponentProps<"input">,
@@ -29,7 +29,7 @@ export function CurrencyInput({
 }
 
 export function TextInput({
-  className="input-lg",
+  className="input-lg input-nice",
   ...props
 }: Omit<
   React.ComponentProps<"input">,
@@ -49,7 +49,7 @@ export function TextInput({
 
 export function RecipientInput({
   placeholder="urbit id/ens domain/address",
-  className="input-lg",
+  className="input-lg input-nice",
   ...props
 }: Omit<
   React.ComponentProps<"input">,
@@ -68,7 +68,7 @@ export function RecipientInput({
 export function RecipientLauncherInput({
   value,
   accepts="urbit",
-  className="input-sm",
+  className="input-sm input-nice",
   ...props
 }: {
   value: string;
@@ -113,7 +113,10 @@ export function RecipientLauncherInput({
   ), [value, accepts, urbitAccount, tbAccount, recipientAddress]);
 
   return (
-    <div className="flex flex-row">
+    <fieldset
+      disabled={(tbCreateStatus === "pending")}
+      className="flex flex-row"
+    >
       <TextInput
         value={value}
         pattern={pattern}
@@ -122,12 +125,9 @@ export function RecipientLauncherInput({
         {...props}
       />
       <button type="button"
-        className="button-sm"
+        className="input-sm input-nice"
         onClick={tbCreateMutate}
-        disabled={
-          !!status.match("(loading)|(invalid)|(done)")
-          || (tbCreateStatus === "pending")
-        }
+        disabled={!!status.match("(loading)|(invalid)|(done)")}
       >
         {(status === "loading" || tbCreateStatus === "pending") ? (
           <TinyLoadingIcon />
@@ -141,6 +141,6 @@ export function RecipientLauncherInput({
           "✔"
         )}
       </button>
-    </div>
+    </fieldset>
   );
 }

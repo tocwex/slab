@@ -60,6 +60,14 @@ const OVERRIDE_PROPS = {
     menu: (state: MenuProps<SelectorOption, true>) => "border border-gray-600",
   },
   styles: {
+    control: (base, state) => ({
+      ...base,
+      backgroundColor: state.isDisabled ? "var(--color-gray-600)" : base.backgroundColor,
+    }),
+    singleValue: (base, state) => ({
+      ...base,
+      color: state.isDisabled ? "var(--color-white)" : base.color,
+    }),
     menu: (style: StylesBase) => ({
       ...style,
       width: "max-content",

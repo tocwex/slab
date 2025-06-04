@@ -221,10 +221,11 @@ export const Route = createFileRoute('/ex/$ex/')({
             />
             <button type="button"
               onClick={toggleShowMaximum}
-              disabled={!urbitSy.token.maximum
+              disabled={
+                !urbitSy.token.maximum
                 || (!!syShares && (syShares?.minted === syShares?.maximum))
               }
-              className="button-lg bg-black"
+              className="input-lg input-nice"
             >
               {(!!syShares && (syShares?.minted === syShares?.maximum))
                 ? "At Full Issuance"

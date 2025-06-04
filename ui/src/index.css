@@ -43,7 +43,6 @@ input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
-
 /* Firefox */
 input[type="number"] {
   -moz-appearance: textfield;
@@ -53,27 +52,61 @@ a {
   @apply font-bold underline;
 }
 
-input::placeholder {
-  @apply text-gray-600;
-}
-
-input:user-invalid {
-  @apply border-red-500;
-}
-
 dialog:open::backdrop {
   @apply bg-transparent bg-white/20;
+}
+
+:is(button, input, [type='button'], [type='reset'], [type='submit']) {
+  @apply flex items-center justify-center font-bold whitespace-nowrap;
 }
 
 :is(button, [type='button'], [type='reset'], [type='submit']):enabled {
   @apply hover:cursor-pointer;
 }
 
-:is(button, [type='button'], [type='reset'], [type='submit']):disabled {
+.input-sm {
+  @apply px-2 py-0.5;
+}
+.input-lg {
+  @apply px-4 py-1.5;
+}
+
+.input-nice {
+  @apply border border-white text-white;
+}
+.input-mean {
+  @apply border border-red-500 text-red-500;
+}
+
+.input-nice::placeholder {
+  @apply text-gray-600;
+}
+.input-mean::placeholder {
+  @apply text-red-900;
+}
+
+:is(button, [type='button'], [type='reset'], [type='submit']).input-lg {
+  @apply rounded-3xl;
+}
+
+.input-nice:user-invalid {
+  @apply border-red-500;
+}
+.input-mean:user-invalid {
+  @apply border-red-900;
+}
+
+.input-nice:disabled {
   @apply bg-gray-600;
 }
-:is(button, [type='button'], [type='reset'], [type='submit']):disabled svg {
+.input-nice:disabled svg {
   @apply bg-gray-600;
+}
+.input-mean:disabled {
+  @apply bg-red-900;
+}
+.input-mean:disabled svg {
+  @apply bg-red-900;
 }
 
 .main {
@@ -84,26 +117,9 @@ dialog:open::backdrop {
   @apply flex justify-center items-center px-4.5 py-3.5 border border-gray-600 text-xl bg-white text-black rounded-2xl;
 }
 
-.input-sm {
-  @apply flex items-center justify-center px-2 py-0.5 border border-white bg-black font-bold text-white whitespace-nowrap;
+.flex-col-sm {
+  @apply flex flex-col gap-2;
 }
-
-.input-lg {
-  @apply flex items-center justify-center px-4 py-1.5 border border-white bg-black font-bold text-white whitespace-nowrap;
-}
-
-.button-sm {
-  @apply flex items-center justify-center px-2 py-0.5 border border-white font-bold text-white whitespace-nowrap;
-}
-
-.button-lg {
-  @apply flex items-center justify-center px-4 py-1.5 rounded-full border border-white font-bold text-white whitespace-nowrap;
-}
-
-.buttoff-sm {
-  @apply flex items-center justify-center px-2 py-0.5 border border-red-500 font-bold text-red-500 whitespace-nowrap;
-}
-
-.buttoff-lg {
-  @apply flex items-center justify-center px-4 py-1.5 rounded-full border border-red-500 font-bold text-red-500 whitespace-nowrap;
+.flex-col-lg {
+  @apply flex flex-col gap-4;
 }
