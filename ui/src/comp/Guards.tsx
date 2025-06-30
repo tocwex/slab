@@ -23,7 +23,7 @@ export function ConnectedWalletGuard({
       <button
         disabled={connecting}
         onClick={async () => (wallet ? disconnect(wallet) : connect())}
-        className="mt-4 button-lg"
+        className="mt-4 input-lg input-nice"
       >
         {connecting
           ? "Connecting…"
@@ -51,7 +51,7 @@ export function RouteUIDValidGuard({
 
   return (
     <LoadingFrame status={routeID?.id} error={
-      <div className="flex flex-col gap-2 items-center text-center">
+      <div className="flex-col-sm items-center text-center">
         <h4 className="font-medium">
           <span>Attempting to access </span>
           <span className="font-bold">{params?.[param] ?? "<unknown>"}</span>
@@ -87,7 +87,7 @@ export function RouteUIDOwnerGuard({
       <RouteUIDValidGuard param={param}>
         <LoadingFrame status={wallet && urbitIDs && isRouteIDHolder} error={
           (!!wallet && !!routeID) && (
-            <div className="flex flex-col gap-2 items-center text-center">
+            <div className="flex-col-sm items-center text-center">
               <h4 className="font-medium">
                 <span>Web3 wallet </span>
                 <AddressFrame address={wallet.address} />

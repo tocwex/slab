@@ -25,10 +25,8 @@ export const BLOCKCHAIN = Object.freeze({
     11155111: "sepETH",
   }) as {[network: number]: string;}),
   RPC: (Object.freeze({
-    ETHEREUM: `https://eth-mainnet.g.alchemy.com/v2/${import.meta.env.VITE_ALCHEMY_KEY}`,
-    SEPOLIA: `https://eth-sepolia.g.alchemy.com/v2/${import.meta.env.VITE_ALCHEMY_KEY}`,
-    // ETHEREUM: "https://eth-mainnet.public.blastapi.io",
-    // SEPOLIA: "https://eth-sepolia.public.blastapi.io",
+    ETHEREUM: `https://mainnet.infura.io/v3/${import.meta.env.VITE_INFURA_KEY}`,
+    SEPOLIA: `https://sepolia.infura.io/v3/${import.meta.env.VITE_INFURA_KEY}`,
   }) as {[network: string]: string;}),
 });
 

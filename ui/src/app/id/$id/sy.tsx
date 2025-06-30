@@ -32,7 +32,7 @@ export const Route = createFileRoute('/id/$id/sy')({
     return (
       <RouteUIDValidGuard param="sy">
         <LoadingFrame status={isValidSyndicate(routeSyndicate)} error={
-          <div className="flex flex-col gap-2 items-center text-center">
+          <div className="flex-col-sm items-center text-center">
             <h4 className="font-medium">
               <span>Attempting to access the Syndicate for </span>
               <span className="font-bold">{params?.sy}</span>
@@ -44,11 +44,11 @@ export const Route = createFileRoute('/id/$id/sy')({
           </div>
         }>
           <LoadingFrame status={tbAccount && syMultisig} action={
-            <button type="button" onClick={goID} className="button-lg">
+            <button type="button" onClick={goID} className="input-lg input-nice">
               ← To ID
             </button>
           } error={
-            <div className="flex flex-col gap-2 items-center text-center">
+            <div className="flex-col-sm items-center text-center">
               <h4 className="font-medium">
                 <span>Unable to load Syndicate for </span>
                 <UrbitIDFrame urbitID={routeSyndicate} />
@@ -60,7 +60,7 @@ export const Route = createFileRoute('/id/$id/sy')({
             </div>
           }>
             <LoadingFrame status={isRouteSyndicateHolder} error={
-              <div className="flex flex-col gap-2 items-center text-center">
+              <div className="flex-col-sm items-center text-center">
                 <h4 className="font-medium">
                   <span>Urbit ID </span>
                   <UrbitIDFrame urbitID={routeID} />

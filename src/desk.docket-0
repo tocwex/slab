@@ -2,9 +2,9 @@
     info+'A Syndicate launchpad and management dashboard.'
     color+0x11.1111
     image+'https://github.com/tocwex/slab/raw/refs/tags/v1.2.1/dat/tile.jpeg'
-    version+[1 2 1]
+    version+[1 2 2]
     website+'https://github.com/tocwex/slab'
     license+'GNU GPLv3'
     base+'slab'
-    glob-http+['https://raw.githubusercontent.com/tocwex/slab/v1.2.1/out/glob/v1.2.1.glob' 0v4.fq875.95ot5.42rsn.ea85i.2ovfn]
+    glob-http+['https://raw.githubusercontent.com/tocwex/slab/v1.2.2/out/glob/v1.2.2.glob' 0v1.orsi7.nlhko.8tthr.2gn6v.7demb]
 ==

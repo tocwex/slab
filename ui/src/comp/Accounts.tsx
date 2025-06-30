@@ -1,5 +1,5 @@
-import type { UrbitID, Address, Token, TokenHolding } from "@/type/slab";
 import type {
+  UrbitID, Address, Tax, Token, TokenHolding,
   SlabTransferOperation, SlabLaunchOperation, SlabMintOperation,
   SlabDissolveOperation, SlabTerminateOperation,
 } from '@/type/slab';
@@ -16,12 +16,13 @@ import {
   TinyLoadingIcon, TextLoadingIcon, ClanIcon, AzimuthIcon,
 } from '@/comp/Icons';
 import {
-  useTokenboundAccount, useSafeAccount, useSyndicateTax, useTokenboundCreateMutation
+  useTokenboundAccount, useSafeAccount, useDeployerTax, useSyndicateTax,
+  useTokenboundCreateMutation
 } from '@/hook/web3';
 import { useLocalTokens, useTokensDiffMutation } from '@/hook/local';
 import {
-  hasClanBoon, parseForm, coerceBigInt, includeTax,
-  formatTax, formatToken, formatFloat, formatUint,
+  hasClanBoon, parseForm, coerceBigInt, coerceBigString, applyTax, includeTax,
+  formatTax, formatToken, formatCurrency, formatFloat, formatUint,
 } from '@/lib/util';
 import { formatUnits } from 'viem';
 import { MATH, REGEX } from '@/dat/const';
@@ -38,7 +39,7 @@ export function SafeAccountMeta({
     <LoadingFrame title="Multisig Information" size="md" status={safeAccount && idAccount}>
       <div className="main">
         {(!!safeAccount && !!idAccount) && (
-          <div className="flex flex-col gap-2">
+          <div className="flex-col-sm">
             <h2 className="text-2xl">
               Multisig Information
             </h2>
@@ -83,7 +84,7 @@ export function TokenboundAccountMeta({
 
   return (
     <div className="main">
-      <div className="flex flex-col gap-2">
+      <div className="flex-col-sm">
         <div className="inline-flex flex-row gap-1 items-center">
           <span className="font-bold">point type: </span>
           <span>{urbitID.clan}</span>
@@ -109,7 +110,7 @@ export function TokenboundAccountMeta({
         <button type="button"
           disabled={(tbCreateStatus === "pending")}
           onClick={tbCreateMutate}
-          className="w-full button-lg"
+          className="w-full input-lg input-nice"
         >
           {(tbCreateStatus === "pending") ? (
             <TinyLoadingIcon />
@@ -159,44 +160,49 @@ export function TokenboundAccountTransferModule({
 
   return (
     (!!idAccount && !!localTokens && idAccount.deployed) && (
-      <div className="flex flex-col gap-2 items-center">
-        <form ref={formRef} className="flex flex-col gap-2">
-          <h2 className="text-2xl">
-            Tokenbound Account
-          </h2>
-          <ul>
-            {idTokens.map(([, {token: {name, address, decimals}, balance}]: [string, TokenHolding]) => (
-              <li key={address}>
-                <span className="font-bold">{name}: </span>
-                <code>{formatFloat(formatUnits(balance, decimals))}</code>
-              </li>
-            ))}
-          </ul>
-          <div className="flex flex-col gap-2">
-            <RecipientInput name="to" required />
-            <SingleSelector name="tokenID" required={true}
-              placeholder="currency"
-              className="w-full"
-              options={idTokens.map(([, {token: {name, address}, balance}]: [string, TokenHolding]) => (
-                { value: address, label: name }
+      <div className="flex-col-sm items-center">
+        <form ref={formRef}>
+          <fieldset
+            disabled={(status === "pending")}
+            className="flex-col-sm"
+          >
+            <h2 className="text-2xl">
+              Tokenbound Account
+            </h2>
+            <ul>
+              {idTokens.map(([, {token: {name, address, decimals}, balance}]: [string, TokenHolding]) => (
+                <li key={address}>
+                  <span className="font-bold">{name}: </span>
+                  <code>{formatFloat(formatUnits(balance, decimals))}</code>
+                </li>
               ))}
-            />
-            <CurrencyInput name="amount" required />
-            <button type="button"
-              disabled={(status === "pending")}
-              onClick={onTransfer}
-              className="w-full button-lg"
-            >
-              {(status === "pending") ? (
-                <TinyLoadingIcon />
-              ) : (status === "error") ? (
-                "Error!"
-              ) : (
-                // TODO: Make this "Propose Transfer" in the Syndicate case
-                "Transfer"
-              )}
-            </button>
-          </div>
+            </ul>
+            <div className="flex-col-sm">
+              <RecipientInput name="to" required />
+              <SingleSelector name="tokenID" required={true}
+                placeholder="currency"
+                className="w-full"
+                options={idTokens.map(([, {token: {name, address}, balance}]: [string, TokenHolding]) => (
+                  { value: address, label: name }
+                ))}
+                isDisabled={(status === "pending")}
+              />
+              <CurrencyInput name="amount" required />
+              <button type="button"
+                onClick={onTransfer}
+                className="w-full input-lg input-nice"
+              >
+                {(status === "pending") ? (
+                  <TinyLoadingIcon />
+                ) : (status === "error") ? (
+                  "Error!"
+                ) : (
+                  // TODO: Make this "Propose Transfer" in the Syndicate case
+                  "Transfer"
+                )}
+              </button>
+            </div>
+          </fieldset>
         </form>
         <AddTokenModule />
       </div>
@@ -222,12 +228,13 @@ export function SyndicateTokenPropModule({
   dissolveStatus: string;
 }): React.ReactNode {
   const syAccount = useTokenboundAccount(urbitID);
+  const twTax = useDeployerTax();
   const syTax = useSyndicateTax(urbitID);
 
   return (
-    <LoadingFrame title="Syndicate Token" size="md" status={syAccount && syTax}>
-      {(!!syAccount && !!syTax) && (
-        <div className="flex flex-col gap-2">
+    <LoadingFrame title="Syndicate Token" size="md" status={syAccount && twTax && syTax}>
+      {(!!syAccount && !!twTax && !!syTax) && (
+        <div className="flex-col-sm">
           <h2 className="text-2xl">
             {(syAccount.token === undefined) ? "Create" : "Manage"} Syndicate Token
           </h2>
@@ -255,10 +262,18 @@ function LaunchTokenModule({
   status: string;
 }): React.ReactNode {
   const formRef = useRef<HTMLFormElement>(null);
+  const [supply, setSupply] = useState<string | undefined>(undefined);
   const [useMaxSupply, setUseMaxSupply] = useState<boolean>(false);
 
   const syAccount = useTokenboundAccount(urbitID);
-  const syTax = useSyndicateTax(urbitID);
+  const twTax = useDeployerTax();
+
+  const calcLaunchAmount = useCallback((amount: string, tax: Tax) => {
+    const [bigAmount, bigDecimals]: [bigint, number] = coerceBigInt(amount);
+    const normAmount: bigint = (bigAmount * BigInt(10) ** BigInt(18 - bigDecimals));
+    const normTax: bigint = applyTax(normAmount, tax);
+    return formatCurrency(coerceBigString(normAmount - normTax, 18));
+  }, []);
 
   const toggleMaxSupply = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     setUseMaxSupply(event.target.checked);
@@ -275,43 +290,58 @@ function LaunchTokenModule({
   }, [launch, formRef]);
 
   return (
-    (!!syAccount && !!syTax && syAccount.deployed && !syAccount.token) && (
-      <form ref={formRef} className="flex flex-col gap-2">
-        <TextInput name="name" required
-          placeholder={`name (e.g. ${urbitID.patp} token)`}
-          pattern={REGEX.SYNDICATE.NAME}
-        />
-        <TextInput name="symbol" required
-          placeholder={`symbol (e.g. ${urbitID.patp.toUpperCase()})`}
-          pattern={REGEX.SYNDICATE.TOKEN}
-        />
-        <CurrencyInput name="init" required
-          placeholder="supply (e.g. 1000000)"
-        />
-        <div className="flex flex-row items-center gap-2">
-          <input type="checkbox" name="use_max_supply"
-            checked={useMaxSupply}
-            onChange={toggleMaxSupply}
-          />
-          <span>set max supply?</span>
-        </div>
-        <CurrencyInput name="max" required={useMaxSupply}
-          placeholder="max supply (e.g. 2000000)"
-          className={useMaxSupply ? "input-lg" : "hidden"}
-        />
-        <button type="button"
-          disabled={!hasClanBoon(urbitID, "star") || (status === "pending")}
-          onClick={onLaunch}
-          className="w-full button-lg"
+    (!!syAccount && !!twTax && syAccount.deployed && !syAccount.token) && (
+      <form ref={formRef}>
+        <fieldset
+          disabled={(status === "pending")}
+          className="flex-col-sm"
         >
-          {(status === "pending") ? (
-            <TinyLoadingIcon />
-          ) : (status === "error") ? (
-            "Error!"
-          ) : (
-            "Launch"
-          )}
-        </button>
+          <TextInput name="name" required
+            placeholder={`name (e.g. ${urbitID.patp} token)`}
+            pattern={REGEX.SYNDICATE.NAME}
+          />
+          <TextInput name="symbol" required
+            placeholder={`symbol (e.g. ${urbitID.patp.toUpperCase()})`}
+            pattern={REGEX.SYNDICATE.TOKEN}
+          />
+          <CurrencyInput name="init" required
+            placeholder="supply (e.g. 1000000)"
+            onChange={e => setSupply(e?.target?.value)}
+          />
+          <div className="flex flex-row items-center gap-2">
+            <input type="checkbox" name="use_max_supply"
+              checked={useMaxSupply}
+              onChange={toggleMaxSupply}
+            />
+            <span>set max supply?</span>
+          </div>
+          <CurrencyInput name="max" required={useMaxSupply}
+            placeholder="max supply (e.g. 2000000)"
+            min={supply ?? "0"}
+            className="input-lg input-nice"
+            style={useMaxSupply ? {} : {display: "none"}}
+          />
+          <div className="w-full flex flex-col">
+            <WideFrame title="Protocol Fee">
+              {formatTax(twTax)}
+            </WideFrame>
+            <WideFrame title="Syndicate Receives">
+              {calcLaunchAmount(supply ?? "0", twTax)}
+            </WideFrame>
+          </div>
+          <button type="button"
+            onClick={onLaunch}
+            className="w-full input-lg input-nice"
+          >
+            {(status === "pending") ? (
+              <TinyLoadingIcon />
+            ) : (status === "error") ? (
+              "Error!"
+            ) : (
+              "Launch"
+            )}
+          </button>
+        </fieldset>
       </form>
     )
   );
@@ -372,7 +402,7 @@ function MintTokenModule({
             )}
           />
           <CurrencyInput name={`amount-${id}`} required
-            className="input-sm"
+            className="input-sm input-nice"
             value={mintData[realID][0]}
             onChange={e => setMintData(
               mintData.toSpliced(realID, 1, [e.target.value, mintData[realID][1]])
@@ -382,7 +412,7 @@ function MintTokenModule({
         <button type="button"
           disabled={mintData.length < 2}
           onClick={delInput}
-          className="button-sm"
+          className="input-sm input-nice"
         >
           ❌
         </button>
@@ -402,7 +432,7 @@ function MintTokenModule({
 
   return (
     (!!syAccount && !!syTax && syAccount.deployed && !!syAccount.token) && (
-      <form ref={formRef} className="flex flex-col gap-2 items-center">
+      <div className="flex-col-sm items-center">
         <ul className="list-disc">
           <li>
             <span className="font-bold">name: </span>
@@ -419,45 +449,52 @@ function MintTokenModule({
             <AddressFrame address={syAccount.token.address} />
           </li>
         </ul>
-        <h4 className="text-lg">Mint Tokens</h4>
-        <p className="max-w-72">
-          Input the amount of tokens to be received by the
-          recipients.
-        </p>
-        {mintData.map((mintDatum, mintID: number) => (
-          <MintInput key={mintID} id={String(mintID)}
-            mintData={mintData}
-            setMintData={setMintData}
-          />
-        ))}
-        <button type="button"
-          onClick={addMintDatum}
-          className="button-sm"
-        >
-          + Add
-        </button>
-        <div className="w-full flex flex-col">
-          <WideFrame title="Protocol Fee">
-            {formatTax(syTax)}
-          </WideFrame>
-          <WideFrame title="Total Mint Quantity">
-            {formatToken(includeTax(mintTotal, syTax), syAccount.token)}
-          </WideFrame>
-        </div>
-        <button type="button"
-          disabled={(status === "pending")}
-          onClick={onMint}
-          className="w-full button-lg"
-        >
-          {(status === "pending") ? (
-            <TinyLoadingIcon />
-          ) : (status === "error") ? (
-            "Error!"
-          ) : (
-            "Mint"
-          )}
-        </button>
-      </form>
+        <form ref={formRef}>
+          <fieldset
+            disabled={(status === "pending")}
+            className="flex-col-sm items-center"
+          >
+            <h4 className="text-lg">Mint Tokens</h4>
+            <p className="max-w-72">
+              Input the amount of tokens to be received by the
+              recipients.
+            </p>
+            {mintData.map((mintDatum, mintID: number) => (
+              <MintInput key={mintID} id={String(mintID)}
+                mintData={mintData}
+                setMintData={setMintData}
+              />
+            ))}
+            <button type="button"
+              onClick={addMintDatum}
+              className="input-sm input-nice"
+            >
+              + Add
+            </button>
+            <div className="w-full flex flex-col">
+              <WideFrame title="Protocol Fee">
+                {formatTax(syTax)}
+              </WideFrame>
+              <WideFrame title="Total Mint Quantity">
+                {formatToken(includeTax(mintTotal, syTax), syAccount.token)}
+              </WideFrame>
+            </div>
+            <button type="button"
+              disabled={(status === "pending")}
+              onClick={onMint}
+              className="w-full input-lg input-nice"
+            >
+              {(status === "pending") ? (
+                <TinyLoadingIcon />
+              ) : (status === "error") ? (
+                "Error!"
+              ) : (
+                "Mint"
+              )}
+            </button>
+          </fieldset>
+        </form>
+      </div>
     )
   );
 }
@@ -480,11 +517,11 @@ function DissolveTokenModule({
 
   return (
     (!!syAccount && syAccount.deployed && !!syAccount.token) && (
-      <div className="flex flex-col gap-2">
+      <div className="flex-col-sm">
         <button type="button"
           disabled={(status === "pending")}
           onClick={onDissolve}
-          className="w-full buttoff-lg"
+          className="w-full input-lg input-mean"
         >
           {(status === "pending") ? (
             <TinyLoadingIcon />
@@ -518,32 +555,36 @@ function AddTokenModule(): React.ReactNode {
   }, [localTokens, diffTokensMutate]);
 
   return (
-    <form ref={addFormRef} className="flex flex-col items-center gap-2">
+    <div className="flex-col-sm items-center">
       <button type="button" onClick={toggleShown} className="text-xl">
         {isShown ? "- Hide" : "+ More"} Token Options
       </button>
-      <div className={`
-        flex flex-col items-center gap-2
-        ${isShown ? "block" : "hidden"}
-      `}>
-        <TextInput name="address" required
-          placeholder="erc20 token address"
-          pattern={REGEX.ETHEREUM.ADDRESS}
-        />
-        <button type="button"
+      <form ref={addFormRef}
+        className="flex-col-sm items-center"
+        style={isShown ? {} : {display: "none"}}
+      >
+        <fieldset
           disabled={(diffTokensStatus === "pending")}
-          onClick={onAddToken}
-          className="w-full button-lg"
+          className="flex-col-sm items-center"
         >
-          {(diffTokensStatus === "pending") ? (
-            <TinyLoadingIcon />
-          ) : (diffTokensStatus === "error") ? (
-            "Error!"
-          ) : (
-            "Add ERC20 Token"
-          )}
-        </button>
-      </div>
-    </form>
+          <TextInput name="address" required
+            placeholder="erc20 token address"
+            pattern={REGEX.ETHEREUM.ADDRESS}
+          />
+          <button type="button"
+            onClick={onAddToken}
+            className="w-full input-lg input-nice"
+          >
+            {(diffTokensStatus === "pending") ? (
+              <TinyLoadingIcon />
+            ) : (diffTokensStatus === "error") ? (
+              "Error!"
+            ) : (
+              "Add ERC20 Token"
+            )}
+          </button>
+        </fieldset>
+      </form>
+    </div>
   );
 }

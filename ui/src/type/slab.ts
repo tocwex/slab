@@ -14,7 +14,7 @@ export type ChainAddress = `${string}:${Address}`;
 
 export interface Tax {
   to: Address;
-  fee: bigint; // NOTE: assumed to be between 0 and 10000
+  fee: bigint; // NOTE: assumed to be between 0 and 10000 (2 decimal places)
 }
 
 export interface Transfer {
