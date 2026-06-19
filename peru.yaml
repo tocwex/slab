@@ -17,7 +17,7 @@ git module arvo:
     - pkg/base-dev/lib/verb.hoon
     - pkg/base-dev/sur/verb.hoon
   reup: master
-  rev: 410k
+  rev: 408k-rc2
 
 git module yard:
   url: https://github.com/urbit/yard
